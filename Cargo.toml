@@ -1,0 +1,14 @@
+[package]
+name = "osui"
+version = "0.0.1"
+edition = "2021"
+
+[lib]
+name = "osui"
+path = "src/lib.rs"
+
+[[bin]]
+name = "osui"
+path = "src/main.rs"
+
+[dependencies]
