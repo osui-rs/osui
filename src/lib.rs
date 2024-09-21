@@ -35,6 +35,11 @@ impl<T: Component> ComponentWrapper<T> {
     pub fn run(&mut self) -> String {
         self.component.run(self.x, self.y)
     }
+    pub fn render(&self, frame: &mut Vec<String>) {
+        for (i, line) in self.component.render().split("\n").enumerate() {
+            frame[self.y + i] = _render_line(frame[self.y + i].clone(), line.to_string(), self.x);
+        }
+    }
 }
 
 pub fn clear() {
@@ -46,20 +51,13 @@ pub fn flush() {
     io::stdout().flush().unwrap();
 }
 
-pub fn render_frame<T: Component>(components: Vec<ComponentWrapper<T>>) {
+pub fn create_frame() -> Vec<String> {
     clear();
     let (w, h) = terminal::size().unwrap();
-    let mut frame: Vec<String> = vec![" ".repeat(w as usize); h as usize - 1];
-    for c in components {
-        for (i, line) in c.component.render().split("\n").enumerate() {
-            frame[c.y + i] = render_line(frame[c.y + i].clone(), line.to_string(), c.x);
-        }
-    }
-    print!("{}", frame.join("\n"));
-    flush();
+    vec![" ".repeat(w as usize); h as usize - 1]
 }
 
-fn render_line(frame_line: String, line: String, x: usize) -> String {
+fn _render_line(frame_line: String, line: String, x: usize) -> String {
     let mut result = String::new();
     if x >= frame_line.len() {
         return result;
@@ -90,4 +88,36 @@ pub fn read_key() -> String {
     let res = read_key_();
     disable_raw_mode().unwrap();
     return res;
+}
+
+#[macro_export]
+macro_rules! render_frame {
+    ($first:expr) => {{
+        let mut frame = osui::create_frame();
+        $first.render(&mut frame);
+        print!("{}", frame.join("\n"));
+        frame
+    }};
+    ($first:expr, $($rest:expr),+) => {{
+        let mut frame = osui::create_frame();
+        $first.render(&mut frame);
+        $( $rest.render(&mut frame); )+
+        print!("{}", frame.join("\n"));
+        frame
+    }};
+}
+
+#[macro_export]
+macro_rules! srender_frame {
+    ($first:expr) => {{
+        let mut frame = create_frame();
+        $first.render(&mut frame);
+        frame
+    }};
+    ($first:expr, $($rest:expr),+) => {{
+        let mut frame = create_frame();
+        $first.render(&mut frame);
+        $( $rest.render(&mut frame); )+
+        frame
+    }};
 }
