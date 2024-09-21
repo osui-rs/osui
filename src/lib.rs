@@ -2,7 +2,7 @@ use std::io::{self, Write};
 
 pub mod ui;
 
-pub struct Component<T> {
+pub struct ComponentWrapper<T> {
     pub component: T,
     pub x: usize,
     pub y: usize,
@@ -10,9 +10,15 @@ pub struct Component<T> {
     pub clear_trace: bool,
 }
 
-impl<T: std::fmt::Display> Component<T> {
-    pub fn new(component: T) -> Component<T> {
-        Component {
+pub trait Component {
+    fn render(&mut self) -> String {
+        String::new()
+    }
+}
+
+impl<T: Component> ComponentWrapper<T> {
+    pub fn new(component: T) -> ComponentWrapper<T> {
+        ComponentWrapper {
             component,
             x: 0,
             y: 0,
@@ -25,7 +31,10 @@ impl<T: std::fmt::Display> Component<T> {
             self.clear();
         }
         self.cleared_frame.clear();
-        for (i, d) in format!("{}", self.component).split("\n").enumerate() {
+        for (i, d) in format!("{}", self.component.render())
+            .split("\n")
+            .enumerate()
+        {
             print!("\x1B[{};{}H{}", self.y + (i + 1), self.x, d);
             self.cleared_frame += format!(
                 "\x1B[{};{}H{}",

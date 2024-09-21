@@ -14,3 +14,4 @@ name = "osui"
 path = "src/main.rs"
 
 [dependencies]
+k_board = { version = "1.2.1", features = ["standar", "f", "alt_lower_letter", "ctrl_lower_letter", "lower_letter"] }
