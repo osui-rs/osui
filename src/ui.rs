@@ -25,10 +25,8 @@ impl Component for Input {
             self.max_length
         )
     }
-}
-
-impl Input {
-    pub fn get_input(&mut self) -> String {
+    fn run(&mut self, x: usize, y: usize) -> String {
+        print!("\x1B[{};{}H", y + 2, x + 2);
         let mut input = String::new();
         loop {
             let key = Keyboard::new().read_key();
@@ -46,8 +44,10 @@ impl Input {
                         print!(" ");
                     }
                     Keys::Delete => {
-                        input.pop();
-                        print!("\x1b[1D \x1b[1D");
+                        if input.len() > 0 {
+                            input.pop();
+                            print!("\x1b[1D \x1b[1D");
+                        }
                     }
                     _ => {}
                 }

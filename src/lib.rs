@@ -2,16 +2,21 @@ use std::io::{self, Write};
 
 pub mod ui;
 
+#[derive(Clone)]
 pub struct ComponentWrapper<T> {
     pub component: T,
     pub x: usize,
     pub y: usize,
     cleared_frame: String,
-    pub clear_trace: bool,
 }
 
 pub trait Component {
     fn render(&mut self) -> String {
+        String::new()
+    }
+    fn run(&mut self, x: usize, y: usize) -> String {
+        let _ = x;
+        let _ = y;
         String::new()
     }
 }
@@ -23,13 +28,10 @@ impl<T: Component> ComponentWrapper<T> {
             x: 0,
             y: 0,
             cleared_frame: String::new(),
-            clear_trace: false,
         }
     }
     pub fn render(&mut self) {
-        if self.clear_trace {
-            self.clear();
-        }
+        self.clean();
         self.cleared_frame.clear();
         for (i, d) in format!("{}", self.component.render())
             .split("\n")
@@ -46,14 +48,17 @@ impl<T: Component> ComponentWrapper<T> {
         }
         flush();
     }
-    pub fn clear(&self) {
+    pub fn clean(&self) {
         print!("{}", self.cleared_frame);
         flush();
+    }
+    pub fn run(&mut self) -> String {
+        self.component.run(self.x, self.y)
     }
 }
 
 pub fn clear() {
-    print!("\x1B[2J\x1B[1;1H");
+    print!("\x1b[H\x1b[2J\x1b[3J");
     flush();
 }
 
