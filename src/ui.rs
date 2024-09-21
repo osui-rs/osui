@@ -12,6 +12,8 @@ pub fn text(text: &str) -> ComponentWrapper<String> {
 #[derive(Clone)]
 pub struct Input {
     pub max_length: usize,
+    pub key: String,
+    pub data: String,
 }
 
 impl Component for Input {
@@ -23,35 +25,41 @@ impl Component for Input {
             "‾".repeat(self.max_length),
         )
     }
-    fn run(&mut self, x: usize, y: usize) -> String {
+    fn run(&mut self, x: usize, y: usize, update_fn: fn(&mut Self) -> bool) -> String {
         print!("\x1B[{};{}H", y + 2, x + 2);
         flush();
-        let mut input = String::new();
         loop {
-            match read_key().as_str() {
-                key::ENTER => {
-                    print!("\n\n");
-                    return input;
-                }
+            self.key = read_key();
+            if update_fn(self) {
+                break;
+            }
+            match self.key.as_str() {
+                key::ENTER => break,
                 key::BACKSPACE => {
-                    if input.len() > 0 {
-                        input.pop();
+                    if self.data.len() > 0 {
+                        self.data.pop();
                         print!("\x1b[1D \x1b[1D");
                         flush();
                     }
                 }
                 c => {
-                    if input.len() < self.max_length {
-                        input += c.to_string().as_str();
+                    if self.data.len() < self.max_length {
+                        self.data += c.to_string().as_str();
                         print!("{c}");
                         flush();
                     }
                 }
             }
         }
+        print!("\n\n");
+        return self.data.clone();
     }
 }
 
 pub fn input_box(max_length: usize) -> ComponentWrapper<Input> {
-    ComponentWrapper::new(Input { max_length })
+    ComponentWrapper::new(Input {
+        max_length,
+        key: String::new(),
+        data: String::new(),
+    })
 }

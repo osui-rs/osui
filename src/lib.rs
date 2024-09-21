@@ -6,20 +6,23 @@ use std::{
 pub mod key;
 pub mod ui;
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct ComponentWrapper<T> {
-    pub component: T,
+    pub contents: T,
     pub x: usize,
     pub y: usize,
+    update_fn: fn(&mut T) -> bool,
 }
 
 pub trait Component {
     fn render(&self) -> String {
         String::new()
     }
-    fn run(&mut self, x: usize, y: usize) -> String {
+
+    fn run(&mut self, x: usize, y: usize, update_fn: fn(&mut Self) -> bool) -> String {
         let _ = x;
         let _ = y;
+        let _ = update_fn;
         String::new()
     }
 }
@@ -27,18 +30,22 @@ pub trait Component {
 impl<T: Component> ComponentWrapper<T> {
     pub fn new(component: T) -> ComponentWrapper<T> {
         ComponentWrapper {
-            component,
+            contents: component,
             x: 0,
             y: 0,
+            update_fn: (|_| false),
         }
     }
     pub fn run(&mut self) -> String {
-        self.component.run(self.x, self.y)
+        self.contents.run(self.x, self.y, self.update_fn)
     }
     pub fn render(&self, frame: &mut Vec<String>) {
-        for (i, line) in self.component.render().split("\n").enumerate() {
+        for (i, line) in self.contents.render().split("\n").enumerate() {
             frame[self.y + i] = _render_line(frame[self.y + i].clone(), line.to_string(), self.x);
         }
+    }
+    pub fn update(&mut self, update_fn: fn(&mut T) -> bool) {
+        self.update_fn = update_fn;
     }
 }
 
