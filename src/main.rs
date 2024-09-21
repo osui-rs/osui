@@ -1,7 +1,6 @@
-use osui::{self, ui};
+use osui::{self, render_frame, ui};
 
 fn main() {
-    osui::clear();
-    let mut txt = ui::text("hello, world!");
-    txt.render();
+    let txt = ui::text("Hello World!");
+    render_frame(vec![txt.clone()]);
 }

@@ -1,6 +1,6 @@
 [package]
 name = "osui"
-version = "0.0.1"
+version = "0.0.2"
 edition = "2021"
 license = "Apache-2.0"
 description = "A TUI library"
@@ -14,4 +14,4 @@ name = "osui"
 path = "src/main.rs"
 
 [dependencies]
-k_board = { version = "1.2.1", features = ["standar", "f", "alt_lower_letter", "ctrl_lower_letter", "lower_letter"] }
+crossterm = "0.28.1"
