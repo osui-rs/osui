@@ -4,6 +4,7 @@ version = "0.0.2"
 edition = "2021"
 license = "Apache-2.0"
 description = "A TUI library"
+repository = "https://github.com/orus-dev/osui-rs"
 
 [lib]
 name = "osui"
