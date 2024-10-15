@@ -1,19 +1,10 @@
-#[macro_export]
-macro_rules! __xml {
-    ($(<$tag:ident> {$($inner:tt)*})+) => {{
-        let mut comps = String::new();
-        $(
-            let inner = osui::__xml!($($inner)*);
-            comps.push_str(&format!("{} {{{}}}", stringify!($tag), inner));
-        )*
-        comps
-    }};
-    () => { String::new() };
-}
+use std::fmt::Debug;
 
-#[macro_export]
-macro_rules! xml {
-    (<$tag:ident> {$($inner:tt)*}) => {
-        osui::__xml!(<$tag> {$($inner)*})
-    };
+pub mod components;
+pub mod macros;
+
+pub trait Component: Debug {}
+
+pub struct ComponentParams {
+    pub children: Vec<Box<dyn Component>>,
 }

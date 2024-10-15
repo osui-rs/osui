@@ -1,12 +1,11 @@
-use osui::xml;
+use osui::{components::div, oml, Component, ComponentParams};
 
 fn main() {
-    let doc = xml!(
-        <div> {
-            <div> {
-            }
+    let doc = oml!(
+        (div) {
+            (div) {}
         }
     );
 
-    println!("{doc}");
+    println!("{:?}", doc);
 }
