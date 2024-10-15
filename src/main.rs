@@ -4,22 +4,17 @@ use osui::{
 };
 
 fn main() {
-    let some_text = app(ComponentParams {
-        children: vec![],
-        expr: "".to_string(),
-    });
-    let doc = oml!(div { some_text; });
+    let doc = oml!(div {app()});
 
     println!("{:?}", doc);
 }
 
-fn app(_: ComponentParams) -> Box<Div> {
-    oml!(
+fn app(_: ComponentParams) -> Div {
+    *oml!(
         // Components (C)
         div {
             // Props, With components (PC)
             div () {
-
                 // Props (P)
                 text(/* Properties go here, Example: x = 20 y = 5 */)
             }
