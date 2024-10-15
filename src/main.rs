@@ -1,6 +1,12 @@
-use osui::{self, render_frame, ui};
+use osui::xml;
 
 fn main() {
-    let txt = ui::text("Hello World!");
-    render_frame!(txt);
+    let doc = xml!(
+        <div> {
+            <div> {
+            }
+        }
+    );
+
+    println!("{doc}");
 }
