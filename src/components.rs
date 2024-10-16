@@ -1,25 +1,15 @@
-use crate::{Component, ComponentParams};
+use crate::{utils::render_to_frame, Component, Params};
 
-#[derive(Debug)]
-pub struct Div {
-    pub children: Vec<Box<dyn Component>>,
+pub fn div(params: Params) -> Component {
+    Component::new(params, |s| {
+        let mut frame: Vec<String> = vec![" ".repeat(s.width); s.height];
+        for c in &mut s.children {
+            render_to_frame(s.width, &mut frame, c);
+        }
+        frame.join("\n")
+    })
 }
 
-impl Component for Div {}
-
-pub fn div(params: ComponentParams) -> Div {
-    Div {
-        children: params.children,
-    }
-}
-
-#[derive(Debug)]
-pub struct Text {
-    pub text: String,
-}
-
-impl Component for Text {}
-
-pub fn text(params: ComponentParams) -> Text {
-    Text { text: params.expr }
+pub fn text(params: Params) -> Component {
+    Component::new(params, |c| c.expr.clone())
 }
