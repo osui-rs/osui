@@ -70,6 +70,7 @@ macro_rules! __oml {
 }
 
 #[macro_export]
+/// Write OSUI Markup Language directly with rust.
 macro_rules! oml {
     // Props (P)
     ($tag:ident ($($k:ident = $v:expr),*)) => {{
@@ -116,4 +117,14 @@ macro_rules! oml {
     ($expr:expr;) => {{
         $expr
     }};
+}
+
+#[macro_export]
+///```create_frame!(width, height)```
+///
+/// Create a frame for rendering multiple components
+macro_rules! create_frame {
+    ($width:expr, $height:expr) => {
+        vec![" ".repeat($width); $height]
+    };
 }

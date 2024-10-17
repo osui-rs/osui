@@ -10,25 +10,29 @@ Here is the OSUI Go version: https://github.com/orus-dev/osui
 
 ## Features
 
+- **React-Like**: Easily write components.
 - **Cross-Platform Support**: Works on various operating systems.
 - **Flexible Layout**: Easily create and manage complex UIs.
 - **Efficient Performance**: Designed for high performance and low latency.
 
 ## Installation
 
-To use `osui` in your Rust project, add the following to your `Cargo.toml`:
+To use `osui` in your Rust project, run the following:
 
-```toml
-[dependencies]
-osui = "^0.0.2"
-```
+`cargo add osui`
 
 ```rust
-use osui::{self, render_frame, ui};
+use osui::{
+    components::text,
+    oml, App
+};
 
 fn main() {
-    let txt = ui::text("Hello World!");
-    render_frame!(txt);
+    let mut app = App::new();
+    app.set_component(oml!(
+        text("Hello, World!";)
+    ));
+    app.run();
 }
 ```
 
