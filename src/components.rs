@@ -4,11 +4,11 @@ use crate::{
     create_frame,
     key::{Key, KeyKind},
     utils::{closest_component, render_to_frame},
-    Component, Params, UpdateResponse,
+    Component, UpdateResponse,
 };
 
-pub fn div(params: Params) -> Component {
-    let mut component = Component::new(params);
+pub fn div() -> Component {
+    let mut component = Component::new();
 
     component.binds = HashMap::from([
         (KeyKind::Up, String::from("up")),
@@ -80,8 +80,8 @@ pub fn div(params: Params) -> Component {
     component
 }
 
-pub fn text(params: Params) -> Component {
-    let mut component = Component::new(params);
+pub fn text() -> Component {
+    let mut component = Component::new();
 
     fn update(_: &mut Component, _: Key) -> UpdateResponse {
         UpdateResponse::None
@@ -96,8 +96,8 @@ pub fn text(params: Params) -> Component {
     component
 }
 
-pub fn button(params: Params) -> Component {
-    let mut component = Component::new(params);
+pub fn button() -> Component {
+    let mut component = Component::new();
 
     fn update(this: &mut Component, k: Key) -> UpdateResponse {
         if k.kind == KeyKind::Enter {

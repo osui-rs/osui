@@ -74,7 +74,7 @@ macro_rules! __oml {
 macro_rules! oml {
     // Props (P)
     ($tag:ident ($($k:ident = $v:expr),*)) => {{
-        let mut c = $tag(osui::Params { children: Vec::new(), expr: String::new() });
+        let mut c = $tag();
         $(
             c.$k = $v;
         )*
@@ -83,7 +83,9 @@ macro_rules! oml {
 
     // Expression, With components (EC)
     ( $tag:ident ($expr:expr; $($k:ident = $v:expr),* ) {$($inner:tt)*} ) => {{
-        let mut c = $tag(osui::Params { children: osui::__oml!($($inner)*), expr: String::from($expr) });
+        let mut c = $tag();
+        c.children = osui::__oml!($($inner)*);
+        c.params = String::from($expr);
         $(
             c.$k = $v;
         )*
@@ -92,7 +94,8 @@ macro_rules! oml {
 
     // Expression (E)
     ( $tag:ident ($expr:expr; $($k:ident = $v:expr),*) ) => {{
-        let mut c = $tag(osui::Params { children: Vec::new(), expr: String::from($expr) });
+        let mut c = $tag();
+        c.expr = String::from($expr);
         $(
             c.$k = $v;
         )*
@@ -100,13 +103,16 @@ macro_rules! oml {
     }};
 
     // Components (C)
-    ( $tag:ident {$($inner:tt)*} ) => {
-        $tag(osui::Params { children: osui::__oml!($($inner)*), expr: String::new() })
-    };
+    ( $tag:ident {$($inner:tt)*} ) => {{
+        let mut c = $tag();
+        c.children = osui::__oml!($($inner)*);
+        c
+    }};
 
     // Props, With components (PC)
     ( $tag:ident ($($k:ident = $v:expr),*) {$($inner:tt)*} ) => {{
-        let mut c = $tag(osui::Params { children: osui::__oml!($($inner)*), expr: String::new() });
+        let mut c = $tag();
+        c.children = osui::__oml!($($inner)*);
         $(
             c.$k = $v;
         )*

@@ -13,12 +13,6 @@ pub enum UpdateResponse {
     None,
 }
 
-#[derive(Debug)]
-pub struct Params {
-    pub expr: String,
-    pub children: Vec<Component>,
-}
-
 #[derive(Debug, Clone, PartialEq)]
 pub struct Component {
     pub render: fn(&mut Component) -> String,
@@ -38,7 +32,7 @@ pub struct Component {
 
 impl Component {
     /// Creates a new component
-    fn new(params: Params) -> Component {
+    fn new() -> Component {
         Component {
             render: |_| String::new(),
             update: |_, _| UpdateResponse::None,
@@ -47,8 +41,8 @@ impl Component {
             y: 0,
             width: 0,
             height: 0,
-            expr: params.expr,
-            children: params.children,
+            expr: String::new(),
+            children: Vec::new(),
             active_child: 0,
             clicked: false,
             toggle: false,
@@ -77,10 +71,7 @@ impl App {
     /// Creates a new screen to render components
     pub fn new() -> App {
         App {
-            component: Component::new(Params {
-                expr: "".to_string(),
-                children: vec![],
-            }),
+            component: Component::new(),
         }
     }
 

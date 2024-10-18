@@ -1,11 +1,8 @@
-use osui::{
-    components::{button, div},
-    oml, App, Component, Params,
-};
+use osui::{components::*, oml, App, Component};
 
 fn main() {
     let mut app = App::new();
-    app.set_component(oml!(app_elem()));
+    app.set_component(app_elem());
     app.run();
 }
 
@@ -17,11 +14,11 @@ fn onclick(c: &mut Component) {
     }
 }
 
-fn app_elem(_: Params) -> Component {
+fn app_elem() -> Component {
     oml!(
         div {
-            button("click me"; on_click = onclick)
-            button("click me"; y = 2, on_click = onclick)
+            button("click me"; toggle = true, on_click = onclick)
+            button("click me"; toggle = true, y = 2, on_click = onclick)
         }
     )
 }
