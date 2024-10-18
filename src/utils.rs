@@ -100,3 +100,31 @@ pub fn show_cursor() {
 pub fn flush() {
     stdout().flush().unwrap();
 }
+
+pub enum Direction {
+    Left,
+    Right,
+    Up,
+    Down,
+}
+
+pub fn closest_component(
+    components: &[Component],
+    current_index: usize,
+    direction: Direction,
+) -> usize {
+    let current = &components[current_index];
+
+    components
+        .iter()
+        .enumerate() // Keep track of indices
+        .filter(|(_, comp)| match direction {
+            Direction::Left => comp.x < current.x && comp.y == current.y, // Left
+            Direction::Right => comp.x > current.x && comp.y == current.y, // Right
+            Direction::Up => comp.y < current.y && comp.x == current.x,   // Up
+            Direction::Down => comp.y > current.y && comp.x == current.x, // Down
+        })
+        .min_by_key(|(_, comp)| current.manhattan_distance(comp)) // Find the closest component
+        .map(|(index, _)| index) // Return the index of the closest component
+        .unwrap_or(current_index) // If no component is found, return the current index
+}

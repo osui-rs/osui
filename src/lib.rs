@@ -4,27 +4,13 @@ pub mod macros;
 pub mod utils;
 
 use crossterm;
-use key::Key;
 use std::collections::HashMap;
-use utils::{clear, show_cursor, Value};
 
 #[derive(Debug, Clone, PartialEq)]
 pub enum UpdateResponse {
     Exit,
     Done,
     None,
-    SetComponent(Component),
-}
-
-#[derive(Debug, Clone)]
-pub enum UpdateRequest {
-    Key(Key),
-}
-
-#[derive(Debug, Clone)]
-pub struct UpdateContext {
-    pub request: UpdateRequest,
-    pub response: UpdateResponse,
 }
 
 #[derive(Debug)]
@@ -36,17 +22,18 @@ pub struct Params {
 #[derive(Debug, Clone, PartialEq)]
 pub struct Component {
     pub render: fn(&mut Component) -> String,
-    pub update: fn(&mut Component, &mut UpdateContext),
-    pub on_click: fn(&mut UpdateContext),
+    pub update: fn(&mut Component, key::Key) -> UpdateResponse,
+    pub on_click: fn(&mut Component),
     pub x: usize,
     pub y: usize,
     pub width: usize,
     pub height: usize,
     pub expr: String,
     pub children: Vec<Component>,
+    pub active_child: usize,
     pub clicked: bool,
     pub toggle: bool,
-    pub data: HashMap<String, Value>,
+    pub binds: HashMap<key::KeyKind, String>,
 }
 
 impl Component {
@@ -54,7 +41,7 @@ impl Component {
     fn new(params: Params) -> Component {
         Component {
             render: |_| String::new(),
-            update: |_, _| {},
+            update: |_, _| UpdateResponse::None,
             on_click: |_| {},
             x: 0,
             y: 0,
@@ -62,10 +49,22 @@ impl Component {
             height: 0,
             expr: params.expr,
             children: params.children,
+            active_child: 0,
             clicked: false,
             toggle: false,
-            data: HashMap::new(),
+            binds: HashMap::new(),
         }
+    }
+
+    pub fn get_active_child(&mut self) -> Option<&mut Component> {
+        if self.active_child < self.children.len() {
+            return self.children.get_mut(self.active_child);
+        }
+        None
+    }
+
+    fn manhattan_distance(&self, other: &Component) -> usize {
+        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
     }
 }
 
@@ -95,7 +94,6 @@ impl App {
         if self.component.height == 0 {
             self.component.height = height as usize;
         }
-        self.render();
     }
 
     /// Render to the screen
@@ -115,19 +113,14 @@ impl App {
         crossterm::terminal::enable_raw_mode().unwrap();
         loop {
             self.render();
-            let mut ctx = UpdateContext {
-                response: UpdateResponse::None,
-                request: UpdateRequest::Key(key::read_key()),
-            };
-            (self.component.update)(&mut self.component, &mut ctx);
-            match ctx.response {
+            self.component.expr = "Hello".to_string();
+            match (self.component.update)(&mut self.component, key::read_key()) {
                 UpdateResponse::Exit => {
                     crossterm::terminal::disable_raw_mode().unwrap();
-                    clear();
-                    show_cursor();
+                    utils::clear();
+                    utils::show_cursor();
                     return;
                 }
-                UpdateResponse::SetComponent(c) => self.component = c,
                 _ => {}
             }
         }
