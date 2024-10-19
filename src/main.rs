@@ -17,8 +17,8 @@ fn onclick(c: &mut Component) {
 fn app_elem() -> Component {
     oml!(
         div {
-            button("click me"; toggle = true, on_click = onclick)
-            button("click me"; toggle = true, y = 2, on_click = onclick)
+            button("click me"; toggle = false, on_click = onclick)
+            button("click me"; toggle = false, y = 2, on_click = onclick)
         }
     )
 }

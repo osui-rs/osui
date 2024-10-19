@@ -124,7 +124,7 @@ pub fn closest_component(
             Direction::Up => comp.y < current.y && comp.x == current.x,   // Up
             Direction::Down => comp.y > current.y && comp.x == current.x, // Down
         })
-        .min_by_key(|(_, comp)| current.manhattan_distance(comp)) // Find the closest component
+        .min_by_key(|(_, comp)| current.x.abs_diff(comp.x) + current.y.abs_diff(comp.y)) // Find the closest component
         .map(|(index, _)| index) // Return the index of the closest component
         .unwrap_or(current_index) // If no component is found, return the current index
 }

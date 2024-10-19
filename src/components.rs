@@ -2,9 +2,9 @@ use std::collections::HashMap;
 
 use crate::{
     create_frame,
-    key::{Key, KeyKind},
+    key::KeyKind,
     utils::{closest_component, render_to_frame},
-    Component, UpdateResponse,
+    Component, UpdateRequest, UpdateResponse,
 };
 
 pub fn div() -> Component {
@@ -17,8 +17,8 @@ pub fn div() -> Component {
         (KeyKind::Right, String::from("right")),
     ]);
 
-    fn update(this: &mut Component, k: Key) -> UpdateResponse {
-        if let Some(v) = this.binds.get(&k.kind) {
+    fn update(this: &mut Component, req: UpdateRequest) -> UpdateResponse {
+        if let Some(v) = this.binds.get(&req.key.kind) {
             match v.as_str() {
                 "up" => {
                     this.active_child = closest_component(
@@ -54,13 +54,13 @@ pub fn div() -> Component {
 
                 _ => {
                     if let Some(child) = this.get_active_child() {
-                        return (child.update)(child, k);
+                        return (child.update)(child, req);
                     }
                 }
             }
         } else {
             if let Some(child) = this.get_active_child() {
-                return (child.update)(child, k);
+                return (child.update)(child, req);
             }
         }
 
@@ -83,7 +83,7 @@ pub fn div() -> Component {
 pub fn text() -> Component {
     let mut component = Component::new();
 
-    fn update(_: &mut Component, _: Key) -> UpdateResponse {
+    fn update(_: &mut Component, _: UpdateRequest) -> UpdateResponse {
         UpdateResponse::None
     }
 
@@ -99,14 +99,15 @@ pub fn text() -> Component {
 pub fn button() -> Component {
     let mut component = Component::new();
 
-    fn update(this: &mut Component, k: Key) -> UpdateResponse {
-        if k.kind == KeyKind::Enter {
+    fn update(this: &mut Component, req: UpdateRequest) -> UpdateResponse {
+        if req.key.kind == KeyKind::Enter {
             if this.toggle {
                 this.clicked = !this.clicked;
                 (this.on_click)(this);
             } else {
                 this.clicked = true;
                 (this.on_click)(this);
+                std::thread::sleep(std::time::Duration::from_millis(300));
                 this.clicked = false;
                 (this.on_click)(this);
             }

@@ -13,10 +13,15 @@ pub enum UpdateResponse {
     None,
 }
 
+pub struct UpdateRequest<'a> {
+    pub key: key::Key,
+    pub screen: &'a App,
+}
+
 #[derive(Debug, Clone, PartialEq)]
 pub struct Component {
     pub render: fn(&mut Component) -> String,
-    pub update: fn(&mut Component, key::Key) -> UpdateResponse,
+    pub update: fn(&mut Component, UpdateRequest) -> UpdateResponse,
     pub on_click: fn(&mut Component),
     pub x: usize,
     pub y: usize,
@@ -51,18 +56,11 @@ impl Component {
     }
 
     pub fn get_active_child(&mut self) -> Option<&mut Component> {
-        if self.active_child < self.children.len() {
-            return self.children.get_mut(self.active_child);
-        }
-        None
-    }
-
-    fn manhattan_distance(&self, other: &Component) -> usize {
-        self.x.abs_diff(other.x) + self.y.abs_diff(other.y)
+        self.children.get_mut(self.active_child)
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq)]
 pub struct App {
     component: Component,
 }
@@ -104,8 +102,13 @@ impl App {
         crossterm::terminal::enable_raw_mode().unwrap();
         loop {
             self.render();
-            self.component.expr = "Hello".to_string();
-            match (self.component.update)(&mut self.component, key::read_key()) {
+            match (self.component.update)(
+                &mut self.component,
+                UpdateRequest {
+                    key: key::read_key(),
+                    screen: self, // error: cannot borrow `*self` as immutable because it is also borrowed as mutable (IMPORTANT)
+                },
+            ) {
                 UpdateResponse::Exit => {
                     crossterm::terminal::disable_raw_mode().unwrap();
                     utils::clear();
