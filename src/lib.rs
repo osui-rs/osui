@@ -1,18 +1,11 @@
 pub mod components;
 pub mod key;
 pub mod macros;
+pub mod style;
 pub mod utils;
 
-use crossterm;
+use crossterm::{self, ExecutableCommand};
 use std::collections::HashMap;
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum UpdateResponse {
-    Exit,
-    Done,
-    None,
-    Tick(Vec<u32>),
-}
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Component {
@@ -30,6 +23,7 @@ pub struct Component {
     pub clicked: bool,
     pub toggle: bool,
     pub binds: HashMap<key::KeyKind, String>,
+    pub style: style::Style,
 }
 
 impl Component {
@@ -50,6 +44,7 @@ impl Component {
             clicked: false,
             toggle: false,
             binds: HashMap::new(),
+            style: style::Style::new(),
         }
     }
 
@@ -97,14 +92,18 @@ impl App {
     pub fn run(&mut self) {
         utils::hide_cursor();
         utils::clear();
+        let mut stdout = std::io::stdout();
+        stdout
+            .execute(crossterm::terminal::EnterAlternateScreen)
+            .unwrap();
         crossterm::terminal::enable_raw_mode().unwrap();
         loop {
             self.render();
             match (self.component.update)(&mut self.component, key::read_key()) {
                 UpdateResponse::Exit => {
                     crossterm::terminal::disable_raw_mode().unwrap();
-                    utils::clear();
                     utils::show_cursor();
+                    utils::clear();
                     return;
                 }
                 UpdateResponse::Tick(ticks) => {
@@ -118,4 +117,12 @@ impl App {
             }
         }
     }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum UpdateResponse {
+    Exit,
+    Done,
+    None,
+    Tick(Vec<u32>),
 }
