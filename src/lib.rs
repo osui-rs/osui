@@ -11,17 +11,14 @@ pub enum UpdateResponse {
     Exit,
     Done,
     None,
-}
-
-pub struct UpdateRequest<'a> {
-    pub key: key::Key,
-    pub screen: &'a App,
+    Tick(Vec<u32>),
 }
 
 #[derive(Debug, Clone, PartialEq)]
 pub struct Component {
     pub render: fn(&mut Component) -> String,
-    pub update: fn(&mut Component, UpdateRequest) -> UpdateResponse,
+    pub update: fn(&mut Component, key::Key) -> UpdateResponse,
+    pub tick: fn(&mut Component, usize),
     pub on_click: fn(&mut Component),
     pub x: usize,
     pub y: usize,
@@ -41,6 +38,7 @@ impl Component {
         Component {
             render: |_| String::new(),
             update: |_, _| UpdateResponse::None,
+            tick: |_, _| {},
             on_click: |_| {},
             x: 0,
             y: 0,
@@ -102,18 +100,19 @@ impl App {
         crossterm::terminal::enable_raw_mode().unwrap();
         loop {
             self.render();
-            match (self.component.update)(
-                &mut self.component,
-                UpdateRequest {
-                    key: key::read_key(),
-                    screen: self, // error: cannot borrow `*self` as immutable because it is also borrowed as mutable (IMPORTANT)
-                },
-            ) {
+            match (self.component.update)(&mut self.component, key::read_key()) {
                 UpdateResponse::Exit => {
                     crossterm::terminal::disable_raw_mode().unwrap();
                     utils::clear();
                     utils::show_cursor();
                     return;
+                }
+                UpdateResponse::Tick(ticks) => {
+                    for (i, n) in ticks.into_iter().enumerate() {
+                        std::thread::sleep(std::time::Duration::from_millis(n as u64));
+                        (self.component.tick)(&mut self.component, i);
+                        self.render();
+                    }
                 }
                 _ => {}
             }
