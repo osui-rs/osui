@@ -51,6 +51,25 @@ impl Component {
     pub fn get_active_child(&mut self) -> Option<&mut Component> {
         self.children.get_mut(self.active_child)
     }
+
+    pub fn set_active_child(&mut self, idx: usize) {
+        let last_active = self.active_child;
+        if let Some(last_child) = self.children.get_mut(last_active) {
+            last_child.style.is_active = false;
+        }
+        if let Some(child) = self.children.get_mut(idx) {
+            self.active_child = idx;
+            if child.width == 0 {
+                child.width = self.width;
+            }
+            if child.height == 0 {
+                child.height = self.height;
+            }
+            child.style.is_active = self.style.is_active;
+        } else if let Some(last_child) = self.children.get_mut(last_active) {
+            last_child.style.is_active = true;
+        }
+    }
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -69,6 +88,7 @@ impl App {
     /// Sets a component
     pub fn set_component(&mut self, component: Component) {
         let (width, height) = crossterm::terminal::size().unwrap();
+        self.component.style.is_active = true;
         self.component = component;
         if self.component.width == 0 {
             self.component.width = width as usize;
@@ -76,6 +96,7 @@ impl App {
         if self.component.height == 0 {
             self.component.height = height as usize;
         }
+        self.component.style.is_active = true;
     }
 
     /// Render to the screen

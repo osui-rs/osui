@@ -2,13 +2,15 @@
 pub struct Style {
     pub bg: Color,
     pub fg: Color,
+    pub outline: Color,
     pub font: Font,
 
     pub hover_bg: Color,
     pub hover_fg: Color,
+    pub hover_outline: Color,
     pub hover_font: Font,
 
-    is_active: bool,
+    pub is_active: bool,
 }
 
 impl Style {
@@ -16,30 +18,32 @@ impl Style {
         Style {
             bg: Color::None,
             fg: Color::None,
+            outline: Color::None,
             font: Font::None,
 
             hover_bg: Color::None,
             hover_fg: Color::None,
+            hover_outline: Color::None,
             hover_font: Font::None,
 
             is_active: false,
         }
     }
 
-    pub fn update(&mut self, active: bool) {
-        self.is_active = active
-    }
-
     pub fn get(self) -> String {
-        String::from(self.fg.ansi() + &self.bg.ansi_bg() + &self.font.ansi())
+        if self.is_active {
+            String::from(
+                self.fg.prioritize(self.hover_fg).ansi()
+                    + &self.bg.prioritize(self.hover_bg).ansi_bg()
+                    + &self.font.prioritize(self.hover_font).ansi(),
+            )
+        } else {
+            String::from(self.fg.ansi() + &self.bg.ansi_bg() + &self.font.ansi())
+        }
     }
 
     pub fn get_outline(self) -> String {
         String::from(self.fg.ansi() + &self.bg.ansi_bg() + &self.font.ansi())
-    }
-
-    pub fn get_hover(self) -> String {
-        String::from(self.hover_fg.ansi() + &self.hover_bg.ansi_bg() + &self.hover_font.ansi())
     }
 }
 
@@ -71,6 +75,14 @@ impl Font {
                 return s;
             }
         })
+    }
+
+    pub fn prioritize(self, secondary: Font) -> Font {
+        if secondary == Font::None {
+            self
+        } else {
+            secondary
+        }
     }
 }
 
@@ -121,5 +133,13 @@ impl Color {
             Color::Cyan => "\x1b[46m",
             Color::White => "\x1b[47m",
         })
+    }
+
+    pub fn prioritize(self, secondary: Color) -> Color {
+        if secondary == Color::None {
+            self
+        } else {
+            secondary
+        }
     }
 }

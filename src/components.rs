@@ -112,7 +112,7 @@ pub fn button() -> Component {
                 this.clicked = !this.clicked;
                 (this.on_click)(this);
             } else {
-                return UpdateResponse::Tick(vec![1, 140]);
+                return UpdateResponse::Tick(vec![1, 100]);
             }
         }
         UpdateResponse::None
