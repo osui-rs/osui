@@ -106,6 +106,8 @@ pub fn text() -> Component {
 pub fn button() -> Component {
     let mut component = Component::new();
 
+    component.style.hover_fg = crate::style::Color::Blue;
+
     fn update(this: &mut Component, k: key::Key) -> UpdateResponse {
         if k.kind == KeyKind::Enter {
             if this.toggle {
@@ -128,8 +130,8 @@ pub fn button() -> Component {
         }
     }
 
-    fn render(s: &mut Component) -> String {
-        s.expr.clone()
+    fn render(this: &mut Component) -> String {
+        this.style.clone().write(&this.expr)
     }
 
     component.update = update;

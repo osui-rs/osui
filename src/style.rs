@@ -43,7 +43,19 @@ impl Style {
     }
 
     pub fn get_outline(self) -> String {
-        String::from(self.fg.ansi() + &self.bg.ansi_bg() + &self.font.ansi())
+        if self.is_active {
+            self.outline.prioritize(self.hover_outline).ansi()
+        } else {
+            self.outline.ansi()
+        }
+    }
+
+    pub fn write(self, s: &str) -> String {
+        format!("{}{}", self.get(), s)
+    }
+
+    pub fn write_outline(self, s: &str) -> String {
+        format!("{}{}", self.get_outline(), s)
     }
 }
 
