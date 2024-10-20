@@ -7,6 +7,8 @@ pub struct Style {
     pub hover_bg: Color,
     pub hover_fg: Color,
     pub hover_font: Font,
+
+    is_active: bool,
 }
 
 impl Style {
@@ -19,10 +21,20 @@ impl Style {
             hover_bg: Color::None,
             hover_fg: Color::None,
             hover_font: Font::None,
+
+            is_active: false,
         }
     }
 
+    pub fn update(&mut self, active: bool) {
+        self.is_active = active
+    }
+
     pub fn get(self) -> String {
+        String::from(self.fg.ansi() + &self.bg.ansi_bg() + &self.font.ansi())
+    }
+
+    pub fn get_outline(self) -> String {
         String::from(self.fg.ansi() + &self.bg.ansi_bg() + &self.font.ansi())
     }
 
