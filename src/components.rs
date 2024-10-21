@@ -21,45 +21,45 @@ pub fn div() -> Component {
         if let Some(v) = this.binds.get(&k.kind) {
             match v.as_str() {
                 "up" => {
-                    this.active_child = closest_component(
+                    this.set_child(closest_component(
                         &this.children,
-                        this.active_child,
+                        this.child,
                         crate::utils::Direction::Up,
-                    );
+                    ));
                 }
 
                 "down" => {
-                    this.active_child = closest_component(
+                    this.set_child(closest_component(
                         &this.children,
-                        this.active_child,
+                        this.child,
                         crate::utils::Direction::Down,
-                    );
+                    ));
                 }
 
                 "left" => {
-                    this.active_child = closest_component(
+                    this.set_child(closest_component(
                         &this.children,
-                        this.active_child,
+                        this.child,
                         crate::utils::Direction::Left,
-                    );
+                    ));
                 }
 
                 "right" => {
-                    this.active_child = closest_component(
+                    this.set_child(closest_component(
                         &this.children,
-                        this.active_child,
+                        this.child,
                         crate::utils::Direction::Right,
-                    );
+                    ));
                 }
 
                 _ => {
-                    if let Some(child) = this.get_active_child() {
+                    if let Some(child) = this.get_child() {
                         return (child.update)(child, k);
                     }
                 }
             }
         } else {
-            if let Some(child) = this.get_active_child() {
+            if let Some(child) = this.get_child() {
                 return (child.update)(child, k);
             }
         }
@@ -67,16 +67,17 @@ pub fn div() -> Component {
         UpdateResponse::None
     }
 
-    fn render(s: &mut Component) -> String {
-        let mut frame: Vec<String> = create_frame!(s.width, s.height);
-        for c in &mut s.children {
+    fn render(this: &mut Component) -> String {
+        let mut frame: Vec<String> = create_frame!(this.width, this.height);
+        for (i, c) in &mut this.children.iter_mut().enumerate() {
+            c.style.is_active = this.style.is_active && i == this.child;
             render_to_frame(&mut frame, c);
         }
         frame.join("\n")
     }
 
     fn tick(this: &mut Component, i: usize) {
-        if let Some(child) = this.get_active_child() {
+        if let Some(child) = this.get_child() {
             return (child.tick)(child, i);
         }
     }
@@ -106,7 +107,8 @@ pub fn text() -> Component {
 pub fn button() -> Component {
     let mut component = Component::new();
 
-    component.style.hover_fg = crate::style::Color::Blue;
+    component.style.clicked_fg = crate::style::Color::Red;
+    component.style.hover_fg = crate::style::Color::Green;
 
     fn update(this: &mut Component, k: key::Key) -> UpdateResponse {
         if k.kind == KeyKind::Enter {
@@ -131,7 +133,10 @@ pub fn button() -> Component {
     }
 
     fn render(this: &mut Component) -> String {
-        this.style.clone().write(&this.expr)
+        if this.clicked {
+            return this.style.write_clicked(&this.expr);
+        }
+        this.style.write(&this.expr)
     }
 
     component.update = update;

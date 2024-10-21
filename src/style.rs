@@ -10,6 +10,11 @@ pub struct Style {
     pub hover_outline: Color,
     pub hover_font: Font,
 
+    pub clicked_bg: Color,
+    pub clicked_fg: Color,
+    pub clicked_outline: Color,
+    pub clicked_font: Font,
+
     pub is_active: bool,
 }
 
@@ -26,36 +31,60 @@ impl Style {
             hover_outline: Color::None,
             hover_font: Font::None,
 
+            clicked_bg: Color::None,
+            clicked_fg: Color::None,
+            clicked_outline: Color::None,
+            clicked_font: Font::None,
+
             is_active: false,
         }
     }
 
-    pub fn get(self) -> String {
+    pub fn get(&self) -> String {
         if self.is_active {
-            String::from(
-                self.fg.prioritize(self.hover_fg).ansi()
-                    + &self.bg.prioritize(self.hover_bg).ansi_bg()
-                    + &self.font.prioritize(self.hover_font).ansi(),
+            format!(
+                "{}{}{}",
+                self.fg.prioritize(&self.hover_fg).ansi(),
+                self.bg.prioritize(&self.hover_bg).ansi_bg(),
+                self.font.prioritize(&self.hover_font).ansi()
             )
         } else {
-            String::from(self.fg.ansi() + &self.bg.ansi_bg() + &self.font.ansi())
+            format!(
+                "{}{}{}",
+                self.fg.ansi(),
+                self.bg.ansi_bg(),
+                self.font.ansi()
+            )
         }
     }
 
-    pub fn get_outline(self) -> String {
+    pub fn get_outline(&self) -> String {
         if self.is_active {
-            self.outline.prioritize(self.hover_outline).ansi()
+            self.outline.prioritize(&self.hover_outline).ansi()
         } else {
             self.outline.ansi()
         }
     }
 
-    pub fn write(self, s: &str) -> String {
-        format!("{}{}", self.get(), s)
+    pub fn get_clicked(&self) -> String {
+        format!(
+            "{}{}{}",
+            self.fg.prioritize(&self.clicked_fg).ansi(),
+            self.bg.prioritize(&self.clicked_bg).ansi_bg(),
+            self.font.prioritize(&self.clicked_font).ansi()
+        )
     }
 
-    pub fn write_outline(self, s: &str) -> String {
-        format!("{}{}", self.get_outline(), s)
+    pub fn write(&self, s: &str) -> String {
+        format!("{}{}\x1b[0m", self.get(), s)
+    }
+
+    pub fn write_outline(&self, s: &str) -> String {
+        format!("{}{}\x1b[0m", self.get_outline(), s)
+    }
+
+    pub fn write_clicked(&self, s: &str) -> String {
+        format!("{}{}\x1b[0m", self.get_clicked(), s)
     }
 }
 
@@ -71,7 +100,7 @@ pub enum Font {
 }
 
 impl Font {
-    pub fn ansi(self) -> String {
+    pub fn ansi(&self) -> String {
         String::from(match self {
             Font::None => "",
             Font::Bold => "\x1b[1m",
@@ -89,8 +118,8 @@ impl Font {
         })
     }
 
-    pub fn prioritize(self, secondary: Font) -> Font {
-        if secondary == Font::None {
+    pub fn prioritize<'a>(&'a self, secondary: &'a Font) -> &Font {
+        if secondary == &Font::None {
             self
         } else {
             secondary
@@ -113,7 +142,7 @@ pub enum Color {
 }
 
 impl Color {
-    pub fn ansi(self) -> String {
+    pub fn ansi(&self) -> String {
         String::from(match self {
             Color::None => "",
             Self::Rgb(r, g, b) => {
@@ -130,7 +159,7 @@ impl Color {
         })
     }
 
-    pub fn ansi_bg(self) -> String {
+    pub fn ansi_bg(&self) -> String {
         String::from(match self {
             Color::None => "",
             Self::Rgb(r, g, b) => {
@@ -147,8 +176,8 @@ impl Color {
         })
     }
 
-    pub fn prioritize(self, secondary: Color) -> Color {
-        if secondary == Color::None {
+    pub fn prioritize<'a>(&'a self, secondary: &'a Color) -> &Color {
+        if secondary == &Color::None {
             self
         } else {
             secondary

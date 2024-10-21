@@ -46,11 +46,15 @@ pub fn compress_string(input: &str, re: &Regex) -> (String, HashMap<usize, Strin
 /// Merges a frame withe a line by x
 fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
     let (frame_, fm) = compress_string(frame_, &ANSI);
-    let (line_, lm) = compress_string(line_, &ANSI);
+    let (mut line_, lm) = compress_string(line_, &ANSI);
+
+    if let Some(_) = lm.get(&line_.len()) {
+        line_.push('\n');
+    }
 
     let mut res = String::new();
     let frame: Vec<char> = frame_.chars().collect();
-    let line: Vec<char> = line_.chars().collect();
+    let line: Vec<char> = (line_).chars().collect();
 
     let flen = frame.len();
     let llen = line.len();
@@ -60,7 +64,9 @@ fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
             if let Some(v) = lm.get(&(i - x)) {
                 res.push_str(v);
             }
-            res.push(line[i - x]);
+            if line[i - x] != '\n' {
+                res.push(line[i - x]);
+            }
         } else {
             if let Some(v) = fm.get(&i) {
                 res.push_str(v);

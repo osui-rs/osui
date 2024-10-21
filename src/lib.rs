@@ -19,7 +19,7 @@ pub struct Component {
     pub height: usize,
     pub expr: String,
     pub children: Vec<Component>,
-    pub active_child: usize,
+    pub child: usize,
     pub clicked: bool,
     pub toggle: bool,
     pub binds: HashMap<key::KeyKind, String>,
@@ -40,7 +40,7 @@ impl Component {
             height: 0,
             expr: String::new(),
             children: Vec::new(),
-            active_child: 0,
+            child: 0,
             clicked: false,
             toggle: false,
             binds: HashMap::new(),
@@ -48,26 +48,19 @@ impl Component {
         }
     }
 
-    pub fn get_active_child(&mut self) -> Option<&mut Component> {
-        self.children.get_mut(self.active_child)
+    pub fn get_child(&mut self) -> Option<&mut Component> {
+        self.children.get_mut(self.child)
     }
 
-    pub fn set_active_child(&mut self, idx: usize) {
-        let last_active = self.active_child;
-        if let Some(last_child) = self.children.get_mut(last_active) {
-            last_child.style.is_active = false;
-        }
+    pub fn set_child(&mut self, idx: usize) {
         if let Some(child) = self.children.get_mut(idx) {
-            self.active_child = idx;
+            self.child = idx;
             if child.width == 0 {
                 child.width = self.width;
             }
             if child.height == 0 {
                 child.height = self.height;
             }
-            child.style.is_active = self.style.is_active;
-        } else if let Some(last_child) = self.children.get_mut(last_active) {
-            last_child.style.is_active = true;
         }
     }
 }
