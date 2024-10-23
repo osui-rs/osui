@@ -3,6 +3,8 @@ use std::io::{self, Read};
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub enum KeyKind {
     Enter,
+    Tab,
+    ShiftTab,
     Escape,
     Up,
     Down,
@@ -19,17 +21,21 @@ pub struct Key {
 
 impl Key {
     pub fn new(k: String) -> Key {
-        let kind = match k.as_str() {
-            "\r" => KeyKind::Enter,
-            "\x1b" => KeyKind::Escape,
-            "\x1b[A" => KeyKind::Up,
-            "\x1b[B" => KeyKind::Down,
-            "\x1b[C" => KeyKind::Right,
-            "\x1b[D" => KeyKind::Left,
+        Key {
+            raw: k.clone(),
+            kind: match k.as_str() {
+                "\r" => KeyKind::Enter,
+                "\t" => KeyKind::Tab,
+                "\x1b[Z" => KeyKind::ShiftTab,
+                "\x1b" => KeyKind::Escape,
+                "\x1b[A" => KeyKind::Up,
+                "\x1b[B" => KeyKind::Down,
+                "\x1b[C" => KeyKind::Right,
+                "\x1b[D" => KeyKind::Left,
 
-            _ => KeyKind::Char(k.clone()),
-        };
-        Key { raw: k, kind }
+                _ => KeyKind::Char(k.clone()),
+            },
+        }
     }
 }
 

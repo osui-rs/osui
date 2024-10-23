@@ -51,18 +51,6 @@ impl Component {
     pub fn get_child(&mut self) -> Option<&mut Component> {
         self.children.get_mut(self.child)
     }
-
-    pub fn set_child(&mut self, idx: usize) {
-        if let Some(child) = self.children.get_mut(idx) {
-            self.child = idx;
-            if child.width == 0 {
-                child.width = self.width;
-            }
-            if child.height == 0 {
-                child.height = self.height;
-            }
-        }
-    }
 }
 
 #[derive(Debug, Clone, PartialEq)]

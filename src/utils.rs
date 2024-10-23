@@ -64,7 +64,9 @@ fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
             if let Some(v) = lm.get(&(i - x)) {
                 res.push_str(v);
             }
-            if line[i - x] != '\n' {
+            if line[i - x] == '\n' {
+                res.push(frame[i]);
+            } else {
                 res.push(line[i - x]);
             }
         } else {
