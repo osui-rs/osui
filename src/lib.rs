@@ -1,7 +1,6 @@
-pub mod components;
 pub mod key;
 pub mod macros;
-pub mod style;
+pub mod ui;
 pub mod utils;
 
 use crossterm::{self, ExecutableCommand};
@@ -23,7 +22,7 @@ pub struct Component {
     pub clicked: bool,
     pub toggle: bool,
     pub binds: HashMap<key::KeyKind, String>,
-    pub style: style::Style,
+    pub style: ui::Style,
 }
 
 impl Component {
@@ -44,7 +43,7 @@ impl Component {
             clicked: false,
             toggle: false,
             binds: HashMap::new(),
-            style: style::Style::new(),
+            style: ui::Style::new(),
         }
     }
 

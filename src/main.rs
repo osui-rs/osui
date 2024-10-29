@@ -1,4 +1,4 @@
-use osui::{components::*, oml, App, Component};
+use osui::{oml, ui::*, App, Component};
 
 fn main() {
     let mut app = App::new();
