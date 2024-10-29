@@ -18,17 +18,26 @@ pub struct Style {
     pub hover_fg: Color,
     pub hover_outline: Color,
     pub hover_font: Font,
+    pub hover_cursor_fg: Color,
+    pub hover_cursor_bg: Color,
 
     pub clicked_bg: Color,
     pub clicked_fg: Color,
     pub clicked_outline: Color,
     pub clicked_font: Font,
 
+    pub selected_bg: Color,
+    pub selected_fg: Color,
+    pub selected_font: Font,
+
+    pub cursor_fg: Color,
+    pub cursor_bg: Color,
+
     pub is_active: bool,
 }
 
-impl Style {
-    pub fn new() -> Style {
+impl Default for Style {
+    fn default() -> Style {
         Style {
             bg: Color::None,
             fg: Color::None,
@@ -39,16 +48,26 @@ impl Style {
             hover_fg: Color::None,
             hover_outline: Color::None,
             hover_font: Font::None,
+            hover_cursor_fg: Color::None,
+            hover_cursor_bg: Color::None,
 
             clicked_bg: Color::None,
             clicked_fg: Color::None,
             clicked_outline: Color::None,
             clicked_font: Font::None,
 
+            selected_bg: Color::None,
+            selected_fg: Color::None,
+            selected_font: Font::None,
+            cursor_fg: Color::None,
+            cursor_bg: Color::None,
+
             is_active: false,
         }
     }
+}
 
+impl Style {
     pub fn get(&self) -> String {
         if self.is_active {
             format!(
@@ -84,6 +103,27 @@ impl Style {
         )
     }
 
+    pub fn get_selected(&self) -> String {
+        format!(
+            "{}{}{}",
+            self.fg.prioritize(&self.selected_fg).ansi(),
+            self.bg.prioritize(&self.selected_bg).ansi_bg(),
+            self.font.prioritize(&self.selected_font).ansi()
+        )
+    }
+
+    pub fn get_cursor(&self) -> String {
+        if self.is_active {
+            format!(
+                "{}{}",
+                self.cursor_fg.prioritize(&self.hover_cursor_fg).ansi(),
+                self.cursor_bg.prioritize(&self.hover_cursor_bg).ansi_bg(),
+            )
+        } else {
+            format!("{}{}", self.cursor_fg.ansi(), self.cursor_bg.ansi_bg())
+        }
+    }
+
     pub fn write(&self, s: &str) -> String {
         format!("{}{}\x1b[0m", self.get(), s)
     }
@@ -94,6 +134,14 @@ impl Style {
 
     pub fn write_clicked(&self, s: &str) -> String {
         format!("{}{}\x1b[0m", self.get_clicked(), s)
+    }
+
+    pub fn write_selected(&self, s: &str) -> String {
+        format!("{}{}\x1b[0m", self.get_selected(), s)
+    }
+
+    pub fn write_cursor(&self, s: &str) -> String {
+        format!("{}{}\x1b[0m", self.get_cursor(), s)
     }
 }
 
@@ -404,5 +452,54 @@ pub fn tab() -> Component {
     component.update = update;
     component.tick = tick;
     component.render = render;
+    component
+}
+
+pub fn menu() -> Component {
+    let mut component = Component::new();
+
+    component.style.selected_bg = Color::Magenta;
+    component.style.selected_fg = Color::Black;
+    component.style.cursor_fg = Color::Magenta;
+
+    fn render(this: &mut Component) -> String {
+        let mut res: Vec<String> = Vec::new();
+
+        for (i, item) in this.children.iter_mut().enumerate() {
+            if i == this.child {
+                res.push(format!(
+                    "{}{}",
+                    this.style.write_cursor("> "),
+                    this.style.write_selected(&item.expr)
+                ));
+            } else {
+                res.push(format!("  {}", &item.expr));
+            }
+        }
+
+        res.join(&this.style.write("\n"))
+    }
+
+    fn update(this: &mut Component, k: key::Key) -> UpdateResponse {
+        if k.kind == key::KeyKind::Down {
+            if this.children.len() > this.child + 1 {
+                this.child += 1;
+            } else {
+                this.child = 0;
+            }
+        } else if k.kind == key::KeyKind::Up {
+            if this.child > 0 {
+                this.child -= 1;
+            } else {
+                this.child = this.children.len() - 1;
+            }
+        } else if k.kind == key::KeyKind::Enter {
+            (this.on_click)(this)
+        }
+        UpdateResponse::None
+    }
+
+    component.render = render;
+    component.update = update;
     component
 }

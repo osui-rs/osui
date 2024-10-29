@@ -43,7 +43,7 @@ impl Component {
             clicked: false,
             toggle: false,
             binds: HashMap::new(),
-            style: ui::Style::new(),
+            style: ui::Style::default(),
         }
     }
 
