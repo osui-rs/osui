@@ -1,10 +1,11 @@
-use crate::Component;
+use crate::Element;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{
     collections::HashMap,
     io::{stdout, Write},
 };
+
 lazy_static! {
     pub static ref ANSI: Regex = Regex::new(r"(\x1b\[([0-9;]*)[a-zA-Z])+").unwrap();
 }
@@ -81,11 +82,12 @@ fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
 }
 
 /// Render to a frame
-pub fn render_to_frame(frame: &mut Vec<String>, component: &mut Component) {
-    for (i, line) in (component.render)(component).split('\n').enumerate() {
-        if (component.y + i) < frame.len() {
-            let frame_line = frame.get_mut(component.y + i).unwrap();
-            *frame_line = merge_line(&frame_line, line, component.x);
+pub fn render_to_frame(frame: &mut Vec<String>, element: &mut Box<dyn Element>) {
+    let data = element.get_data();
+    for (i, line) in element.render().split('\n').enumerate() {
+        if (data.y + i) < frame.len() {
+            let frame_line = frame.get_mut(data.y + i).unwrap();
+            *frame_line = merge_line(&frame_line, line, data.x);
         }
     }
 }
@@ -117,22 +119,28 @@ pub enum Direction {
 }
 
 pub fn closest_component(
-    components: &[Component],
+    components: &[Box<dyn Element>],
     current_index: usize,
     direction: Direction,
 ) -> usize {
-    let current = &components[current_index];
+    let current = &components[current_index].get_data();
 
     components
         .iter()
         .enumerate() // Keep track of indices
-        .filter(|(_, comp)| match direction {
-            Direction::Left => comp.x < current.x && comp.y == current.y, // Left
-            Direction::Right => comp.x > current.x && comp.y == current.y, // Right
-            Direction::Up => comp.y < current.y && comp.x == current.x,   // Up
-            Direction::Down => comp.y > current.y && comp.x == current.x, // Down
+        .filter(|(_, comp_)| {
+            let comp = comp_.get_data();
+            match direction {
+                Direction::Left => comp.x < current.x && comp.y == current.y, // Left
+                Direction::Right => comp.x > current.x && comp.y == current.y, // Right
+                Direction::Up => comp.y < current.y && comp.x == current.x,   // Up
+                Direction::Down => comp.y > current.y && comp.x == current.x, // Down
+            }
         })
-        .min_by_key(|(_, comp)| current.x.abs_diff(comp.x) + current.y.abs_diff(comp.y)) // Find the closest component
+        .min_by_key(|(_, comp_)| {
+            let comp = comp_.get_data();
+            current.x.abs_diff(comp.x) + current.y.abs_diff(comp.y)
+        }) // Find the closest component
         .map(|(index, _)| index) // Return the index of the closest component
         .unwrap_or(current_index) // If no component is found, return the current index
 }

@@ -1,89 +1,72 @@
+use crossterm::ExecutableCommand;
+
 pub mod key;
 pub mod macros;
 pub mod ui;
 pub mod utils;
 
-use crossterm::{self, ExecutableCommand};
-use std::collections::HashMap;
+pub trait Element: std::fmt::Debug {
+    fn get_child(&mut self) -> Option<&mut Box<dyn Element>>;
+    fn get_data(&self) -> ElementData;
+    fn set_data(&mut self, _: ElementData);
+    fn render(&mut self) -> String {
+        String::new()
+    }
+    fn update(&mut self, _: crate::key::Key) -> UpdateResponse {
+        UpdateResponse::None
+    }
+    fn tick(&mut self, _: usize) {}
+}
 
-#[derive(Debug, Clone, PartialEq)]
-pub struct Component {
-    pub render: fn(&mut Component) -> String,
-    pub update: fn(&mut Component, key::Key) -> UpdateResponse,
-    pub tick: fn(&mut Component, usize),
-    pub on_click: fn(&mut Component),
+#[derive(Debug)]
+pub struct ElementData {
     pub x: usize,
     pub y: usize,
     pub width: usize,
     pub height: usize,
-    pub expr: String,
-    pub children: Vec<Component>,
-    pub child: usize,
-    pub clicked: bool,
-    pub toggle: bool,
-    pub binds: HashMap<key::KeyKind, String>,
-    pub style: ui::Style,
-}
-
-impl Component {
-    /// Creates a new component
-    fn new() -> Component {
-        Component {
-            render: |_| String::new(),
-            update: |_, _| UpdateResponse::None,
-            tick: |_, _| {},
-            on_click: |_| {},
-            x: 0,
-            y: 0,
-            width: 0,
-            height: 0,
-            expr: String::new(),
-            children: Vec::new(),
-            child: 0,
-            clicked: false,
-            toggle: false,
-            binds: HashMap::new(),
-            style: ui::Style::default(),
-        }
-    }
-
-    pub fn get_child(&mut self) -> Option<&mut Component> {
-        self.children.get_mut(self.child)
-    }
+    pub style: ui::styles::Style,
 }
 
 #[derive(Debug, Clone, PartialEq)]
+pub enum UpdateResponse {
+    Exit,
+    Done,
+    None,
+    Tick(Vec<u32>),
+}
+
 pub struct App {
-    component: Component,
+    element: Box<dyn Element>,
 }
 
 impl App {
     /// Creates a new screen to render components
     pub fn new() -> App {
         App {
-            component: Component::new(),
+            element: ui::text(),
         }
     }
 
     /// Sets a component
-    pub fn set_component(&mut self, component: Component) {
+    pub fn set_component(&mut self, element: Box<dyn Element>) {
         let (width, height) = crossterm::terminal::size().unwrap();
-        self.component.style.is_active = true;
-        self.component = component;
-        if self.component.width == 0 {
-            self.component.width = width as usize;
+        self.element = element;
+        let mut data = self.element.get_data();
+        data.style.is_active = true;
+        if data.width == 0 {
+            data.width = width as usize;
         }
-        if self.component.height == 0 {
-            self.component.height = height as usize;
+        if data.height == 0 {
+            data.height = height as usize;
         }
-        self.component.style.is_active = true;
+        self.element.set_data(data);
     }
 
     /// Render to the screen
     pub fn render(&mut self) {
         let (width, height) = crossterm::terminal::size().unwrap();
         let mut frame: Vec<String> = create_frame!(width as usize, height as usize);
-        utils::render_to_frame(&mut frame, &mut self.component);
+        utils::render_to_frame(&mut frame, &mut self.element);
         utils::clear();
         print!("{}", frame.join(""));
         utils::flush();
@@ -100,7 +83,7 @@ impl App {
         crossterm::terminal::enable_raw_mode().unwrap();
         loop {
             self.render();
-            match (self.component.update)(&mut self.component, key::read_key()) {
+            match self.element.update(key::read_key()) {
                 UpdateResponse::Exit => {
                     crossterm::terminal::disable_raw_mode().unwrap();
                     utils::show_cursor();
@@ -110,7 +93,7 @@ impl App {
                 UpdateResponse::Tick(ticks) => {
                     for (i, n) in ticks.into_iter().enumerate() {
                         std::thread::sleep(std::time::Duration::from_millis(n as u64));
-                        (self.component.tick)(&mut self.component, i);
+                        self.element.tick(i);
                         self.render();
                     }
                 }
@@ -118,12 +101,4 @@ impl App {
             }
         }
     }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum UpdateResponse {
-    Exit,
-    Done,
-    None,
-    Tick(Vec<u32>),
 }
