@@ -6,8 +6,18 @@ fn main() {
     app_screen.run();
 }
 
-fn app() -> Box<Text> {
+fn app() -> Box<Tab> {
     oml!(
-        text("Hello, World!";)
+        tab {
+            text("Hello!"; style = Style {
+                hover_fg: Color::Red,
+                ..Default::default()
+            })
+            button("Hello 2!"; y = 1, style = Style {
+                hover_fg: Color::Green,
+                ..Default::default()
+            })
+            menu(items = vec![String::from("Hello, World!"), String::from("Item 2!")])
+        }
     )
 }
