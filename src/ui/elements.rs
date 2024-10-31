@@ -207,9 +207,9 @@ element! {
         let mut v: String = " ".repeat((self.width / 2) - self.children.len());
         for (i, _) in (&self.children).into_iter().enumerate() {
             if i == self.child {
-                v += self.style.write_selected("•").as_str()
+                v += self.style.write_selected("*").as_str()
             } else {
-                v += self.style.write("•").as_str()
+                v += self.style.write("*").as_str()
             }
         }
         format!("{}\n{}", v, frame.join("\n"))

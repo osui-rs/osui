@@ -26,10 +26,9 @@ pub fn compress_string(input: &str, re: &Regex) -> (String, HashMap<usize, Strin
 
     let mut i = 0;
     while i < input_chars.len() {
-        if let Some(loc) = re.find(&(input_chars[i..]).iter().collect::<String>()) {
+        if let Some(loc) = re.find(&input[i..]) {
             if loc.start() == 0 {
-                let ansi_seq = &(input_chars[i..i + loc.end()]).iter().collect::<String>();
-                // let ansi_seq = &input[i..i + loc.end()];
+                let ansi_seq = &input[i..i + loc.end()];
                 matches_map.insert(res.len(), ansi_seq.to_string());
                 i += ansi_seq.chars().count();
             } else {
