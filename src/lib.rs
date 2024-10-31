@@ -86,8 +86,9 @@ impl App {
             match self.element.update(key::read_key()) {
                 UpdateResponse::Exit => {
                     crossterm::terminal::disable_raw_mode().unwrap();
-                    utils::show_cursor();
                     utils::clear();
+                    utils::show_cursor();
+                    println!("");
                     return;
                 }
                 UpdateResponse::Tick(ticks) => {

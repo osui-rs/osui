@@ -207,9 +207,9 @@ element! {
         let mut v: String = " ".repeat((self.width / 2) - self.children.len());
         for (i, _) in (&self.children).into_iter().enumerate() {
             if i == self.child {
-                v += self.style.write_selected("*").as_str()
+                v += self.style.write_selected("•").as_str()
             } else {
-                v += self.style.write("*").as_str()
+                v += self.style.write("•").as_str()
             }
         }
         format!("{}\n{}", v, frame.join("\n"))
@@ -233,11 +233,16 @@ element! {
         pub items: Vec<String>,
         pub selected: usize,
         pub on_click: fn(&mut Menu, _: Key) -> ClickResponse,
+        pub binds: HashMap<KeyKind, String>,
     }
     defaults {
         items: Vec::new(),
         selected: 0,
-        on_click: |_, _|ClickResponse::None
+        on_click: |_, _|ClickResponse::None,
+        binds: HashMap::from([
+            (KeyKind::Char(String::from("w")), String::from("up")),
+            (KeyKind::Char(String::from("s")), String::from("down"))
+        ])
     }
     fn render(&mut self) -> String {
         let mut res: Vec<String> = Vec::new();
@@ -257,17 +262,28 @@ element! {
     }
 
     fn update(&mut self, k: Key) -> UpdateResponse {
-        if k.kind == KeyKind::Down {
-            if self.items.len() > self.selected + 1 {
-                self.selected += 1;
-            } else {
-                self.selected = 0;
-            }
-        } else if k.kind == KeyKind::Up {
-            if self.child > 0 {
-                self.selected -= 1;
-            } else {
-                self.selected = self.items.len() - 1;
+        if let Some(c) = self.binds.get(&k.kind) {
+            match c.as_str() {
+                "up" => {
+                    if self.selected > 0 {
+                        self.selected -= 1;
+                    } else {
+                        self.selected = self.items.len() - 1;
+                    }
+                }
+                "down" => {
+                    if self.items.len() > self.selected + 1 {
+                        self.selected += 1;
+                    } else {
+                        self.selected = 0;
+                    }
+                }
+                _ => {
+                    return match (self.on_click)(self, k) {
+                        ClickResponse::Exit => UpdateResponse::Exit,
+                        ClickResponse::None => UpdateResponse::None,
+                    }
+                }
             }
         } else {
             return match (self.on_click)(self, k) {
