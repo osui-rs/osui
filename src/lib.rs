@@ -65,11 +65,27 @@ impl App {
     /// Render to the screen
     pub fn render(&mut self) {
         let (width, height) = crossterm::terminal::size().unwrap();
+        let mut data = self.element.get_data();
+        if data.width == 0 {
+            data.width = width as usize;
+        }
+        if data.height == 0 {
+            data.height = height as usize;
+        }
+        self.element.set_data(data);
         let mut frame: Vec<String> = create_frame!(width as usize, height as usize);
         utils::render_to_frame(&mut frame, &mut self.element);
         utils::clear();
         print!("{}", frame.join(""));
         utils::flush();
+        let mut data = self.element.get_data();
+        if data.width == width as usize {
+            data.width = 0;
+        }
+        if data.height == height as usize {
+            data.height = 0;
+        }
+        self.element.set_data(data);
     }
 
     /// Run the screen

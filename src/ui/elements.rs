@@ -7,32 +7,6 @@ use crate::{
     Element, ElementData, UpdateResponse,
 };
 
-macro_rules! update_child_data {
-    ($elem:ident, $child:ident, $i:expr) => {
-        let mut child_data = $child.get_data();
-        if child_data.width == 0 {
-            child_data.width = $elem.width;
-        }
-        if child_data.height == 0 {
-            child_data.height = $elem.height;
-        }
-        child_data.style.is_active = $elem.style.is_active && $i == $elem.child;
-        $child.set_data(child_data);
-    };
-
-    ($elem:expr, $child:ident) => {
-        let mut child_data = $child.get_data();
-        if child_data.width == 0 {
-            child_data.width = $elem.width;
-        }
-        if child_data.height == 0 {
-            child_data.height = $elem.height;
-        }
-        child_data.style.is_active = true;
-        $child.set_data(child_data);
-    };
-}
-
 element! {
     Text {}
     defaults {}
@@ -99,8 +73,24 @@ element! {
     fn render(&mut self) -> String {
         let mut frame: Vec<String> = create_frame!(self.width, self.height);
         for (i, child) in &mut self.children.iter_mut().enumerate() {
-            update_child_data!(self, child, i);
+            let mut data = child.get_data();
+            if data.width == 0 {
+                data.width = self.width;
+            }
+            if data.height == 0 {
+                data.height = self.height;
+            }
+            data.style.is_active = self.style.is_active && i == self.child;
+            child.set_data(data);
             crate::utils::render_to_frame(&mut frame, child);
+            let mut data = child.get_data();
+            if data.width == self.width {
+                data.width = 0;
+            }
+            if data.height == self.height {
+                data.height = 0;
+            }
+            child.set_data(data);
         }
         frame.join("\n")
     }
@@ -199,10 +189,26 @@ element! {
 
     fn render(&mut self) -> String {
         let mut frame: Vec<String> = create_frame!(self.width, self.height - 1);
-        let d = self.get_data();
+        let this = self.get_data();
         if let Some(child) = self.get_child() {
-            update_child_data!(d, child);
+            let mut data = child.get_data();
+            if data.width == 0 {
+                data.width = this.width;
+            }
+            if data.height == 0 {
+                data.height = this.height;
+            }
+            data.style.is_active = true;
+            child.set_data(data);
             crate::utils::render_to_frame(&mut frame, child);
+            let mut data = child.get_data();
+            if data.width == this.width {
+                data.width = 0;
+            }
+            if data.height == this.height {
+                data.height = 0;
+            }
+            child.set_data(data);
         }
         let mut v: String = " ".repeat((self.width / 2) - self.children.len());
         for (i, _) in (&self.children).into_iter().enumerate() {
