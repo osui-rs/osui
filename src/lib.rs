@@ -9,13 +9,11 @@ pub trait Element: std::fmt::Debug {
     fn get_child(&mut self) -> Option<&mut Box<dyn Element>>;
     fn get_data(&self) -> ElementData;
     fn set_data(&mut self, _: ElementData);
-    fn render(&mut self) -> String {
+    fn clear_ticks(&mut self);
+    fn render(&mut self, _tick: usize) -> String {
         String::new()
     }
-    fn update(&mut self, _: crate::key::Key) -> UpdateResponse {
-        UpdateResponse::None
-    }
-    fn tick(&mut self, _: usize) {}
+    fn update(&mut self, _ctx: &mut UpdateContext) {}
 }
 
 #[derive(Debug)]
@@ -32,7 +30,12 @@ pub enum UpdateResponse {
     Exit,
     Done,
     None,
-    Tick(Vec<u32>),
+}
+
+pub struct UpdateContext {
+    pub key: key::Key,
+    pub tick: usize,
+    pub response: UpdateResponse,
 }
 
 pub struct App {
@@ -45,6 +48,13 @@ impl App {
         App {
             element: ui::text(),
         }
+    }
+
+    /// Creates a new screen to render components with a pre-existing component
+    pub fn from(elem: Box<dyn Element>) -> App {
+        let mut app = App::new();
+        app.set_component(elem);
+        app
     }
 
     /// Sets a component
@@ -63,7 +73,7 @@ impl App {
     }
 
     /// Render to the screen
-    pub fn render(&mut self) {
+    fn render(&mut self, tick: usize) {
         let (width, height) = crossterm::terminal::size().unwrap();
         let mut data = self.element.get_data();
         if data.width == 0 {
@@ -74,7 +84,7 @@ impl App {
         }
         self.element.set_data(data);
         let mut frame: Vec<String> = create_frame!(width as usize, height as usize);
-        utils::render_to_frame(&mut frame, &mut self.element);
+        utils::render_to_frame(tick, &mut frame, &mut self.element);
         utils::clear();
         print!("{}", frame.join(""));
         utils::flush();
@@ -88,8 +98,23 @@ impl App {
         self.element.set_data(data);
     }
 
+    fn update(&mut self, ctx: &mut UpdateContext) {
+        self.element.update(ctx);
+        match ctx.response {
+            UpdateResponse::Exit => {
+                crossterm::terminal::disable_raw_mode().unwrap();
+                utils::clear();
+                utils::show_cursor();
+                println!("");
+                return;
+            }
+            _ => {}
+        }
+    }
+
     /// Run the screen
     pub fn run(&mut self) {
+        // Initialize
         utils::hide_cursor();
         utils::clear();
         let mut stdout = std::io::stdout();
@@ -97,24 +122,33 @@ impl App {
             .execute(crossterm::terminal::EnterAlternateScreen)
             .unwrap();
         crossterm::terminal::enable_raw_mode().unwrap();
+
+        // Start the update thread
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || loop {
+            tx.send(key::read_key()).unwrap();
+        });
+
+        // Start the render loop
+        let mut tick: usize = 0;
         loop {
-            self.render();
-            match self.element.update(key::read_key()) {
-                UpdateResponse::Exit => {
-                    crossterm::terminal::disable_raw_mode().unwrap();
-                    utils::clear();
-                    utils::show_cursor();
-                    println!("");
-                    return;
+            if tick > 99 {
+                tick = 0;
+            }
+            self.render(tick);
+            tick += 1;
+            match rx.try_recv() {
+                Ok(k) => self.update(&mut UpdateContext {
+                    key: k,
+                    tick,
+                    response: UpdateResponse::None,
+                }),
+                Err(std::sync::mpsc::TryRecvError::Empty) => {
+                    std::thread::sleep(std::time::Duration::from_millis(10));
                 }
-                UpdateResponse::Tick(ticks) => {
-                    for (i, n) in ticks.into_iter().enumerate() {
-                        std::thread::sleep(std::time::Duration::from_millis(n as u64));
-                        self.element.tick(i);
-                        self.render();
-                    }
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                    panic!("disconnected")
                 }
-                _ => {}
             }
         }
     }

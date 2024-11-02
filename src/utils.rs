@@ -82,9 +82,9 @@ fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
 }
 
 /// Render to a frame
-pub fn render_to_frame(frame: &mut Vec<String>, element: &mut Box<dyn Element>) {
+pub fn render_to_frame(tick: usize, frame: &mut Vec<String>, element: &mut Box<dyn Element>) {
     let data = element.get_data();
-    for (i, line) in element.render().split('\n').enumerate() {
+    for (i, line) in element.render(tick).split('\n').enumerate() {
         if (data.y + i) < frame.len() {
             let frame_line = frame.get_mut(data.y + i).unwrap();
             *frame_line = merge_line(&frame_line, line, data.x);

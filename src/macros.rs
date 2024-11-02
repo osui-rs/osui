@@ -160,6 +160,7 @@ macro_rules! element {
             pub child: usize,
             pub text: String,
             pub style: Style,
+            pub tick_line: std::collections::HashMap<usize, String>,
             $( $inner )*
         }
 
@@ -184,6 +185,10 @@ macro_rules! element {
                 self.height = data.height;
                 self.style = data.style;
             }
+
+            fn clear_ticks(&mut self) {
+                self.tick_line.clear();
+            }
             $( $functions )*
         }
 
@@ -198,8 +203,20 @@ macro_rules! element {
                     child: 0,
                     text: String::new(),
                     style: Style::default(),
+                    tick_line: std::collections::HashMap::new(),
                     $( $defaults )*
                 }
+            }
+
+            pub fn get_action(&self, tick: usize) -> String {
+                match self.tick_line.get(&tick) {
+                    Some(action) => action.clone(),
+                    None => String::new(),
+                }
+            }
+
+            pub fn add_action(&mut self, tick: usize, action: &str) {
+                self.tick_line.insert(tick, action.to_string());
             }
         }
     };
