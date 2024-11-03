@@ -27,6 +27,7 @@ pub fn text() -> Box<Text> {
 /// A boxed `Button` element, initialized and ready for configuration.
 pub fn button() -> Box<Button> {
     let mut btn = Button::new();
-    btn.style.clicked_bg = styles::Color::Red;
+    btn.style.clicked_bg = styles::Color::White;
+    btn.style.clicked_fg = styles::Color::Black;
     Box::new(btn)
 }

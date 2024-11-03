@@ -131,24 +131,33 @@ impl App {
 
         // Start the render loop
         let mut tick: usize = 0;
+        let tick_duration = std::time::Duration::from_millis(1000/30);
+        let mut last_tick = std::time::Instant::now();
         loop {
-            if tick > 99 {
-                tick = 0;
+            let now = std::time::Instant::now();
+            let elapsed = now.duration_since(last_tick);
+
+            if elapsed >= tick_duration {
+                last_tick = now;
+                if tick > 99 {
+                    tick = 0;
+                }
+                self.render(tick);
+                tick += 1;
+                match rx.try_recv() {
+                    Ok(k) => self.update(&mut UpdateContext {
+                        key: k,
+                        tick,
+                        response: UpdateResponse::None,
+                    }),
+                    Err(std::sync::mpsc::TryRecvError::Empty) => {}
+                    Err(std::sync::mpsc::TryRecvError::Disconnected) => {
+                        panic!("disconnected")
+                    }
+                }
             }
-            self.render(tick);
-            tick += 1;
-            match rx.try_recv() {
-                Ok(k) => self.update(&mut UpdateContext {
-                    key: k,
-                    tick,
-                    response: UpdateResponse::None,
-                }),
-                Err(std::sync::mpsc::TryRecvError::Empty) => {
-                    std::thread::sleep(std::time::Duration::from_millis(10));
-                }
-                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                    panic!("disconnected")
-                }
+            if let Some(remaining) = tick_duration.checked_sub(elapsed) {
+                std::thread::sleep(remaining);
             }
         }
     }

@@ -1,67 +1,76 @@
 #[macro_export]
-macro_rules! __oml {
-    () => { [String::new(), Vec::new()] };
+macro_rules! __rsx {
+    () => {
+        (String::new(), Vec::new())
+    };
 
+    ($p:expr;) => {{
+        (String::new(), vec![$p as Box<dyn osui::Element>])
+    }};
+    ($p:expr; $($rest:tt)+) => {{
+        let mut comps: Vec<Box<dyn osui::Element>> = osui::__rsx!($($rest)+).1;
+        comps.insert(0, $p as Box<dyn osui::Element>);
+        (String::new(), comps)
+    }};
     // Props, With components (PC)
-    ($tag:ident { $($inner:tt)* }) => {{
-        (String::new(), vec![rsx!($tag {$($inner)*}) as Box<dyn osui::Element>])
+    ($tag:path { $($inner:tt)* }) => {{
+        (String::new(), vec![rsx!($tag {$($inner)*})])
     }};
 
-    ($tag:ident { $($inner:tt)* } $($rest:tt)+) => {{
-        let mut comps: Vec<Box<dyn osui::Element>> = osui::__oml!($($rest)+).1;
-        comps.insert(0, rsx!($tag {$($inner)*}) as Box<dyn osui::Element> );
+    ($tag:path { $($inner:tt)* } $($rest:tt)+) => {{
+        let mut comps: Vec<Box<dyn osui::Element>> = osui::__rsx!($($rest)+).1;
+        comps.insert(0, rsx!($tag {$($inner)*}) );
+        (String::new(), comps)
+    }};
+
+    ($tag:path { $($inner:tt)* }) => {{
+        (String::new(), vec![rsx!($tag {$($inner)*})])
+    }};
+
+    ($tag:path { $($inner:tt)* } $($rest:tt)+) => {{
+        let mut comps: Vec<Box<dyn osui::Element>> = osui::__rsx!($($rest)+).1;
+        comps.insert(0, rsx!($tag {$($inner)*}) );
         (String::new(), comps)
     }};
 
     ($text:expr) => {{
-        (format!($text), vec![])
+        (format!($text), Vec::new())
     }};
 }
 
 #[macro_export]
 /// Write OSUI Markup Language directly with rust.
 macro_rules! rsx {
-
-    ( $tag:ident { $($inner:tt)* } ) => {{
+    ( $tag:path { $($k:ident: $v:expr),*; $($inner:tt)* } ) => {{
         let mut c = $tag();
-        let a = osui::__oml!($($inner)*);
+        let a = osui::__rsx!($($inner)*);
         c.text = a.0;
         c.children = a.1;
-        c
-    }};
-
-    ( $tag:ident { $($k:ident: $v:expr),*, $($inner:tt)* } ) => {{
-        let mut c = $tag();
-        c.children = osui::__oml!($($inner)*);
-        c.text = String::from($text);
         $(
             c.$k = $v;
         )*
-        c
+        c as Box<dyn osui::Element>
     }};
 
-    // ( $tag:ident { $text:expr } ) => {{
-    //     let mut c = $tag();
-    //     c.text = format!($text);
-    //     c
-    // }};
+    ( $tag:path { $($k:ident: $v:expr),* } ) => {{
+        let mut c = $tag();
+        $(
+            c.$k = $v;
+        )*
+        c as Box<dyn osui::Element>
+    }};
 
-    // ( $tag:ident { $($k:ident: $v:expr),+, $text:expr } ) => {{
-    //     let mut c = $tag();
-    //     c.text = format!($text);
-    //     $(
-    //         c.$k = $v;
-    //     )*
-    //     c
-    // }};
+    ( $tag:path { $($inner:tt)* } ) => {{
+        let mut c = $tag();
+        let a = osui::__rsx!($($inner)*);
+        c.text = a.0;
+        c.children = a.1;
+        c as Box<dyn osui::Element>
+    }};
 
-    // ($tag:ident { $($k:ident: $v:expr),* } ) => {{
-    //     let mut c = $tag();
-    //     $(
-    //         c.$k = $v;
-    //     )*
-    //     c
-    // }};
+    ( $p:expr; ) => {{
+        $p as Box<dyn osui::Element>
+    }};
 }
 
 #[macro_export]
@@ -155,7 +164,11 @@ macro_rules! element {
             }
 
             pub fn add_action(&mut self, tick: usize, action: &str) {
-                self.tick_line.insert(tick, action.to_string());
+                if tick > 99 {
+                    self.tick_line.insert(tick-100, action.to_string());
+                } else {
+                    self.tick_line.insert(tick, action.to_string());
+                }
             }
         }
     };

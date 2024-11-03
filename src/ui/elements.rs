@@ -1,17 +1,13 @@
 use std::collections::HashMap;
 
-use crate::{
-    element,
-    key::KeyKind,
-    ui::Style,
-    Element, ElementData, UpdateContext,
-};
+use crate::{element, key::KeyKind, ui::Style, Element, ElementData, UpdateContext};
 
 element! {
     Text {}
     defaults {}
-    fn render(&mut self, _: usize) -> String {
-        self.style.write(&self.text)
+    fn render(&mut self, tick: usize) -> String {
+        // self.style.write(&self.text)
+        self.style.write(&format!("{tick}"))
     }
 }
 
@@ -31,7 +27,7 @@ element! {
         if let Some(v) = self.binds.get(&ctx.key.kind) {
             if v == "click" {
                 self.clicked = true;
-                self.add_action(ctx.tick+5, "un_click");
+                self.add_action(ctx.tick+2, "un_click");
                 (self.on_click)(self);
             }
         }
@@ -44,6 +40,7 @@ element! {
         }
 
         if self.clicked {
+            // return self.style.write(&format!("{tick}"))
             return self.style.write_clicked(&self.text);
         }
         self.style.write(&self.text)
