@@ -1,88 +1,36 @@
 #[macro_export]
 macro_rules! __oml {
-    () => { Vec::new() };
+    () => { [String::new(), Vec::new()] };
 
     // Props, With components (PC)
-    ($tag:ident ($($k:ident = $v:expr),*) {$($inner:tt)*}) => {{
-        vec![oml!($tag ($($k = $v),*) {$($inner)*})]
+    ($tag:ident { $($inner:tt)* }) => {{
+        (String::new(), vec![rsx!($tag {$($inner)*}) as Box<dyn osui::Element>])
     }};
 
-    ($tag:ident ($($k:ident = $v:expr),*) {$($inner:tt)*} $($rest:tt)+) => {{
-        let mut comps: Vec<Box<dyn osui::Element>> = osui::__oml!($($rest)+);
-        comps.insert(0, oml!($tag ($($k = $v),*) {$($inner)*}));
-        comps
+    ($tag:ident { $($inner:tt)* } $($rest:tt)+) => {{
+        let mut comps: Vec<Box<dyn osui::Element>> = osui::__oml!($($rest)+).1;
+        comps.insert(0, rsx!($tag {$($inner)*}) as Box<dyn osui::Element> );
+        (String::new(), comps)
     }};
 
-    // Components (C)
-    ($tag:ident {$($inner:tt)*}) => {{
-        vec![oml!($tag {$($inner)*})]
-    }};
-
-    ($tag:ident {$($inner:tt)*} $($rest:tt)+) => {{
-        let mut comps: Vec<Box<dyn osui::Element>> = osui::__oml!($($rest)+);
-        comps.insert(0, oml!($tag {$($inner)*}));
-        comps
-    }};
-
-    // Expression, With components (EC)
-    ($tag:ident ($text:expr; $($k:ident = $v:expr),*) {$($inner:tt)*}) => {{
-        vec![oml!($tag ($text; $($k = $v),*) {$($inner)*})]
-    }};
-
-    ($tag:ident ($text:expr; $($k:ident = $v:expr),*) {$($inner:tt)*} $($rest:tt)+) => {{
-        let mut comps: Vec<Box<dyn osui::Element>> = osui::__oml!($($rest)+);
-        comps.insert(0, oml!($tag ($text; $($k = $v),*) {$($inner)*}));
-        comps
-    }};
-
-    // Expression (E)
-    ($tag:ident ($text:expr; $($k:ident = $v:expr),*)) => {{
-        vec![oml!($tag ($text; $($k = $v),*))]
-    }};
-
-    ($tag:ident ($text:expr; $($k:ident = $v:expr),*) $($rest:tt)+) => {{
-        let mut comps: Vec<Box<dyn osui::Element>> = osui::__oml!($($rest)+);
-        comps.insert(0, oml!($tag ($text; $($k = $v),*)));
-        comps
-    }};
-
-    // Props (P)
-    ($tag:ident ($($k:ident = $v:expr),*)) => {{
-        vec![oml!($tag ($($k = $v),*))]
-    }};
-
-    ($tag:ident ($($k:ident = $v:expr),*) $($rest:tt)+) => {{
-        let mut comps: Vec<Box<dyn osui::Element>> = osui::__oml!($($rest)+);
-        comps.insert(0, oml!($tag ($($k = $v),*)));
-        comps
-    }};
-
-    // Pre-Defined (D)
-    ($text:expr;) => {{
-        vec![oml!($text;)]
-    }};
-
-    ($text:expr; $($rest:tt)+) => {{
-        let mut comps: Vec<Box<dyn osui::Element>> = osui::__oml!($($rest)+);
-        comps.insert(0, oml!($text));
-        comps
+    ($text:expr) => {{
+        (format!($text), vec![])
     }};
 }
 
 #[macro_export]
 /// Write OSUI Markup Language directly with rust.
-macro_rules! oml {
-    // Props (P)
-    ($tag:ident ($($k:ident = $v:expr),*)) => {{
+macro_rules! rsx {
+
+    ( $tag:ident { $($inner:tt)* } ) => {{
         let mut c = $tag();
-        $(
-            c.$k = $v;
-        )*
+        let a = osui::__oml!($($inner)*);
+        c.text = a.0;
+        c.children = a.1;
         c
     }};
 
-    // Expression, With components (EC)
-    ( $tag:ident ($text:expr; $($k:ident = $v:expr),* ) {$($inner:tt)*} ) => {{
+    ( $tag:ident { $($k:ident: $v:expr),*, $($inner:tt)* } ) => {{
         let mut c = $tag();
         c.children = osui::__oml!($($inner)*);
         c.text = String::from($text);
@@ -92,37 +40,28 @@ macro_rules! oml {
         c
     }};
 
-    // Expression (E)
-    ( $tag:ident ($text:expr; $($k:ident = $v:expr),*) ) => {{
-        let mut c = $tag();
-        c.text = String::from($text);
-        $(
-            c.$k = $v;
-        )*
-        c
-    }};
+    // ( $tag:ident { $text:expr } ) => {{
+    //     let mut c = $tag();
+    //     c.text = format!($text);
+    //     c
+    // }};
 
-    // Components (C)
-    ( $tag:ident {$($inner:tt)*} ) => {{
-        let mut c = $tag();
-        c.children = osui::__oml!($($inner)*);
-        c
-    }};
+    // ( $tag:ident { $($k:ident: $v:expr),+, $text:expr } ) => {{
+    //     let mut c = $tag();
+    //     c.text = format!($text);
+    //     $(
+    //         c.$k = $v;
+    //     )*
+    //     c
+    // }};
 
-    // Props, With components (PC)
-    ( $tag:ident ($($k:ident = $v:expr),*) {$($inner:tt)*} ) => {{
-        let mut c = $tag();
-        c.children = osui::__oml!($($inner)*);
-        $(
-            c.$k = $v;
-        )*
-        c
-    }};
-
-    // Pre-Defined (D)
-    ($text:expr;) => {{
-        $text
-    }};
+    // ($tag:ident { $($k:ident: $v:expr),* } ) => {{
+    //     let mut c = $tag();
+    //     $(
+    //         c.$k = $v;
+    //     )*
+    //     c
+    // }};
 }
 
 #[macro_export]
