@@ -8,7 +8,7 @@
 //! ## Example Usage
 //!
 //! ```rust
-//! use osui::{parse_rsx_param, rsx, ui::*};
+//! use osui::{self, rsx, ui::*};
 //!
 //! osui::app::run(&mut rsx! {
 //!     text { "Hello, World!" }
