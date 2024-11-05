@@ -10,14 +10,6 @@ lazy_static! {
     pub static ref ANSI: Regex = Regex::new(r"(\x1b\[([0-9;]*)[a-zA-Z])+").unwrap();
 }
 
-#[derive(Debug, PartialEq, Clone)]
-pub enum Value {
-    String(String),
-    Int(i32),
-    Float(f64),
-    Bool(bool),
-}
-
 /// Compress a string by a regex pattern
 pub fn compress_string(input: &str, re: &Regex) -> (String, HashMap<usize, String>) {
     let mut matches_map = HashMap::new();
@@ -82,9 +74,9 @@ fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
 }
 
 /// Render to a frame
-pub fn render_to_frame(tick: usize, frame: &mut Vec<String>, element: &mut Box<dyn Element>) {
+pub fn render_to_frame(state: usize, frame: &mut Vec<String>, element: &Box<dyn Element>) {
     let data = element.get_data();
-    for (i, line) in element.render(tick).split('\n').enumerate() {
+    for (i, line) in element.render(state).split('\n').enumerate() {
         if (data.y + i) < frame.len() {
             let frame_line = frame.get_mut(data.y + i).unwrap();
             *frame_line = merge_line(&frame_line, line, data.x);
@@ -103,7 +95,7 @@ pub fn hide_cursor() {
 }
 
 pub fn show_cursor() {
-    print!("\x1b[?25H");
+    print!("\x1B[?25h");
     stdout().flush().unwrap();
 }
 
@@ -111,6 +103,7 @@ pub fn flush() {
     stdout().flush().unwrap();
 }
 
+#[derive(Debug, Clone)]
 pub enum Direction {
     Left,
     Right,
@@ -143,4 +136,13 @@ pub fn closest_component(
         }) // Find the closest component
         .map(|(index, _)| index) // Return the index of the closest component
         .unwrap_or(current_index) // If no component is found, return the current index
+}
+
+pub fn create_frame(width: crate::ElementSize, height: crate::ElementSize) -> Vec<String> {
+    vec![" ".repeat(width.get_size()); height.get_size()]
+}
+
+pub fn get_term_size() -> (usize, usize) {
+    let (width, height) = crossterm::terminal::size().unwrap();
+    (width as usize, height as usize)
 }

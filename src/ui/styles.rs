@@ -1,64 +1,87 @@
+/// Represents a style configuration for TUI elements, including background,
+/// foreground, outline colors, and font settings for different element states
+/// (hovered, clicked, selected).
 #[derive(Debug, Clone, PartialEq)]
 pub struct Style {
+    /// Background color of the element.
     pub bg: Color,
+    /// Foreground color of the element.
     pub fg: Color,
+    /// Outline color of the element.
     pub outline: Color,
+    /// Font style for the element.
     pub font: Font,
 
+    /// Background color when the element is hovered.
     pub hover_bg: Color,
+    /// Foreground color when the element is hovered.
     pub hover_fg: Color,
+    /// Outline color when the element is hovered.
     pub hover_outline: Color,
+    /// Font style when the element is hovered.
     pub hover_font: Font,
+    /// Foreground color for the cursor when hovered.
     pub hover_cursor_fg: Color,
+    /// Background color for the cursor when hovered.
     pub hover_cursor_bg: Color,
 
+    /// Background color when the element is clicked.
     pub clicked_bg: Color,
+    /// Foreground color when the element is clicked.
     pub clicked_fg: Color,
+    /// Outline color when the element is clicked.
     pub clicked_outline: Color,
+    /// Font style when the element is clicked.
     pub clicked_font: Font,
 
+    /// Background color when the element is selected.
     pub selected_bg: Color,
+    /// Foreground color when the element is selected.
     pub selected_fg: Color,
+    /// Font style when the element is selected.
     pub selected_font: Font,
 
+    /// Foreground color for the cursor.
     pub cursor_fg: Color,
+    /// Background color for the cursor.
     pub cursor_bg: Color,
 
+    /// Indicates if the style is active, affecting its state-based styling.
     pub is_active: bool,
 }
 
 impl Default for Style {
+    /// Creates a default `Style` instance with `None` for all color and font fields
+    /// and inactive (`is_active` set to false).
     fn default() -> Style {
         Style {
             bg: Color::None,
             fg: Color::None,
             outline: Color::None,
             font: Font::None,
-
             hover_bg: Color::None,
             hover_fg: Color::None,
             hover_outline: Color::None,
             hover_font: Font::None,
             hover_cursor_fg: Color::None,
             hover_cursor_bg: Color::None,
-
             clicked_bg: Color::None,
             clicked_fg: Color::None,
             clicked_outline: Color::None,
             clicked_font: Font::None,
-
             selected_bg: Color::None,
             selected_fg: Color::None,
             selected_font: Font::None,
             cursor_fg: Color::None,
             cursor_bg: Color::None,
-
             is_active: false,
         }
     }
 }
 
 impl Style {
+    /// Generates the ANSI code for the current style, using the active color
+    /// and font if `is_active` is true.
     pub fn get(&self) -> String {
         if self.is_active {
             format!(
@@ -77,6 +100,7 @@ impl Style {
         }
     }
 
+    /// Returns the outline color in ANSI format, applying hover style if active.
     pub fn get_outline(&self) -> String {
         if self.is_active {
             self.outline.prioritize(&self.hover_outline).ansi()
@@ -85,6 +109,7 @@ impl Style {
         }
     }
 
+    /// Retrieves the clicked style ANSI sequence for the element.
     pub fn get_clicked(&self) -> String {
         format!(
             "{}{}{}",
@@ -94,6 +119,7 @@ impl Style {
         )
     }
 
+    /// Retrieves the selected style ANSI sequence for the element.
     pub fn get_selected(&self) -> String {
         format!(
             "{}{}{}",
@@ -103,6 +129,7 @@ impl Style {
         )
     }
 
+    /// Retrieves the cursor style ANSI sequence for the element, considering hover.
     pub fn get_cursor(&self) -> String {
         if self.is_active {
             format!(
@@ -115,27 +142,40 @@ impl Style {
         }
     }
 
+    /// Writes the given string with the active style's ANSI sequences.
     pub fn write(&self, s: &str) -> String {
         format!("{}{}\x1b[0m", self.get(), s)
     }
 
+    /// Writes a string with the outline color applied.
     pub fn write_outline(&self, s: &str) -> String {
         format!("{}{}\x1b[0m", self.get_outline(), s)
     }
 
+    /// Writes a string with the clicked style applied.
     pub fn write_clicked(&self, s: &str) -> String {
         format!("{}{}\x1b[0m", self.get_clicked(), s)
     }
 
+    /// Writes a string with the selected style applied.
     pub fn write_selected(&self, s: &str) -> String {
         format!("{}{}\x1b[0m", self.get_selected(), s)
     }
 
+    /// Writes a string with the cursor style applied.
     pub fn write_cursor(&self, s: &str) -> String {
         format!("{}{}\x1b[0m", self.get_cursor(), s)
     }
+
+    /// Clones the style and sets `is_active` based on the given state.
+    pub fn use_style(&self, state: &usize) -> Style {
+        let mut style = self.clone();
+        style.is_active = *state == 1;
+        style
+    }
 }
 
+/// Represents different font styles that can be applied to TUI elements.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Font {
     None,
@@ -144,10 +184,11 @@ pub enum Font {
     Italic,
     Reverse,
     Strike,
-    Mul(Vec<Font>),
+    Mul(Vec<Font>), // Allows combining multiple font styles.
 }
 
 impl Font {
+    /// Converts the font style to an ANSI sequence.
     pub fn ansi(&self) -> String {
         String::from(match self {
             Font::None => "",
@@ -166,6 +207,8 @@ impl Font {
         })
     }
 
+    /// Returns the prioritized font between `self` and `secondary`, favoring `secondary`
+    /// if it is not `None`.
     pub fn prioritize<'a>(&'a self, secondary: &'a Font) -> &Font {
         if secondary == &Font::None {
             self
@@ -175,10 +218,11 @@ impl Font {
     }
 }
 
+/// Represents color options for elements, supporting both named colors and RGB values.
 #[derive(Debug, Clone, PartialEq)]
 pub enum Color {
     None,
-    Rgb(u8, u8, u8),
+    Rgb(u8, u8, u8), // RGB color representation.
     Black,
     Red,
     Green,
@@ -190,6 +234,7 @@ pub enum Color {
 }
 
 impl Color {
+    /// Converts the color to an ANSI foreground sequence.
     pub fn ansi(&self) -> String {
         String::from(match self {
             Color::None => "",
@@ -207,6 +252,7 @@ impl Color {
         })
     }
 
+    /// Converts the color to an ANSI background sequence.
     pub fn ansi_bg(&self) -> String {
         String::from(match self {
             Color::None => "",
@@ -224,6 +270,8 @@ impl Color {
         })
     }
 
+    /// Returns the prioritized color between `self` and `secondary`, favoring `secondary`
+    /// if it is not `None`.
     pub fn prioritize<'a>(&'a self, secondary: &'a Color) -> &Color {
         if secondary == &Color::None {
             self

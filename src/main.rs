@@ -1,10 +1,11 @@
-use osui::{rsx, ui::*, App};
+use osui::{rsx, ui::*};
 
 fn main() {
-    let element = rsx! {
-        button { "Hello, World!" }
-    };
+    osui::app::run(&mut app());
+}
 
-    let mut app_screen = App::from(element);
-    app_screen.run();
+fn app() -> Box<dyn osui::Element> {
+    rsx! {
+        text { "Hello, World!" }
+    }
 }
