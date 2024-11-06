@@ -116,10 +116,17 @@ macro_rules! command {
 ///
 /// # Parameters
 /// - `elem`: The element being updated.
-/// - Various key-value pairs, child elements, and text content.
+/// - Various key-value pairs, child elements, and text content. even for loops
 #[macro_export]
 macro_rules! parse_rsx_param {
     ($elem:expr, ) => {};
+
+    ($elem:expr, for ($item:ident in $expr:expr) {$($inner:tt)*} $($rest:tt)*) => {
+        for $item in $expr {
+            $elem.children.push({$($inner)*})
+        }
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
 
     ($elem:expr, $($k:ident: $v:expr),*) => {
         $(
@@ -164,6 +171,16 @@ macro_rules! parse_rsx_param {
 ///     text { "Hello, World!" }
 ///     div {
 ///         button { y: 2, "click me" }
+///     }
+/// }
+/// ```
+/// 
+/// # For loops
+/// ```
+/// rsx! {
+///     text { "Welcome!" }
+///     for (i in 1..5) { // must be contained with ()
+///         rsx_elem!{text { y: i, "Text: {i}" }}
 ///     }
 /// }
 /// ```
