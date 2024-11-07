@@ -24,6 +24,7 @@
 pub mod element;
 pub mod key;
 pub mod macros;
+mod test;
 pub mod ui;
 pub mod utils;
 
@@ -40,7 +41,7 @@ pub mod app {
     use crate::{
         clear, create_frame, flush, get_term_size, hide_cursor,
         key::{read_key, Key},
-        render_to_frame, show_cursor, Command, Element, ElementSize, UpdateResponse,
+        render_to_frame, show_cursor, Command, Element, UpdateResponse, Value,
     };
 
     /// Renders a single frame of the UI to the terminal.
@@ -55,8 +56,7 @@ pub mod app {
     fn render(elem: &mut Box<dyn Element>, state: usize) {
         let (width, height) = get_term_size();
         elem.update_data(width, height);
-        let mut frame: Vec<String> =
-            create_frame(ElementSize::Custom(width), ElementSize::Custom(height));
+        let mut frame: Vec<String> = create_frame(Value::Custom(width), Value::Custom(height));
         render_to_frame(state, &mut frame, elem);
         clear();
         print!("{}", frame.join(""));
@@ -145,4 +145,8 @@ pub mod app {
             }
         }
     }
+}
+
+pub fn run_test() {
+    test::main_();
 }

@@ -33,26 +33,30 @@ macro_rules! element {
         $( $functions:tt )*
     ) => {
         $(#[$meta])*
-        #[derive(Debug, Clone)]
-        pub struct $name {
+        #[derive(Clone)]
+        pub struct $name<'a> {
             pub x: usize,
             pub y: usize,
-            pub width: ElementSize,
-            pub height: ElementSize,
+            pub width: Value<usize>,
+            pub height: Value<usize>,
             pub children: Vec<Box<dyn Element>>,
             pub child: usize,
             pub text: String,
-            pub style: Style,
+            pub id: &'a str,
             $( $inner )*
         }
 
-        impl Element for $name {
+        impl Element for $name<'_> {
             fn get_data(&self) -> ElementData {
                 ElementData {
                     x: self.x,
                     y: self.y,
                     width: self.width.clone(),
                     height: self.height.clone(),
+                    children: self.children.clone(),
+                    child: self.child.clone(),
+                    text: self.text.clone(),
+                    id: self.id.to_string(),
                 }
             }
 
@@ -63,21 +67,45 @@ macro_rules! element {
                     child.update_data(width, height);
                 }
             }
+
+            fn get_id(&mut self) -> String {
+                self.id.to_string()
+            }
+
+            fn get_element_by_id(&mut self, id: &str) -> Option<&mut Box<dyn Element>> {
+                for elem in &mut self.children {
+                    if elem.get_id() == id {
+                        return Some(elem);
+                    }
+                }
+                None
+            }
+
+            fn set_data(&mut self, data: ElementData) {
+                self.x = data.x;
+                self.y = data.y;
+                self.width = data.width;
+                self.height = data.height;
+                self.children = data.children;
+                self.child = data.child;
+                self.text = data.text;
+            }
+
             $( $functions )*
         }
 
-        impl $name {
+        impl<'a> $name<'_> {
             /// Creates a new instance of the element with default values.
-            pub fn new() -> $name {
+            pub fn new() -> $name<'a> {
                 $name {
                     children: Vec::new(),
                     x: 0,
                     y: 0,
-                    width: ElementSize::Default(0),
-                    height: ElementSize::Default(0),
+                    width: Value::Default(0),
+                    height: Value::Default(0),
                     child: 0,
                     text: String::new(),
-                    style: Style::default(),
+                    id: "",
                     $( $defaults )*
                 }
             }
@@ -119,48 +147,68 @@ macro_rules! command {
 /// - Various key-value pairs, child elements, and text content. even for loops
 #[macro_export]
 macro_rules! parse_rsx_param {
-    ($elem:expr, ) => {};
+    // Properties
+    ($elem:expr, $($k:ident).+: $v:expr) => {
+        $elem.$($k).+ = $v;
+    };
 
-    ($elem:expr, for ($item:ident in $expr:expr) {$($inner:tt)*} $($rest:tt)*) => {
-        for $item in $expr {
+    ($elem:expr, $($k:ident).+: $v:expr, $($rest:tt)*) => {
+        $elem.$($k).+ = $v;
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
+
+    // for completion purposes
+    ($elem:expr, $p:path) => {
+        $p;
+    };
+    ($elem:expr, $($k:ident).+., $($rest:tt)*) => {
+        $elem.$($k)+.;
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
+
+    ($elem:expr, $($k:ident).+.: $v:expr) => {
+        $elem.$($k).+. = $v;
+    };
+    ($elem:expr, $($k:ident).+.: $v:expr, $($rest:tt)*) => {
+        $elem.$($k).+. = $v;
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
+
+    ($elem:expr, $($k:ident).+:$($rest:tt)*) => {
+        $elem.$($k).+ = ();
+    };
+    ($elem:expr, $($k:ident).+:$($rest:tt)*) => {
+        $elem.$($k).+ = $v;
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
+
+    // For loop
+    ($elem:expr, for ($($for:tt)*) { $($inner:tt)* } $($rest:tt)*) => {
+        for $($for)* {
             $elem.children.push({$($inner)*})
         }
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-    ($elem:expr, $($k:ident: $v:expr),*) => {
-        $(
-            $elem.$k = $v;
-        )*
-    };
-
-    ($elem:expr, $($k:ident: $v:expr),*; $($rest:tt)*) => {
-        $(
-            $elem.$k = $v;
-        )*
-        osui::parse_rsx_param!($elem, $($rest)*);
-    };
-
+    // Expression
     ($elem:expr, {$ielem:expr} $($rest:tt)*) => {
         $elem.children.push($ielem);
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-    ($elem:expr, $($k:ident: $v:expr),*, $text:expr) => {
-        $(
-            $elem.$k = $v;
-        )*
-        $elem.text = format!($text);
-    };
-
+    // Element
     ($elem:expr, $pelem:path { $($inner:tt)* } $($rest:tt)*) => {
         $elem.children.push(osui::rsx_elem!($pelem { $($inner)* }));
         osui::parse_rsx_param!($elem, $($rest)*)
     };
 
+    // Text
     ($elem:expr, $text:expr) => {
         $elem.text = format!($text);
     };
+
+    // Empty
+    ($elem:expr, ) => {};
 }
 
 /// Macro for creating an OSUI element with parsed parameters.
@@ -174,7 +222,7 @@ macro_rules! parse_rsx_param {
 ///     }
 /// }
 /// ```
-/// 
+///
 /// # For loops
 /// ```
 /// rsx! {
@@ -190,6 +238,7 @@ macro_rules! parse_rsx_param {
 #[macro_export]
 macro_rules! rsx_elem {
     ($elem:path { $($inner:tt)* }) => {{
+        #[allow(unused_mut)]
         let mut elem = $elem();
         osui::parse_rsx_param!(elem, $($inner)*);
         elem as Box<dyn osui::Element>
@@ -236,4 +285,11 @@ macro_rules! css {
             ..Default::default()
         }
     }};
+}
+
+#[macro_export]
+macro_rules! arc {
+    ($a:expr) => {
+        std::sync::Arc::new(std::sync::Mutex::new($a))
+    };
 }

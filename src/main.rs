@@ -1,11 +1,6 @@
-use osui::{rsx, ui::*};
+use osui::rsx;
 
 fn main() {
-    osui::app::run(&mut app());
-}
-
-fn app() -> Box<dyn osui::Element> {
-    rsx! {
-        text { "Hello, World!" }
-    }
+    rsx! {};
+    // osui::run_test()
 }

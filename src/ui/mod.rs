@@ -14,7 +14,7 @@ pub use elements::*;
 /// # Returns
 ///
 /// A `Box<Text>` containing a new `Text` element instance.
-pub fn text() -> Box<Text> {
+pub fn text<'a>() -> Box<Text<'a>> {
     Box::new(Text::new())
 }
 
@@ -26,7 +26,7 @@ pub fn text() -> Box<Text> {
 /// # Returns
 ///
 /// A `Box<Button>` containing a new `Button` element instance.
-pub fn button() -> Box<Button> {
+pub fn button<'a>() -> Box<Button<'a>> {
     let mut btn = Button::new();
     btn.style.clicked_bg = styles::Color::White;
     btn.style.clicked_fg = styles::Color::Black;
@@ -41,6 +41,6 @@ pub fn button() -> Box<Button> {
 /// # Returns
 ///
 /// A `Box<Div>` containing a new `Div` element instance.
-pub fn div() -> Box<Div> {
+pub fn div<'a>() -> Box<Div<'a>> {
     Box::new(Div::new())
 }

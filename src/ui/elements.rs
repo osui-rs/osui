@@ -1,8 +1,8 @@
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::{Arc, Mutex}};
 
 use crate::{
     command, element, key::Key, render_to_frame, ui::Style, Command, Direction, Element,
-    ElementData, ElementSize, UpdateResponse,
+    ElementData, Value, UpdateResponse,
 };
 
 element! {
@@ -15,6 +15,7 @@ element! {
         self.text.clone()
     }
 }
+
 element! {
     /// A clickable button element.
     ///
@@ -22,11 +23,13 @@ element! {
     /// based on its interaction state, such as being "clicked".
     Button {
         /// A callback function executed when the button is clicked.
-        on_click: fn()
+        pub on_click: Arc<Mutex<dyn FnMut(&mut Button)>>,
+        pub style: Style,
     }
 
     defaults {
-        on_click: || {}
+        on_click: Arc::new(Mutex::new(|_btn: &mut Button<'_>| {})),
+        style: Style::default(),
     }
 
     fn render(&self, state: usize) -> String {
@@ -39,7 +42,11 @@ element! {
 
     fn event(&mut self, _state: usize, k: Key) -> UpdateResponse {
         if k == Key::Enter {
-            (self.on_click)();
+            let mut btn = self.clone();
+            let mut on_click = self.on_click.lock().unwrap();
+            (on_click)(&mut btn);
+            drop(on_click);
+            *self = btn;
             return command!(
                 Command::Render(2),
                 Command::Sleep(120)

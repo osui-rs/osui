@@ -138,7 +138,7 @@ pub fn closest_component(
         .unwrap_or(current_index) // If no component is found, return the current index
 }
 
-pub fn create_frame(width: crate::ElementSize, height: crate::ElementSize) -> Vec<String> {
+pub fn create_frame(width: crate::Value<usize>, height: crate::Value<usize>) -> Vec<String> {
     vec![" ".repeat(width.get_size()); height.get_size()]
 }
 
