@@ -61,8 +61,8 @@ macro_rules! element {
             }
 
             fn update_data(&mut self, width: usize, height: usize) {
-                self.width.try_set_size(width);
-                self.height.try_set_size(height);
+                self.width.try_set_value(width);
+                self.height.try_set_value(height);
                 for child in &mut self.children {
                     child.update_data(width, height);
                 }
@@ -174,14 +174,6 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-    ($elem:expr, $($k:ident).+:$($rest:tt)*) => {
-        $elem.$($k).+ = ();
-    };
-    ($elem:expr, $($k:ident).+:$($rest:tt)*) => {
-        $elem.$($k).+ = $v;
-        osui::parse_rsx_param!($elem, $($rest)*);
-    };
-
     // For loop
     ($elem:expr, for ($($for:tt)*) { $($inner:tt)* } $($rest:tt)*) => {
         for $($for)* {
@@ -245,6 +237,16 @@ macro_rules! rsx_elem {
     }};
 }
 
+#[macro_export]
+macro_rules! rsx_elem_raw {
+    ($elem:path { $($inner:tt)* }) => {{
+        #[allow(unused_mut)]
+        let mut elem = $elem();
+        osui::parse_rsx_param!(elem, $($inner)*);
+        elem
+    }};
+}
+
 /// Macro for defining a structured representation of UI elements in OSUI.
 ///
 /// # Example
@@ -261,7 +263,7 @@ macro_rules! rsx_elem {
 #[macro_export]
 macro_rules! rsx {
     ($($inner:tt)*) => {{
-        osui::rsx_elem!( osui::ui::div { $($inner)* } )
+        osui::rsx_elem_raw!( osui::ui::div { $($inner)* } )
     }};
 }
 
@@ -291,5 +293,12 @@ macro_rules! css {
 macro_rules! arc {
     ($a:expr) => {
         std::sync::Arc::new(std::sync::Mutex::new($a))
+    };
+}
+
+#[macro_export]
+macro_rules! val {
+    ($a:expr) => {
+        osui::Value::new($a)
     };
 }

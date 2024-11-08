@@ -139,7 +139,7 @@ pub fn closest_component(
 }
 
 pub fn create_frame(width: crate::Value<usize>, height: crate::Value<usize>) -> Vec<String> {
-    vec![" ".repeat(width.get_size()); height.get_size()]
+    vec![" ".repeat(width.get_value()); height.get_value()]
 }
 
 pub fn get_term_size() -> (usize, usize) {

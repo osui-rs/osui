@@ -1,6 +1,3 @@
-use osui::rsx;
-
 fn main() {
-    rsx! {};
-    // osui::run_test()
+    osui::run_test();
 }
