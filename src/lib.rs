@@ -57,7 +57,7 @@ pub mod app {
         let (width, height) = get_term_size();
         elem.update_data(width, height);
         let mut frame: Vec<String> = create_frame(Value::Custom(width), Value::Custom(height));
-        render_to_frame(state, &mut frame, elem);
+        render_to_frame(state, width, &mut frame, elem);
         clear();
         print!("{}", frame.join(""));
         flush();
@@ -150,12 +150,12 @@ pub mod app {
 /// - `Default(usize)` - Uses a default value.
 /// - `Custom(usize)` - Allows specifying a custom value.
 #[derive(Debug, Clone, Copy)]
-pub enum Value<T: Copy> {
+pub enum Value<T: Copy + PartialEq> {
     Default(T),
     Custom(T),
 }
 
-impl<T: Copy> Value<T> {
+impl<T: Copy + PartialEq> Value<T> {
     /// Creates a new Value.
     ///
     /// # Returns
@@ -191,7 +191,7 @@ impl<T: Copy> Value<T> {
     }
 }
 
-pub trait ToValue<T: Copy> {
+pub trait ToValue<T: Copy + PartialEq> {
     fn to_value(&self) -> Value<T>;
 }
 
@@ -254,13 +254,13 @@ clone_trait_object!(Element);
 /// Struct holding data relevant to an `Element`, including position and size.
 pub struct ElementData {
     /// X coordinate of the `Element`.
-    pub x: usize,
+    pub x: Value<usize>,
     /// Y coordinate of the `Element`.
     pub y: usize,
     /// Width of the `Element`, which can be default or custom.
-    pub width: crate::Value<usize>,
+    pub width: Value<usize>,
     /// Height of the `Element`, which can be default or custom.
-    pub height: crate::Value<usize>,
+    pub height: Value<usize>,
     /// Children of the `Element`
     pub children: Vec<Box<dyn Element>>,
     /// Active Child of the `Element`

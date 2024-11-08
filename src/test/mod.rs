@@ -8,8 +8,7 @@ pub fn app() -> Box<dyn Element> {
             response.update_element_by_id("my_id", rsx_elem! {
                 text { id: "my_id", y: 2, "{something}" }
             });
-        }), style.clicked_background: Color::Green, "click me" }
-
+        }), style.clicked_background: Color::Green, style.hover_background: Color::Magenta, "click me" }
         text { id: "my_id", y: 2, "!" }
     }
 }

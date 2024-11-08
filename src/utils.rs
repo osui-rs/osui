@@ -1,4 +1,4 @@
-use crate::Element;
+use crate::{Element, Value};
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{
@@ -53,6 +53,9 @@ fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
     let llen = line.len();
 
     for i in 0..flen {
+        if let Some(v) = fm.get(&i) {
+            res.push_str(v);
+        }
         if i >= x && i - x < llen && line[i - x] != '\t' {
             if let Some(v) = lm.get(&(i - x)) {
                 res.push_str(v);
@@ -63,9 +66,6 @@ fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
                 res.push(line[i - x]);
             }
         } else {
-            if let Some(v) = fm.get(&i) {
-                res.push_str(v);
-            }
             res.push(frame[i]);
         }
     }
@@ -74,12 +74,30 @@ fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
 }
 
 /// Render to a frame
-pub fn render_to_frame(state: usize, frame: &mut Vec<String>, element: &Box<dyn Element>) {
+pub fn render_to_frame(
+    state: usize,
+    width: usize,
+    frame: &mut Vec<String>,
+    element: &Box<dyn Element>,
+) {
     let data = element.get_data();
     for (i, line) in element.render(state).split('\n').enumerate() {
         if (data.y + i) < frame.len() {
             let frame_line = frame.get_mut(data.y + i).unwrap();
-            *frame_line = merge_line(&frame_line, line, data.x);
+            match data.x {
+                Value::Custom(x) => {
+                    *frame_line = merge_line(&frame_line, line, x);
+                }
+                _ => {
+                    for (x, c) in frame_line.chars().rev().enumerate() {
+                        if c != ' ' {
+                            *frame_line = merge_line(&frame_line, line, width - x);
+                            return;
+                        }
+                    }
+                    *frame_line = merge_line(&frame_line, line, 0);
+                }
+            }
         }
     }
 }
@@ -121,24 +139,43 @@ pub fn closest_component(
     components
         .iter()
         .enumerate() // Keep track of indices
-        .filter(|(_, comp_)| {
+        .filter(|(i, comp_)| {
             let comp = comp_.get_data();
             match direction {
-                Direction::Left => comp.x < current.x && comp.y == current.y, // Left
-                Direction::Right => comp.x > current.x && comp.y == current.y, // Right
-                Direction::Up => comp.y < current.y && comp.x == current.x,   // Up
-                Direction::Down => comp.y > current.y && comp.x == current.x, // Down
+                Direction::Left => match comp.x {
+                    Value::Custom(_) => {
+                        comp.x.get_value() < current.x.get_value()
+                            && comp.y == current.y
+                    }
+                    Value::Default(_) => *i < current_index,
+                }, // Left
+                Direction::Right => match comp.x {
+                    Value::Custom(_) => {
+                        comp.x.get_value() > current.x.get_value()
+                            && comp.y == current.y
+                    }
+                    Value::Default(_) => *i > current_index,
+                }, // Right
+                Direction::Up => {
+                    comp.y < current.y
+                        && comp.x.get_value() == current.x.get_value()
+                } // Up
+                Direction::Down => {
+                    comp.y > current.y
+                        && comp.x.get_value() == current.x.get_value()
+                } // Down
             }
         })
         .min_by_key(|(_, comp_)| {
             let comp = comp_.get_data();
-            current.x.abs_diff(comp.x) + current.y.abs_diff(comp.y)
+            current.x.get_value().abs_diff(comp.x.get_value())
+                + current.y.abs_diff(comp.y)
         }) // Find the closest component
         .map(|(index, _)| index) // Return the index of the closest component
         .unwrap_or(current_index) // If no component is found, return the current index
 }
 
-pub fn create_frame(width: crate::Value<usize>, height: crate::Value<usize>) -> Vec<String> {
+pub fn create_frame(width: Value<usize>, height: Value<usize>) -> Vec<String> {
     vec![" ".repeat(width.get_value()); height.get_value()]
 }
 

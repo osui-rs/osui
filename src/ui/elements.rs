@@ -4,7 +4,7 @@ use std::{
 };
 
 use crate::{
-    command, element,
+    command, create_frame, element,
     event::{Command, Event, Handler},
     execute_response,
     key::Key,
@@ -93,12 +93,12 @@ element! {
     }
 
     fn render(&self, state: usize) -> String {
-        let mut frame = crate::create_frame(self.width, self.height);
+        let mut frame = create_frame(self.width, self.height);
         for (i, child) in (&self.children).iter().enumerate() {
             if i==self.child {
-                render_to_frame(state, &mut frame, child);
+                render_to_frame(state, self.width.get_value(), &mut frame, child);
             } else {
-                render_to_frame(0, &mut frame, child);
+                render_to_frame(0, self.width.get_value(), &mut frame, child);
             }
         }
         frame.join("\n")
@@ -110,8 +110,16 @@ element! {
             Event::Key(k) => {
                 if let Some(direction) = self.keybinds.get(&k) {
                     self.child = crate::closest_component(&self.children, self.child, direction.clone());
+                    if let Some(child) = self.get_child() {
+                        child.event(Event::Hover);
+                    }
                 } else if let Some(child) = self.get_child() {
-                    res = child.event(event.clone());
+                    res = child.event(event);
+                }
+            }
+            Event::Hover => {
+                if let Some(child) = self.get_child() {
+                    res = child.event(event);
                 }
             }
             _ => {}

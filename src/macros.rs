@@ -86,7 +86,7 @@ macro_rules! element {
         $(#[$meta])*
         #[derive(Clone)]
         pub struct $name<'a> {
-            pub x: usize,
+            pub x: Value<usize>,
             pub y: usize,
             pub width: Value<usize>,
             pub height: Value<usize>,
@@ -150,7 +150,7 @@ macro_rules! element {
             pub fn new() -> $name<'a> {
                 $name {
                     children: Vec::new(),
-                    x: 0,
+                    x: Value::Default(0),
                     y: 0,
                     width: Value::Default(0),
                     height: Value::Default(0),
@@ -212,8 +212,13 @@ macro_rules! parse_rsx_param {
     ($elem:expr, $p:path) => {
         $p;
     };
+    ($elem:expr, $($k:ident).+, $($rest:tt)*) => {
+        $elem.$($k).+;
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
     ($elem:expr, $($k:ident).+., $($rest:tt)*) => {
-        $elem.$($k)+.;
+        $elem.$($k).
+        +.;
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 

@@ -1,4 +1,4 @@
-use crate::key::Key;
+use crate::{key::Key, Element};
 
 /// Enum defining commands that can be issued by an `Element`.
 #[derive(Clone)]
@@ -24,9 +24,9 @@ pub enum EventResponse {
     /// Issues a list of commands.
     CommandList(Vec<Command>),
     /// Update the current element
-    UpdateSelf(Box<dyn crate::Element>),
+    UpdateSelf(Box<dyn Element>),
     /// Update a element by a id
-    UpdateElementById(String, Box<dyn crate::Element>),
+    UpdateElementById(String, Box<dyn Element>),
     /// Multiple Responses
     /// # DO NOT USE MANUALLY
     Mul(Vec<EventResponse>),
@@ -53,10 +53,10 @@ impl EventResponse {
             _ => {}
         }
     }
-    pub fn update_self(&mut self, elem: Box<dyn crate::Element>) {
+    pub fn update_self(&mut self, elem: Box<dyn Element>) {
         self.add_response(Self::UpdateSelf(elem));
     }
-    pub fn update_element_by_id(&mut self, id: &str, elem: Box<dyn crate::Element>) {
+    pub fn update_element_by_id(&mut self, id: &str, elem: Box<dyn Element>) {
         self.add_response(Self::UpdateElementById(id.to_string(), elem));
     }
     pub fn add_response(&mut self, response: EventResponse) {
@@ -80,10 +80,11 @@ impl EventResponse {
 pub enum Event {
     Key(Key),
     State(usize),
+    Hover,
 }
 
 /// A handler is a function that runs on a event of a element
-/// 
+///
 /// # Params
 /// - &mut T: The element,
 /// - &mut EventResponse: The event response
