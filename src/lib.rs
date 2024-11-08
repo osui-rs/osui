@@ -3,7 +3,7 @@
 //! A terminal user interface (TUI) library providing customizable components
 //! to build command-line interfaces in Rust. OSUI enables users to create
 //! interactive CLI applications with various UI elements and handle keyboard
-//! input for real-time updates.
+//! input for real-time events.
 //!
 //! ## Example Usage
 //!
@@ -21,14 +21,14 @@
 //! - `utils` - Utility functions for common TUI tasks such as clearing the screen.
 //! - `ui` - Contains all user interface components, enabling rich CLI experiences.
 
+pub mod event;
 pub mod key;
 pub mod macros;
 mod test;
 pub mod ui;
 pub mod utils;
-
+use event::{Event, EventResponse};
 pub use utils::*;
-
 pub mod app {
     //! Application entry point and main event loop for OSUI.
     //!
@@ -37,9 +37,11 @@ pub mod app {
     //! using custom commands such as rendering, updating, or exiting.
 
     use crate::{
-        clear, create_frame, flush, get_term_size, hide_cursor,
-        key::{read_key, Key},
-        render_to_frame, show_cursor, Command, Element, UpdateResponse, Value,
+        clear, create_frame,
+        event::{Command, Event, EventResponse},
+        flush, get_term_size, hide_cursor,
+        key::read_key,
+        render_to_frame, show_cursor, Element, Value,
     };
 
     /// Renders a single frame of the UI to the terminal.
@@ -63,7 +65,7 @@ pub mod app {
 
     /// Updates the UI element based on keyboard input and issues any commands in response.
     ///
-    /// Processes the result of `Element::update` to handle commands like rendering,
+    /// Processes the result of `Element::event` to handle commands like rendering,
     /// updating, and exiting. Commands can be a single action or a list of actions.
     ///
     /// # Arguments
@@ -75,12 +77,12 @@ pub mod app {
     /// # Returns
     ///
     /// `true` if an `Exit` command is issued, signaling the application to terminate.
-    fn update(elem: &mut Box<dyn Element>, state: usize, k: Key) -> bool {
-        match elem.event(state, k.clone()) {
-            UpdateResponse::Command(command) => run_command(command, elem, k.clone()),
-            UpdateResponse::CommandList(commands) => {
+    fn update(elem: &mut Box<dyn Element>, event: Event) -> bool {
+        match elem.event(event) {
+            EventResponse::Command(command) => run_command(command, elem),
+            EventResponse::CommandList(commands) => {
                 for command in commands {
-                    if run_command(command, elem, k.clone()) {
+                    if run_command(command, elem) {
                         return true;
                     }
                 }
@@ -102,13 +104,13 @@ pub mod app {
     /// # Returns
     ///
     /// `true` if the command is `Exit`, ending the application loop.
-    fn run_command(command: Command, elem: &mut Box<dyn Element>, k: Key) -> bool {
+    fn run_command(command: Command, elem: &mut Box<dyn Element>) -> bool {
         match command {
             Command::Render(state) => {
                 render(elem, state);
                 false
             }
-            Command::Update(state) => update(elem, state, k),
+            Command::Event(event) => update(elem, event),
             Command::Sleep(duration) => {
                 std::thread::sleep(std::time::Duration::from_millis(duration));
                 false
@@ -137,8 +139,7 @@ pub mod app {
         clear();
         loop {
             render(elem, 1);
-            let k = read_key();
-            if update(elem, 1, k) {
+            if update(elem, Event::Key(read_key())) {
                 break;
             }
         }
@@ -239,14 +240,13 @@ pub trait Element: DynClone {
     ///
     /// # Arguments
     ///
-    /// * `_state` - The current state of the element; if one or higher, it indicates the element is active.
-    /// * `_k` - The key input triggering the update.
+    /// * `_event` - The current event.
     ///
     /// # Returns
     ///
-    /// An `UpdateResponse` enum indicating the result of the update.
-    fn event(&mut self, _state: usize, _k: crate::key::Key) -> UpdateResponse {
-        UpdateResponse::None
+    /// An `EventResponse` enum indicating the result of the event.
+    fn event(&mut self, _event: Event) -> EventResponse {
+        EventResponse::None
     }
 }
 
@@ -272,32 +272,6 @@ pub struct ElementData {
     pub id: String,
 }
 
-/// Enum representing the possible responses from an element update.
-#[derive(Debug, Clone, PartialEq)]
-pub enum UpdateResponse {
-    /// Indicates that the update is complete.
-    Done,
-    /// Indicates no response.
-    None,
-    /// Issues a single command.
-    Command(Command),
-    /// Issues a list of commands.
-    CommandList(Vec<Command>),
-}
-
-/// Enum defining commands that can be issued by an `Element`.
-#[derive(Debug, Clone, PartialEq)]
-pub enum Command {
-    /// Renders the element with the specified state.
-    Render(usize),
-    /// Exits the application.
-    Exit,
-    /// Updates the element with the specified state.
-    Update(usize),
-    /// Pauses execution for the specified duration in milliseconds.
-    Sleep(u64),
-}
-
 pub fn run_test() {
-    test::main_();
+    app::run(&mut test::app());
 }

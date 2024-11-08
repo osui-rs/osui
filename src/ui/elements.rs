@@ -1,8 +1,15 @@
-use std::{collections::HashMap, sync::{Arc, Mutex}};
+use std::{
+    collections::HashMap,
+    sync::{Arc, Mutex},
+};
 
 use crate::{
-    command, element, key::Key, render_to_frame, ui::Style, Command, Direction, Element,
-    ElementData, Value, UpdateResponse,
+    command, element,
+    event::{Command, Event},
+    key::Key,
+    render_to_frame,
+    ui::{Color, Font},
+    write, Direction, Element, ElementData, EventResponse, Value,
 };
 
 element! {
@@ -17,6 +24,12 @@ element! {
 }
 
 element! {
+    style ButtonStyle {
+        clicked_color: Color,
+        clicked_background: Color,
+        clicked_font: Font,
+    }
+
     /// A clickable button element.
     ///
     /// The `Button` element can be clicked, triggering an `on_click` function. Its appearance changes
@@ -24,35 +37,38 @@ element! {
     Button {
         /// A callback function executed when the button is clicked.
         pub on_click: Arc<Mutex<dyn FnMut(&mut Button)>>,
-        pub style: Style,
     }
 
     defaults {
         on_click: Arc::new(Mutex::new(|_btn: &mut Button<'_>| {})),
-        style: Style::default(),
     }
 
     fn render(&self, state: usize) -> String {
-        let writer = self.style.use_style(&state);
         if state == 2 {
-            return writer.write_clicked(&self.text);
+            return write!(self, clicked, self.text);
         }
-        writer.write(&self.text)
+        write!((self, state), self.text)
     }
 
-    fn event(&mut self, _state: usize, k: Key) -> UpdateResponse {
-        if k == Key::Enter {
-            let mut btn = self.clone();
-            let mut on_click = self.on_click.lock().unwrap();
-            (on_click)(&mut btn);
-            drop(on_click);
-            *self = btn;
-            return command!(
-                Command::Render(2),
-                Command::Sleep(120)
-            );
+    fn event(&mut self, event: Event) -> EventResponse {
+        match event {
+            Event::Key(k) => {
+                if k == Key::Enter {
+                    let mut btn = self.clone();
+                    let mut on_click = self.on_click.lock().unwrap();
+                    (on_click)(&mut btn);
+                    drop(on_click);
+                    *self = btn;
+                    return command!(
+                        Command::Render(2),
+                        Command::Sleep(120)
+                    );
+                }
+            }
+            _ => {}
         }
-        UpdateResponse::None
+
+        EventResponse::None
     }
 }
 
@@ -86,12 +102,18 @@ element! {
         frame.join("\n")
     }
 
-    fn event(&mut self, state: usize, k: Key) -> UpdateResponse {
-        if let Some(direction) = self.keybinds.get(&k) {
-            self.child = crate::closest_component(&self.children, self.child, direction.clone());
-        } else if let Some(child) = self.get_child() {
-            return child.event(state, k);
+    fn event(&mut self, event: Event) -> EventResponse {
+        match event.clone() {
+            Event::Key(k) => {
+                if let Some(direction) = self.keybinds.get(&k) {
+                    self.child = crate::closest_component(&self.children, self.child, direction.clone());
+                } else if let Some(child) = self.get_child() {
+                    return child.event(event.clone());
+                }
+            }
+            _ => {}
         }
-        UpdateResponse::None
+
+        EventResponse::None
     }
 }

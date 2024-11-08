@@ -25,6 +25,57 @@
 #[macro_export]
 macro_rules! element {
     (
+        $(#[$meta_style:meta])*
+        style $style:ident {
+            $($sn:ident: $st:ty),*$(,)?
+        }
+        $(#[$meta:meta])*
+        $name:ident {
+            $( $inner:tt )*
+        }
+        defaults {$( $defaults:tt )*}
+        $( $functions:tt )*
+    ) => {
+        $(#[$meta_style])*
+        #[derive(Clone)]
+        pub struct $style {
+            pub color: Color,
+            pub background: Color,
+            pub font: Font,
+            pub hover_color: Color,
+            pub hover_background: Color,
+            pub hover_font: Font,
+            $(pub $sn: $st),*
+        }
+
+        impl Default for $style {
+            fn default() -> $style {
+                $style {
+                    color: Color::default(),
+                    background: Color::default(),
+                    font: Font::default(),
+                    hover_color: Color::default(),
+                    hover_background: Color::default(),
+                    hover_font: Font::default(),
+                    $($sn: <$st>::default()),*
+                }
+            }
+        }
+
+        element! {
+            $(#[$meta])*
+            $name {
+                pub style: $style,
+                $( $inner )*
+            }
+            defaults {
+                style: $style::default(),
+                $($defaults)*
+            }
+            $( $functions )*
+        }
+    };
+    (
         $(#[$meta:meta])*
         $name:ident {
             $( $inner:tt )*
@@ -129,11 +180,11 @@ macro_rules! element {
 /// ```
 ///
 /// # Parameters
-/// - A list of commands to be included in the `UpdateResponse::CommandList`.
+/// - A list of commands to be included in the `EventResponse::CommandList`.
 #[macro_export]
 macro_rules! command {
     ($($cmd:expr),*) => {
-        UpdateResponse::CommandList(vec![$($cmd),*])
+        EventResponse::CommandList(vec![$($cmd),*])
     };
 }
 
@@ -271,7 +322,7 @@ macro_rules! rsx {
 ///
 /// # Example
 /// ```
-/// css!(Style; color: "red"; background: "white");
+/// css!(Style; color: Color::Red; background: "white");
 /// ```
 ///
 /// This macro creates a new style based on the provided properties, applying default values
@@ -289,6 +340,7 @@ macro_rules! css {
     }};
 }
 
+/// Macro for defining a `Arc<Mutex< T >>`
 #[macro_export]
 macro_rules! arc {
     ($a:expr) => {
@@ -296,9 +348,50 @@ macro_rules! arc {
     };
 }
 
+/// Macro for defining a `Value< T >`
 #[macro_export]
 macro_rules! val {
     ($a:expr) => {
         osui::Value::new($a)
     };
+}
+
+/// Macro for writing when requested to render
+/// 
+/// # Example
+/// ```
+/// write!(self, clicked, "Hello, World!") // For custom styles, You need (color, background, font)
+///
+/// write!((self, state), "Hello, World!") // When you don't need a custom style, you use () and put self and the state of the render
+/// ```
+/// 
+/// This macro returns a `String` depending on the state or the kind of style
+/// When on "state" mode it returns the default style if the state is 0
+#[macro_export]
+macro_rules! write {
+    // Default state styling
+    (($self:ident, $state:expr), $expr:expr) => {{
+        if $state == 0 {
+            return format!("{}{}{}{}\x1b[0m", $self.style.color.ansi(), $self.style.background.ansi_bg(), $self.style.font.ansi(), $expr);
+        }
+        format!("{}{}{}{}\x1b[0m", $self.style.hover_color.ansi(), $self.style.hover_background.ansi_bg(), $self.style.hover_font.ansi(), $expr)
+    }};
+
+    // Custom styles
+    ($self:ident, $kind:ident, $expr:expr) => {{
+        use paste::paste;
+        format!(
+            "{}{}{}{}\x1b[0m",
+            paste! {
+                $self.style.[<$kind _color>].ansi()
+            },
+            paste! {
+                $self.style.[<$kind _background>].ansi_bg()
+            },
+            paste! {
+                $self.style.[<$kind _font>].ansi()
+            },
+            $expr
+        )
+    }};
 }

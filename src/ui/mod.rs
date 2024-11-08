@@ -27,10 +27,7 @@ pub fn text<'a>() -> Box<Text<'a>> {
 ///
 /// A `Box<Button>` containing a new `Button` element instance.
 pub fn button<'a>() -> Box<Button<'a>> {
-    let mut btn = Button::new();
-    btn.style.clicked_bg = styles::Color::White;
-    btn.style.clicked_fg = styles::Color::Black;
-    Box::new(btn)
+    Box::new(Button::new())
 }
 
 /// Creates a new `Div` container element.
