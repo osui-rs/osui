@@ -37,10 +37,15 @@ element! {
     Button {
         /// A callback function executed when the button is clicked. use `arc!` to use function
         pub on_click: Arc<Mutex<dyn FnMut(&mut Button)>>,
+        pub event_response: EventResponse,
     }
 
     defaults {
         on_click: Arc::new(Mutex::new(|_btn: &mut Button<'_>| {})),
+        event_response: command!(
+            Command::Render(2),
+            Command::Sleep(120)
+        ),
     }
 
     fn render(&self, state: usize) -> String {
@@ -59,10 +64,7 @@ element! {
                     (on_click)(&mut btn);
                     drop(on_click);
                     *self = btn;
-                    return command!(
-                        Command::Render(2),
-                        Command::Sleep(120)
-                    );
+                    return self.event_response.clone();
                 }
             }
             _ => {}
@@ -108,7 +110,21 @@ element! {
                 if let Some(direction) = self.keybinds.get(&k) {
                     self.child = crate::closest_component(&self.children, self.child, direction.clone());
                 } else if let Some(child) = self.get_child() {
-                    return child.event(event.clone());
+                    let res = child.event(event.clone());
+                    match res.clone() {
+                        EventResponse::UpdateElementById(id, elem) => {
+                            for old in &mut self.children {
+                                if old.get_id() == id {
+                                    *old = elem.clone();
+                                }
+                            }
+                        }
+                        EventResponse::UpdateSelf(elem) => {
+                            *child = elem;
+                        }
+                        _ => {}
+                    }
+                    return res;
                 }
             }
             _ => {}

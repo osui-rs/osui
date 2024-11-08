@@ -119,7 +119,7 @@ macro_rules! element {
                 }
             }
 
-            fn get_id(&mut self) -> String {
+            fn get_id(&self) -> String {
                 self.id.to_string()
             }
 

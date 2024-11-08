@@ -1,7 +1,7 @@
 use crate::key::Key;
 
 /// Enum defining commands that can be issued by an `Element`.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone)]
 pub enum Command {
     /// Renders the element with the specified state.
     Render(usize),
@@ -14,7 +14,7 @@ pub enum Command {
 }
 
 /// Enum representing the possible responses from an element event.
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Clone)]
 pub enum EventResponse {
     /// Indicates that the event is complete.
     Done,
@@ -24,6 +24,10 @@ pub enum EventResponse {
     Command(Command),
     /// Issues a list of commands.
     CommandList(Vec<Command>),
+    // Update the current element
+    UpdateSelf(Box<dyn crate::Element>),
+    // Update a element by a id
+    UpdateElementById(String, Box<dyn crate::Element>),
 }
 
 /// Enum representing the possible responses from an element update.

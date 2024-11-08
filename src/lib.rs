@@ -218,7 +218,7 @@ pub trait Element: DynClone {
     /// * `_height` - The height of the terminal window or parent element.
     fn update_data(&mut self, _width: usize, _height: usize);
 
-    fn get_id(&mut self) -> String;
+    fn get_id(&self) -> String;
 
     fn get_element_by_id(&mut self, id: &str) -> Option<&mut Box<dyn Element>>;
 
