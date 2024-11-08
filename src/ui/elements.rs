@@ -5,7 +5,8 @@ use std::{
 
 use crate::{
     command, element,
-    event::{Command, Event},
+    event::{Command, Event, Handler},
+    execute_response,
     key::Key,
     render_to_frame,
     ui::{Color, Font},
@@ -36,16 +37,11 @@ element! {
     /// based on its interaction state, such as being "clicked".
     Button {
         /// A callback function executed when the button is clicked. use `arc!` to use function
-        pub on_click: Arc<Mutex<dyn FnMut(&mut Button)>>,
-        pub event_response: EventResponse,
+        pub on_click: Handler<Button<'a>>,
     }
 
     defaults {
-        on_click: Arc::new(Mutex::new(|_btn: &mut Button<'_>| {})),
-        event_response: command!(
-            Command::Render(2),
-            Command::Sleep(120)
-        ),
+        on_click: Arc::new(Mutex::new(|_btn: &mut Button<'_>, _: &mut EventResponse| {})),
     }
 
     fn render(&self, state: usize) -> String {
@@ -61,10 +57,14 @@ element! {
                 if k == Key::Enter {
                     let mut btn = self.clone();
                     let mut on_click = self.on_click.lock().unwrap();
-                    (on_click)(&mut btn);
+                    let mut response = command!(
+                        Command::Render(2),
+                        Command::Sleep(120)
+                    );
+                    (on_click)(&mut btn, &mut response);
                     drop(on_click);
                     *self = btn;
-                    return self.event_response.clone();
+                    return response;
                 }
             }
             _ => {}
@@ -105,31 +105,18 @@ element! {
     }
 
     fn event(&mut self, event: Event) -> EventResponse {
+        let mut res = EventResponse::None;
         match event.clone() {
             Event::Key(k) => {
                 if let Some(direction) = self.keybinds.get(&k) {
                     self.child = crate::closest_component(&self.children, self.child, direction.clone());
                 } else if let Some(child) = self.get_child() {
-                    let res = child.event(event.clone());
-                    match res.clone() {
-                        EventResponse::UpdateElementById(id, elem) => {
-                            for old in &mut self.children {
-                                if old.get_id() == id {
-                                    *old = elem.clone();
-                                }
-                            }
-                        }
-                        EventResponse::UpdateSelf(elem) => {
-                            *child = elem;
-                        }
-                        _ => {}
-                    }
-                    return res;
+                    res = child.event(event.clone());
                 }
             }
             _ => {}
         }
-
-        EventResponse::None
+        execute_response!(self, res);
+        res
     }
 }

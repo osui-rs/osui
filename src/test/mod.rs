@@ -1,11 +1,15 @@
 use crate::{self as osui, arc, rsx, rsx_elem, ui::*, Element, EventResponse};
 
 pub fn app() -> Box<dyn Element> {
+    let mut something = String::from("!");
     rsx! {
-        button { on_click: arc!(move |btn: &mut Button| {
-            btn.event_response = EventResponse::UpdateElementById("my_id".to_string(), rsx_elem! { button { y: 2, id: "my_id", "updated!" } } );
-        }), "click me" }
+        button { on_click: arc!(move |_btn: &mut Button, response: &mut EventResponse| {
+            something += "!";
+            response.update_element_by_id("my_id", rsx_elem! {
+                text { id: "my_id", y: 2, "{something}" }
+            });
+        }), style.clicked_background: Color::Green, "click me" }
 
-        button { id: "my_id", y: 2, "ok" }
+        text { id: "my_id", y: 2, "!" }
     }
 }

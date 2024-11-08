@@ -249,6 +249,9 @@ macro_rules! parse_rsx_param {
     ($elem:expr, $text:expr) => {
         $elem.text = format!($text);
     };
+    ($elem:expr, $text:expr, $($inner:tt)*) => {
+        $elem.text = format!($text, $($inner)*);
+    };
 
     // Empty
     ($elem:expr, ) => {};
@@ -394,4 +397,29 @@ macro_rules! write {
             $expr
         )
     }};
+}
+
+#[macro_export]
+macro_rules! execute_response {
+    ($self:expr, $res:expr) => {
+        for response in $res.execute() {
+            match response {
+                EventResponse::UpdateElementById(id, elem) => {
+                    for old in &mut $self.children {
+                        if old.get_id() == id {
+                            *old = elem.clone();
+                        }
+                    }
+                }
+                EventResponse::UpdateSelf(elem) => {
+                    if let Some(child) = $self.get_child() {
+                        *child = elem;
+                    }
+                }
+                _ => {
+                    return response;
+                }
+            }
+        }
+    };
 }

@@ -79,7 +79,6 @@ pub mod app {
     /// `true` if an `Exit` command is issued, signaling the application to terminate.
     fn update(elem: &mut Box<dyn Element>, event: Event) -> bool {
         match elem.event(event) {
-            EventResponse::Command(command) => run_command(command, elem),
             EventResponse::CommandList(commands) => {
                 for command in commands {
                     if run_command(command, elem) {
