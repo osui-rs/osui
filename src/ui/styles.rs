@@ -45,7 +45,9 @@ impl Font {
 #[derive(Debug, Clone, PartialEq)]
 pub enum Color {
     None,
+    /// Red, Green, blue
     Rgb(u8, u8, u8), // RGB color representation.
+    Hex(String),
     Black,
     Red,
     Green,
@@ -61,7 +63,11 @@ impl Color {
     pub fn ansi(&self) -> String {
         String::from(match self {
             Color::None => "",
-            Self::Rgb(r, g, b) => {
+            Color::Rgb(r, g, b) => {
+                return format!("\x1b[38;2;{r};{g};{b}m");
+            }
+            Color::Hex(hex) => {
+                let (r, g, b) = hex_to_rgb(hex);
                 return format!("\x1b[38;2;{r};{g};{b}m");
             }
             Color::Black => "\x1b[30m",
@@ -79,7 +85,11 @@ impl Color {
     pub fn ansi_bg(&self) -> String {
         String::from(match self {
             Color::None => "",
-            Self::Rgb(r, g, b) => {
+            Color::Rgb(r, g, b) => {
+                return format!("\x1b[48;2;{r};{g};{b}m");
+            }
+            Color::Hex(hex) => {
+                let (r, g, b) = hex_to_rgb(hex);
                 return format!("\x1b[48;2;{r};{g};{b}m");
             }
             Color::Black => "\x1b[40m",
@@ -114,4 +124,29 @@ impl Default for Font {
     fn default() -> Self {
         Font::None
     }
+}
+
+fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
+    let hex = hex.trim_start_matches('#');
+
+    // Expand 3-character hex codes to 6 characters
+    let hex = if hex.len() == 3 {
+        format!(
+            "{}{}{}{}{}{}",
+            &hex[0..1], &hex[0..1],
+            &hex[1..2], &hex[1..2],
+            &hex[2..3], &hex[2..3]
+        )
+    } else if hex.len() == 6 {
+        hex.to_string()
+    } else {
+        return (255, 255, 255); // Return white for invalid hex length
+    };
+
+    // Parse each pair of characters as u8
+    let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(255);
+    let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(255);
+    let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(255);
+
+    (r, g, b)
 }

@@ -35,7 +35,7 @@ element! {
     /// The `Button` element can be clicked, triggering an `on_click` function. Its appearance changes
     /// based on its interaction state, such as being "clicked".
     Button {
-        /// A callback function executed when the button is clicked.
+        /// A callback function executed when the button is clicked. use `arc!` to use function
         pub on_click: Arc<Mutex<dyn FnMut(&mut Button)>>,
     }
 
