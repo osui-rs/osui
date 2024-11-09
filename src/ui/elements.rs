@@ -5,7 +5,7 @@ use std::{
 
 use crate::{
     command, create_frame, element,
-    event::{Command, Event, Handler},
+    event::{Command, Event, Handler, },
     execute_response,
     key::Key,
     render_to_frame,
