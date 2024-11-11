@@ -84,31 +84,21 @@ macro_rules! element {
         $( $functions:tt )*
     ) => {
         $(#[$meta])*
-        #[derive(Clone)]
         pub struct $name<'a> {
-            pub x: Value<usize>,
+            pub x: $crate::Value<usize>,
             pub y: usize,
-            pub width: Value<usize>,
-            pub height: Value<usize>,
-            pub children: Vec<Box<dyn Element>>,
+            pub width: $crate::Value<usize>,
+            pub height: $crate::Value<usize>,
+            pub children: Vec<Box<dyn $crate::Element>>,
             pub child: usize,
             pub text: String,
             pub id: &'a str,
             $( $inner )*
         }
 
-        impl Element for $name<'_> {
-            fn get_data(&self) -> ElementData {
-                ElementData {
-                    x: self.x,
-                    y: self.y,
-                    width: self.width.clone(),
-                    height: self.height.clone(),
-                    children: self.children.clone(),
-                    child: self.child.clone(),
-                    text: self.text.clone(),
-                    id: self.id.to_string(),
-                }
+        impl $crate::Element for $name<'_> {
+            fn get_data(&self) -> ($crate::Value<usize>, usize, String) {
+                (self.x.clone(), self.y.clone(), self.id.to_string())
             }
 
             fn update_data(&mut self, width: usize, height: usize) {
@@ -119,27 +109,13 @@ macro_rules! element {
                 }
             }
 
-            fn get_id(&self) -> String {
-                self.id.to_string()
-            }
-
-            fn get_element_by_id(&mut self, id: &str) -> Option<&mut Box<dyn Element>> {
+            fn get_element_by_id(&mut self, id: &str) -> Option<&mut Box<dyn $crate::Element>> {
                 for elem in &mut self.children {
-                    if elem.get_id() == id {
+                    if elem.get_data().2 == id {
                         return Some(elem);
                     }
                 }
                 None
-            }
-
-            fn set_data(&mut self, data: ElementData) {
-                self.x = data.x;
-                self.y = data.y;
-                self.width = data.width;
-                self.height = data.height;
-                self.children = data.children;
-                self.child = data.child;
-                self.text = data.text;
             }
 
             $( $functions )*
@@ -150,10 +126,10 @@ macro_rules! element {
             pub fn new() -> $name<'a> {
                 $name {
                     children: Vec::new(),
-                    x: Value::Default(0),
+                    x: $crate::Value::Default(0),
                     y: 0,
-                    width: Value::Default(0),
-                    height: Value::Default(0),
+                    width: $crate::Value::Default(0),
+                    height: $crate::Value::Default(0),
                     child: 0,
                     text: String::new(),
                     id: "",
@@ -165,7 +141,7 @@ macro_rules! element {
             ///
             /// # Returns
             /// An `Option` containing a mutable reference to the child `Element` or `None`.
-            pub fn get_child(&mut self) -> Option<&mut Box<dyn Element>> {
+            pub fn get_child(&mut self) -> Option<&mut Box<dyn $crate::Element>> {
                 self.children.get_mut(self.child)
             }
         }
@@ -205,7 +181,7 @@ macro_rules! parse_rsx_param {
 
     ($elem:expr, $($k:ident).+: $v:expr, $($rest:tt)*) => {
         $elem.$($k).+ = $v;
-        osui::parse_rsx_param!($elem, $($rest)*);
+        $crate::parse_rsx_param!($elem, $($rest)*);
     };
 
     // for completion purposes
@@ -214,12 +190,12 @@ macro_rules! parse_rsx_param {
     };
     ($elem:expr, $($k:ident).+, $($rest:tt)*) => {
         $elem.$($k).+;
-        osui::parse_rsx_param!($elem, $($rest)*);
+        $crate::parse_rsx_param!($elem, $($rest)*);
     };
     ($elem:expr, $($k:ident).+., $($rest:tt)*) => {
         $elem.$($k).
         +.;
-        osui::parse_rsx_param!($elem, $($rest)*);
+        $crate::parse_rsx_param!($elem, $($rest)*);
     };
 
     ($elem:expr, $($k:ident).+.: $v:expr) => {
@@ -227,7 +203,7 @@ macro_rules! parse_rsx_param {
     };
     ($elem:expr, $($k:ident).+.: $v:expr, $($rest:tt)*) => {
         $elem.$($k).+. = $v;
-        osui::parse_rsx_param!($elem, $($rest)*);
+        $crate::parse_rsx_param!($elem, $($rest)*);
     };
 
     // For loop
@@ -235,19 +211,19 @@ macro_rules! parse_rsx_param {
         for $($for)* {
             $elem.children.push({$($inner)*})
         }
-        osui::parse_rsx_param!($elem, $($rest)*);
+        $crate::parse_rsx_param!($elem, $($rest)*);
     };
 
     // Expression
     ($elem:expr, {$ielem:expr} $($rest:tt)*) => {
         $elem.children.push($ielem);
-        osui::parse_rsx_param!($elem, $($rest)*);
+        $crate::parse_rsx_param!($elem, $($rest)*);
     };
 
     // Element
     ($elem:expr, $pelem:path { $($inner:tt)* } $($rest:tt)*) => {
-        $elem.children.push(osui::rsx_elem!($pelem { $($inner)* }));
-        osui::parse_rsx_param!($elem, $($rest)*)
+        $elem.children.push($crate::rsx_elem!($pelem { $($inner)* }));
+        $crate::parse_rsx_param!($elem, $($rest)*)
     };
 
     // Text
@@ -291,8 +267,8 @@ macro_rules! rsx_elem {
     ($elem:path { $($inner:tt)* }) => {{
         #[allow(unused_mut)]
         let mut elem = $elem();
-        osui::parse_rsx_param!(elem, $($inner)*);
-        elem as Box<dyn osui::Element>
+        $crate::parse_rsx_param!(elem, $($inner)*);
+        elem as Box<dyn $crate::Element>
     }};
 }
 
@@ -301,7 +277,7 @@ macro_rules! rsx_elem_raw {
     ($elem:path { $($inner:tt)* }) => {{
         #[allow(unused_mut)]
         let mut elem = $elem();
-        osui::parse_rsx_param!(elem, $($inner)*);
+        $crate::parse_rsx_param!(elem, $($inner)*);
         elem
     }};
 }
@@ -322,7 +298,7 @@ macro_rules! rsx_elem_raw {
 #[macro_export]
 macro_rules! rsx {
     ($($inner:tt)*) => {{
-        osui::rsx_elem_raw!( osui::ui::div { $($inner)* } )
+        $crate::rsx_elem_raw!( $crate::ui::div { $($inner)* } )
     }};
 }
 
@@ -350,6 +326,13 @@ macro_rules! css {
 
 /// Macro for defining a `Arc<Mutex< T >>`
 #[macro_export]
+macro_rules! mux {
+    ($a:expr) => {
+        std::sync::Mutex::new($a)
+    };
+}
+
+#[macro_export]
 macro_rules! arc {
     ($a:expr) => {
         std::sync::Arc::new(std::sync::Mutex::new($a))
@@ -360,19 +343,19 @@ macro_rules! arc {
 #[macro_export]
 macro_rules! val {
     ($a:expr) => {
-        osui::Value::new($a)
+        $crate::Value::new($a)
     };
 }
 
 /// Macro for writing when requested to render
-/// 
+///
 /// # Example
 /// ```
 /// write!(self, clicked, "Hello, World!") // For custom styles, You need (color, background, font)
 ///
 /// write!((self, state), "Hello, World!") // When you don't need a custom style, you use () and put self and the state of the render
 /// ```
-/// 
+///
 /// This macro returns a `String` depending on the state or the kind of style
 /// When on "state" mode it returns the default style if the state is 0
 #[macro_export]
@@ -380,9 +363,21 @@ macro_rules! write {
     // Default state styling
     (($self:ident, $state:expr), $expr:expr) => {{
         if $state == 0 {
-            return format!("{}{}{}{}\x1b[0m", $self.style.color.ansi(), $self.style.background.ansi_bg(), $self.style.font.ansi(), $expr);
+            return format!(
+                "{}{}{}{}\x1b[0m",
+                $self.style.color.ansi(),
+                $self.style.background.ansi_bg(),
+                $self.style.font.ansi(),
+                $expr
+            );
         }
-        format!("{}{}{}{}\x1b[0m", $self.style.hover_color.ansi(), $self.style.hover_background.ansi_bg(), $self.style.hover_font.ansi(), $expr)
+        format!(
+            "{}{}{}{}\x1b[0m",
+            $self.style.hover_color.ansi(),
+            $self.style.hover_background.ansi_bg(),
+            $self.style.hover_font.ansi(),
+            $expr
+        )
     }};
 
     // Custom styles
@@ -426,5 +421,13 @@ macro_rules! execute_response {
                 }
             }
         }
+    };
+}
+
+#[macro_export]
+macro_rules! run_handler {
+    ($self:ident.$handler:ident ($renderer:expr, $event:expr)) => {
+        let mut o = $self.$handler.0.lock().unwrap();
+        o($self, $renderer, $event);
     };
 }

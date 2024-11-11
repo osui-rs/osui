@@ -75,16 +75,16 @@ fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
 
 /// Render to a frame
 pub fn render_to_frame(
-    state: usize,
+    state: crate::State,
     width: usize,
     frame: &mut Vec<String>,
     element: &Box<dyn Element>,
 ) {
     let data = element.get_data();
     for (i, line) in element.render(state).split('\n').enumerate() {
-        if (data.y + i) < frame.len() {
-            let frame_line = frame.get_mut(data.y + i).unwrap();
-            match data.x {
+        if (data.1 + i) < frame.len() {
+            let frame_line = frame.get_mut(data.1 + i).unwrap();
+            match data.0 {
                 Value::Custom(x) => {
                     *frame_line = merge_line(&frame_line, line, x);
                 }
@@ -142,34 +142,34 @@ pub fn closest_component(
         .filter(|(i, comp_)| {
             let comp = comp_.get_data();
             match direction {
-                Direction::Left => match comp.x {
+                Direction::Left => match comp.0 {
                     Value::Custom(_) => {
-                        comp.x.get_value() < current.x.get_value()
-                            && comp.y == current.y
+                        comp.0.get_value() < current.0.get_value()
+                            && comp.1 == current.1
                     }
                     Value::Default(_) => *i < current_index,
                 }, // Left
-                Direction::Right => match comp.x {
+                Direction::Right => match comp.0 {
                     Value::Custom(_) => {
-                        comp.x.get_value() > current.x.get_value()
-                            && comp.y == current.y
+                        comp.0.get_value() > current.0.get_value()
+                            && comp.1 == current.1
                     }
                     Value::Default(_) => *i > current_index,
                 }, // Right
                 Direction::Up => {
-                    comp.y < current.y
-                        && comp.x.get_value() == current.x.get_value()
+                    comp.1 < current.1
+                        && comp.0.get_value() == current.0.get_value()
                 } // Up
                 Direction::Down => {
-                    comp.y > current.y
-                        && comp.x.get_value() == current.x.get_value()
+                    comp.1 > current.1
+                        && comp.0.get_value() == current.0.get_value()
                 } // Down
             }
         })
         .min_by_key(|(_, comp_)| {
             let comp = comp_.get_data();
-            current.x.get_value().abs_diff(comp.x.get_value())
-                + current.y.abs_diff(comp.y)
+            current.0.get_value().abs_diff(comp.0.get_value())
+                + current.1.abs_diff(comp.1)
         }) // Find the closest component
         .map(|(index, _)| index) // Return the index of the closest component
         .unwrap_or(current_index) // If no component is found, return the current index

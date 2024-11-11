@@ -1,3 +1,5 @@
+use osui::run_test;
+
 fn main() {
-    osui::run_test();
+    run_test();
 }
