@@ -29,17 +29,21 @@ macro_rules! render {
     };
 }
 
-pub fn run(elem: Box<dyn Element>) {
+pub fn run(element: Arc<dyn Element>) -> bool {
     hide_cursor();
     crossterm::terminal::enable_raw_mode().unwrap();
     clear();
 
     let (tx, rx) = mpsc::channel();
-    let element = Arc::new(elem);
+
+    let (exit_tx, exit_) = mpsc::channel::<()>();
 
     thread::spawn({
         let element_thread = Arc::clone(&element);
         move || loop {
+            if exit_.try_recv().is_ok() {
+                break;
+            }
             let event = crossterm::event::read().unwrap();
             let e = Arc::clone(&element_thread);
             let command_handler = crate::CommandHandler(tx.clone());
@@ -57,11 +61,19 @@ pub fn run(elem: Box<dyn Element>) {
                 crate::Command::SetState(state) => {
                     current_state = state;
                 }
-                crate::Command::Exit => break,
+                crate::Command::Exit => {
+                    exit_tx.send(()).unwrap();
+                    break;
+                }
+                crate::Command::Rebuild => {
+                    exit_tx.send(()).unwrap();
+                    return true;
+                }
             }
         } else {
             render!(&element, current_state.clone());
         }
         thread::sleep(std::time::Duration::from_millis(20));
     }
+    false
 }

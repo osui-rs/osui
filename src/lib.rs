@@ -22,7 +22,7 @@
 pub mod macros;
 pub mod ui;
 pub mod utils;
-use std::sync::mpsc;
+use std::sync::{mpsc, Arc, Mutex};
 
 pub use utils::*;
 pub mod app;
@@ -81,9 +81,9 @@ impl<T: Copy + PartialEq> Value<T> {
 pub trait Element: Send + Sync {
     fn get_data(&self) -> (Value<usize>, usize, String);
 
-    fn update_data(&mut self, width: usize, height: usize);
+    fn update_data(&self, width: usize, height: usize);
 
-    fn get_element_by_id(&mut self, id: &str) -> Option<&mut Box<dyn Element>>;
+    fn get_element_by_id(&self, id: &str) -> Option<std::sync::Arc<dyn Element>>;
 
     fn render(&self, state: State) -> String {
         _ = state;
@@ -95,16 +95,14 @@ pub trait Element: Send + Sync {
     }
 }
 
-pub struct Handler<T>(
-    pub std::sync::Mutex<Box<dyn FnMut(&T, &CommandHandler, crossterm::event::Event) + Send>>,
-);
+pub struct Handler<T>(pub Box<dyn FnMut(&T, &CommandHandler, crossterm::event::Event) + Send>);
 
 impl<T> Handler<T> {
     pub fn new<F>(handler_fn: F) -> Handler<T>
     where
         F: FnMut(&T, &CommandHandler, crossterm::event::Event) + 'static + Send,
     {
-        Handler(std::sync::Mutex::new(Box::new(handler_fn)))
+        Handler(Box::new(handler_fn))
     }
 }
 
@@ -118,12 +116,21 @@ impl CommandHandler {
     pub fn exit(&self) {
         self.0.send(Command::Exit).unwrap();
     }
+
+    pub fn get_element_by_id(&self) {
+        self.0.send(Command::Exit).unwrap();
+    }
+
+    pub fn rebuild(&self) -> bool {
+        self.0.send(Command::Rebuild).is_ok()
+    }
 }
 
 #[derive(Debug, Clone)]
 pub enum Command {
     SetState(State),
     Exit,
+    Rebuild,
 }
 
 #[derive(Debug, Clone)]
@@ -135,5 +142,6 @@ pub enum State {
 }
 
 pub fn run_test() {
-    app::run(test::app());
+    let i = Arc::new(Mutex::new(0));
+    while app::run(test::app(Arc::clone(&i))) {}
 }

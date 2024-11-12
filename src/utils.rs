@@ -78,7 +78,7 @@ pub fn render_to_frame(
     state: crate::State,
     width: usize,
     frame: &mut Vec<String>,
-    element: &Box<dyn Element>,
+    element: &std::sync::Arc<dyn Element>,
 ) {
     let data = element.get_data();
     for (i, line) in element.render(state).split('\n').enumerate() {
@@ -130,7 +130,7 @@ pub enum Direction {
 }
 
 pub fn closest_component(
-    components: &[Box<dyn Element>],
+    components: &[std::sync::Arc<dyn Element>],
     current_index: usize,
     direction: Direction,
 ) -> usize {
