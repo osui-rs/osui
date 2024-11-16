@@ -85,35 +85,34 @@ macro_rules! element {
     ) => {
         $(#[$meta])*
         pub struct $name<'a> {
-            pub x: std::sync::Mutex<$crate::Value<usize>>,
-            pub y: std::sync::Mutex<usize>,
-            pub width: std::sync::Mutex<$crate::Value<usize>>,
-            pub height: std::sync::Mutex<$crate::Value<usize>>,
-            pub children: std::sync::Mutex<Vec<std::sync::Arc<dyn $crate::Element>>>,
-            pub child: std::sync::Mutex<usize>,
-            pub text: std::sync::Mutex<String>,
-            pub id: std::sync::Mutex<&'a str>,
+            pub x: $crate::Value<usize>,
+            pub y: usize,
+            pub width: $crate::Value<usize>,
+            pub height: $crate::Value<usize>,
+            pub children: Vec<Box<dyn $crate::Element>>,
+            pub child: usize,
+            pub text: String,
+            pub id: &'a str,
             $( $inner )*
         }
 
         impl $crate::Element for $name<'_> {
             fn get_data(&self) -> ($crate::Value<usize>, usize, String) {
-                (self.x.lock().unwrap().clone(), self.y.lock().unwrap().clone(), self.id.lock().unwrap().to_string())
+                (self.x, self.y, self.id.to_string())
             }
 
-            fn update_data(&self, width: usize, height: usize) {
-                self.width.lock().unwrap().try_set_value(width);
-                self.height.lock().unwrap().try_set_value(height);
-                let children = self.children.lock().unwrap();
-                for child in children.iter() {
+            fn update_data(&mut self, width: usize, height: usize) {
+                self.width.try_set_value(width);
+                self.height.try_set_value(height);
+                for child in &mut self.children {
                     child.update_data(width, height);
                 }
             }
 
-            fn get_element_by_id(&self, id: &str) -> Option<std::sync::Arc<(dyn $crate::Element + 'static)>> {
-                for elem in &mut self.children.lock().unwrap().iter() {
+            fn get_element_by_id(&mut self, id: &str) -> Option<&mut Box<dyn $crate::Element>> {
+                for elem in &mut self.children {
                     if elem.get_data().2 == id {
-                        return Some(std::sync::Arc::clone(elem));
+                        return Some(elem);
                     }
                 }
                 None
@@ -125,7 +124,7 @@ macro_rules! element {
         impl<'a> $name<'_> {
             /// Creates a new instance of the element with default values.
             pub fn new() -> $name<'a> {
-                $crate::def_!($name {
+                $name {
                     children: Vec::new(),
                     x: $crate::Value::Default(0),
                     y: 0,
@@ -135,16 +134,15 @@ macro_rules! element {
                     text: String::new(),
                     id: "",
                     $( $defaults )*
-                })
+                }
             }
 
-            pub fn get_child(&self) -> Option<std::sync::Arc<dyn $crate::Element>> {
-                if let Ok(elements) = self.children.lock() {
-                    if let Some(e) = elements.get(*self.child.lock().unwrap()) {
-                        return Some(std::sync::Arc::clone(e));
-                    }
-                }
-                None
+            /// Retrieves a mutable reference to the current child element, if any.
+            ///
+            /// # Returns
+            /// An `Option` containing a mutable reference to the child `Element` or `None`.
+            pub fn get_child(&mut self) -> Option<&mut Box<dyn $crate::Element>> {
+                self.children.get_mut(self.child)
             }
         }
     };
@@ -188,63 +186,63 @@ macro_rules! command {
 #[macro_export]
 macro_rules! parse_rsx_param {
     // Properties
-    ($elem:expr, $a:ident $($k:ident).+: $v:expr) => {
-        $elem.$a.lock().unwrap().$($k).+ = $v;
+    ($elem:expr, $($k:ident).+: $v:expr) => {
+        $elem.$($k).+ = $v;
     };
 
-    ($elem:expr, $a:ident $(.$($k:ident).+)?: $v:expr, $($rest:tt)*) => {
-        *$elem.$a.lock().unwrap()$($($k).+)? = $v;
-        $crate::parse_rsx_param!($elem, $($rest)*);
+    ($elem:expr, $($k:ident).+: $v:expr, $($rest:tt)*) => {
+        $elem.$($k).+ = $v;
+        osui::parse_rsx_param!($elem, $($rest)*);
     };
 
     // for completion purposes
-    // ($elem:expr, $p:path) => {
-    //     $p;
-    // };
-    // ($elem:expr, $a:ident . $($k:ident).+, $($rest:tt)*) => {
-    //     $elem.$a.lock().unwrap().$($k).+;
-    //     $crate::parse_rsx_param!($elem, $($rest)*);
-    // };
-    // ($elem:expr, $a:ident . $($k:ident).+., $($rest:tt)*) => {
-    //     $elem.$a.lock().unwrap().$($k).
-    //     +.;
-    //     $crate::parse_rsx_param!($elem, $($rest)*);
-    // };
+    ($elem:expr, $p:path) => {
+        $p;
+    };
+    ($elem:expr, $($k:ident).+, $($rest:tt)*) => {
+        $elem.$($k).+;
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
+    ($elem:expr, $($k:ident).+., $($rest:tt)*) => {
+        $elem.$($k).
+        +.;
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
 
-    // ($elem:expr, $a:ident . $($k:ident).+.: $v:expr) => {
-    //     $elem.$a.lock().unwrap().$($k).+. = $v;
-    // };
-    // ($elem:expr, $a:ident . $($k:ident).*: $v:expr, $($rest:tt)*) => {
-    //     $elem.$a.lock().unwrap().$($k).+. = $v;
-    //     $crate::parse_rsx_param!($elem, $($rest)*);
-    // };
+    ($elem:expr, $($k:ident).+.: $v:expr) => {
+        $elem.$($k).+. = $v;
+    };
+    ($elem:expr, $($k:ident).+.: $v:expr, $($rest:tt)*) => {
+        $elem.$($k).+. = $v;
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
 
     // For loop
     ($elem:expr, for ($($for:tt)*) { $($inner:tt)* } $($rest:tt)*) => {
         for $($for)* {
-            $elem.children.lock().unwrap().push({$($inner)*})
+            $elem.children.push({$($inner)*})
         }
-        $crate::parse_rsx_param!($elem, $($rest)*);
+        osui::parse_rsx_param!($elem, $($rest)*);
     };
 
     // Expression
     ($elem:expr, {$ielem:expr} $($rest:tt)*) => {
-        $elem.children.lock().unwrap().push($ielem);
-        $crate::parse_rsx_param!($elem, $($rest)*);
+        $elem.children.push($ielem);
+        osui::parse_rsx_param!($elem, $($rest)*);
     };
 
     // Element
     ($elem:expr, $pelem:path { $($inner:tt)* } $($rest:tt)*) => {
-        $elem.children.lock().unwrap().push($crate::rsx_elem!($pelem { $($inner)* }));
-        $crate::parse_rsx_param!($elem, $($rest)*)
+        $elem.children.push(osui::rsx_elem!($pelem { $($inner)* }));
+        osui::parse_rsx_param!($elem, $($rest)*)
     };
 
     // Text
     ($elem:expr, $text:expr) => {
-        *$elem.text.lock().unwrap() = format!($text);
+        $elem.text = format!($text);
     };
     ($elem:expr, $text:expr, $($inner:tt)*) => {
-        *$elem.text.lock().unwrap() = format!($text, $($inner)*);
+        $elem.text = format!($text, $($inner)*);
     };
 
     // Empty
@@ -281,7 +279,7 @@ macro_rules! rsx_elem {
         #[allow(unused_mut)]
         let mut elem = $elem();
         $crate::parse_rsx_param!(elem, $($inner)*);
-        elem as std::sync::Arc<dyn $crate::Element>
+        elem as Box<dyn $crate::Element>
     }};
 }
 

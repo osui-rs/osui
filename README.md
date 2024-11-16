@@ -66,6 +66,10 @@ OSUI provides several macros to simplify the definition and usage of elements:
 - **rsx!**: Create a nested structure of UI components easily.
 - **command!**: Simplify command creation for updates.
 
+## Credits
+
+Credit to priz.js (discord) for the idea of using C
+
 ## Contributing
 
 Contributions are welcome! If you have suggestions or improvements, feel free to submit a pull request or open an issue.

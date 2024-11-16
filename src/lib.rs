@@ -22,12 +22,9 @@
 pub mod macros;
 pub mod ui;
 pub mod utils;
-use std::sync::{mpsc, Arc, Mutex};
 
 pub use utils::*;
 pub mod app;
-
-mod test;
 
 /// Enum representing the wether it's the default or custom.
 ///
@@ -81,67 +78,70 @@ impl<T: Copy + PartialEq> Value<T> {
 pub trait Element: Send + Sync {
     fn get_data(&self) -> (Value<usize>, usize, String);
 
-    fn update_data(&self, width: usize, height: usize);
+    fn update_data(&mut self, width: usize, height: usize);
 
-    fn get_element_by_id(&self, id: &str) -> Option<std::sync::Arc<dyn Element>>;
+    fn get_element_by_id(&mut self, id: &str) -> Option<&mut Box<dyn Element>>;
 
     fn render(&self, state: State) -> String {
         _ = state;
         String::new()
     }
 
-    fn event(&self, ch: &CommandHandler, event: crossterm::event::Event) {
-        _ = (ch, event);
+    fn event(&mut self, event: crossterm::event::Event, state: &StateChanger) {
+        (_, _) = (event, state)
     }
 }
 
-pub struct Handler<T>(pub Box<dyn FnMut(&T, &CommandHandler, crossterm::event::Event) + Send>);
+pub struct Handler<T>(pub Box<dyn FnMut(&T, &StateChanger, crossterm::event::Event) + Send>);
 
 impl<T> Handler<T> {
     pub fn new<F>(handler_fn: F) -> Handler<T>
     where
-        F: FnMut(&T, &CommandHandler, crossterm::event::Event) + 'static + Send,
+        F: FnMut(&T, &StateChanger, crossterm::event::Event) + 'static + Send,
     {
         Handler(Box::new(handler_fn))
     }
 }
 
-pub struct CommandHandler(mpsc::Sender<Command>);
-
-impl CommandHandler {
-    pub fn set_state(&self, state: State) {
-        self.0.send(Command::SetState(state)).unwrap();
-    }
-
-    pub fn exit(&self) {
-        self.0.send(Command::Exit).unwrap();
-    }
-
-    pub fn get_element_by_id(&self) {
-        self.0.send(Command::Exit).unwrap();
-    }
-
-    pub fn rebuild(&self) -> bool {
-        self.0.send(Command::Rebuild).is_ok()
-    }
-}
-
-#[derive(Debug, Clone)]
-pub enum Command {
-    SetState(State),
-    Exit,
-    Rebuild,
-}
-
 #[derive(Debug, Clone)]
 pub enum State {
+    Exit,
+    Rebuild,
     Normal,
     Hover,
     Custom(usize),
-    CustomString(String),
 }
 
-pub fn run_test() {
-    let i = Arc::new(Mutex::new(0));
-    while app::run(test::app(Arc::clone(&i))) {}
+impl State {
+    pub fn from_u32(s: u32) -> State {
+        match s {
+            0 => State::Exit,
+            1 => State::Rebuild,
+            2 => State::Normal,
+            3 => State::Hover,
+            _ => State::Custom((s - 4) as usize),
+        }
+    }
+    pub fn to_u32(&self) -> u32 {
+        match self {
+            State::Exit => 0,
+            State::Rebuild => 1,
+            State::Normal => 2,
+            State::Hover => 3,
+            State::Custom(s) => (4 + s) as u32,
+        }
+    }
+}
+
+pub struct StateChanger(*mut u32);
+
+impl StateChanger {
+    pub fn set_state(&self, s: State) {
+        unsafe {
+            (*self.0) = s.to_u32();
+        }
+    }
+    pub fn get_state(&self) -> State {
+        State::from_u32(unsafe { *self.0 })
+    }
 }

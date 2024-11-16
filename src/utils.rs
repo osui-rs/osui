@@ -78,7 +78,7 @@ pub fn render_to_frame(
     state: crate::State,
     width: usize,
     frame: &mut Vec<String>,
-    element: &std::sync::Arc<dyn Element>,
+    element: &mut Box<dyn Element>,
 ) {
     let data = element.get_data();
     for (i, line) in element.render(state).split('\n').enumerate() {
@@ -130,7 +130,7 @@ pub enum Direction {
 }
 
 pub fn closest_component(
-    components: &[std::sync::Arc<dyn Element>],
+    components: &[&mut dyn Element],
     current_index: usize,
     direction: Direction,
 ) -> usize {
@@ -138,7 +138,7 @@ pub fn closest_component(
 
     components
         .iter()
-        .enumerate() // Keep track of indices
+        .enumerate()
         .filter(|(i, comp_)| {
             let comp = comp_.get_data();
             match direction {
