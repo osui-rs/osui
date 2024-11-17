@@ -16,20 +16,15 @@
 //! ```
 //!
 //! ## Modules
-//! - `utils` - Utility functions for common TUI tasks such as clearing the screen.
+//! - `app` - The main function for rendering.
 //! - `ui` - Contains all user interface components, enabling rich CLI experiences.
+//! - `utils` - Utility functions for common TUI tasks such as clearing the screen.
 
+pub mod app;
 pub mod macros;
 pub mod ui;
 pub mod utils;
 
-pub use utils::*;
-pub mod app;
-
-/// Enum representing the wether it's the default or custom.
-///
-/// - `Default(usize)` - Uses a default value.
-/// - `Custom(usize)` - Allows specifying a custom value.
 #[derive(Debug, Clone, Copy)]
 pub enum Value<T: Copy + PartialEq> {
     Default(T),
@@ -37,20 +32,6 @@ pub enum Value<T: Copy + PartialEq> {
 }
 
 impl<T: Copy + PartialEq> Value<T> {
-    /// Creates a new Value.
-    ///
-    /// # Returns
-    ///
-    /// Value::Custom(usize)
-    pub fn new(value: T) -> Value<T> {
-        Value::Custom(value)
-    }
-
-    /// Retrieves the value.
-    ///
-    /// # Returns
-    ///
-    /// The value by the type T.
     pub fn get_value(&self) -> T {
         match self {
             Value::Custom(s) => *s,
@@ -58,13 +39,6 @@ impl<T: Copy + PartialEq> Value<T> {
         }
     }
 
-    /// Attempts to set the value if it is currently set to `Default`.
-    ///
-    /// If the size is `Custom`, this function will not modify it.
-    ///
-    /// # Arguments
-    ///
-    /// * `value` - The value to change to.
     pub fn try_set_value(&mut self, value: T) {
         if let Value::Default(_) = *self {
             *self = Value::Default(value);
@@ -72,16 +46,20 @@ impl<T: Copy + PartialEq> Value<T> {
     }
 }
 
-/// A trait for defining UI elements in OSUI.
-///
-/// Elements must implement methods for updating and rendering data.
-pub trait Element: Send + Sync {
+impl<T: Copy + PartialEq + Default> Default for Value<T> {
+    fn default() -> Self {
+        Self::Default(T::default())
+    }
+}
+
+pub trait ElementComponent: Send + Sync {
     fn get_data(&self) -> (Value<usize>, usize, String);
-
     fn update_data(&mut self, width: usize, height: usize);
-
     fn get_element_by_id(&mut self, id: &str) -> Option<&mut Box<dyn Element>>;
+    fn get_child(&mut self) -> Option<&mut Box<dyn Element>>;
+}
 
+pub trait Element: std::fmt::Debug + Send + Sync + ElementComponent {
     fn render(&self, state: State) -> String {
         _ = state;
         String::new()
@@ -92,18 +70,18 @@ pub trait Element: Send + Sync {
     }
 }
 
-pub struct Handler<T>(pub Box<dyn FnMut(&T, &StateChanger, crossterm::event::Event) + Send>);
+pub struct Handler<T>(pub Box<dyn FnMut(&T, crossterm::event::Event, &StateChanger) + Send>);
 
 impl<T> Handler<T> {
     pub fn new<F>(handler_fn: F) -> Handler<T>
     where
-        F: FnMut(&T, &StateChanger, crossterm::event::Event) + 'static + Send,
+        F: FnMut(&T, crossterm::event::Event, &StateChanger) + 'static + Send,
     {
         Handler(Box::new(handler_fn))
     }
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy, PartialEq)]
 pub enum State {
     Exit,
     Rebuild,
@@ -143,5 +121,27 @@ impl StateChanger {
     }
     pub fn get_state(&self) -> State {
         State::from_u32(unsafe { *self.0 })
+    }
+}
+
+#[derive(Debug)]
+pub enum Children {
+    None,
+    Text(String),
+    Children(Vec<Box<dyn Element>>, usize),
+}
+
+impl Default for Children {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl Children {
+    pub fn is_none(&self) -> bool {
+        match self {
+            Children::None => true,
+            _ => false,
+        }
     }
 }

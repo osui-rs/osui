@@ -1,5 +1,11 @@
-use osui::{app::run, rsx_elem, ui::text};
+use osui::{app::run, rsx, ui::*, Element};
 
 fn main() {
-    run(&mut rsx_elem! { text { "Hello, World!" } });
+    while run(&mut app()) {}
+}
+
+fn app() -> Box<dyn Element> {
+    rsx! {
+        text { "Hello, World!" }
+    }
 }

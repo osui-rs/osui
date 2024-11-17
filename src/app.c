@@ -11,6 +11,7 @@ typedef struct {
 
 extern void render(void* element, uint32_t state);
 extern void event(void* element, uint32_t* state);
+extern void init_event(void* element, uint32_t* state);
 
 void sleep_ms(long milliseconds) {
     struct timespec ts;
@@ -22,6 +23,7 @@ void sleep_ms(long milliseconds) {
 void *event_checker(void *args)
 {
     EventArgs* event_args = (EventArgs*)args;
+    init_event(event_args->element, event_args->state);
     while (1) {
         if (event_args->state == 0) { return NULL; }
         event(event_args->element, event_args->state);
@@ -32,7 +34,7 @@ void *event_checker(void *args)
 boolean_t c_run(void* element)
 {
     pthread_t thread;
-    uint32_t state = 2;
+    uint32_t state = 3;
     EventArgs event_args = { .element = element, .state = &state };
 
     if (pthread_create(&thread, NULL, event_checker, &event_args) != 0) {
@@ -49,6 +51,6 @@ boolean_t c_run(void* element)
             return 1;
         }
         render(element, state);
-        sleep_ms(200);
+        sleep_ms(20);
     }
 }

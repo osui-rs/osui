@@ -1,180 +1,3 @@
-//! # Macros Module
-//!
-//! This module defines various macros for creating and manipulating OSUI elements.
-//! The macros provide a clean and concise syntax for defining UI components and
-//! handling their parameters, commands, and rendering.
-
-/// Macro for defining an OSUI `Element`.
-///
-/// This macro generates a new element type with specified parameters and default values.
-///
-/// # Example
-/// ```
-/// element! {
-///     MyElem {}
-///     defaults {}
-///     // functions (render, update)
-/// }
-/// ```
-///
-/// # Parameters
-/// - `name`: The name of the element type being defined.
-/// - `inner`: Additional fields or methods for the element.
-/// - `defaults`: Default values for the element's properties.
-/// - `functions`: Functions to implement for the element (e.g., rendering, updating).
-#[macro_export]
-macro_rules! element {
-    (
-        $(#[$meta_style:meta])*
-        style $style:ident {
-            $($sn:ident: $st:ty),*$(,)?
-        }
-        $(#[$meta:meta])*
-        $name:ident {
-            $( $inner:tt )*
-        }
-        defaults {$( $defaults:tt )*}
-        $( $functions:tt )*
-    ) => {
-        $(#[$meta_style])*
-        #[derive(Clone)]
-        pub struct $style {
-            pub color: Color,
-            pub background: Color,
-            pub font: Font,
-            pub hover_color: Color,
-            pub hover_background: Color,
-            pub hover_font: Font,
-            $(pub $sn: $st),*
-        }
-
-        impl Default for $style {
-            fn default() -> $style {
-                $style {
-                    color: Color::default(),
-                    background: Color::default(),
-                    font: Font::default(),
-                    hover_color: Color::default(),
-                    hover_background: Color::default(),
-                    hover_font: Font::default(),
-                    $($sn: <$st>::default()),*
-                }
-            }
-        }
-
-        element! {
-            $(#[$meta])*
-            $name {
-                pub style: $style,
-                $( $inner )*
-            }
-            defaults {
-                style: $style::default(),
-                $($defaults)*
-            }
-            $( $functions )*
-        }
-    };
-    (
-        $(#[$meta:meta])*
-        $name:ident {
-            $( $inner:tt )*
-        }
-        defaults {$( $defaults:tt )*}
-        $( $functions:tt )*
-    ) => {
-        $(#[$meta])*
-        pub struct $name<'a> {
-            pub x: $crate::Value<usize>,
-            pub y: usize,
-            pub width: $crate::Value<usize>,
-            pub height: $crate::Value<usize>,
-            pub children: Vec<Box<dyn $crate::Element>>,
-            pub child: usize,
-            pub text: String,
-            pub id: &'a str,
-            $( $inner )*
-        }
-
-        impl $crate::Element for $name<'_> {
-            fn get_data(&self) -> ($crate::Value<usize>, usize, String) {
-                (self.x, self.y, self.id.to_string())
-            }
-
-            fn update_data(&mut self, width: usize, height: usize) {
-                self.width.try_set_value(width);
-                self.height.try_set_value(height);
-                for child in &mut self.children {
-                    child.update_data(width, height);
-                }
-            }
-
-            fn get_element_by_id(&mut self, id: &str) -> Option<&mut Box<dyn $crate::Element>> {
-                for elem in &mut self.children {
-                    if elem.get_data().2 == id {
-                        return Some(elem);
-                    }
-                }
-                None
-            }
-
-            $( $functions )*
-        }
-
-        impl<'a> $name<'_> {
-            /// Creates a new instance of the element with default values.
-            pub fn new() -> $name<'a> {
-                $name {
-                    children: Vec::new(),
-                    x: $crate::Value::Default(0),
-                    y: 0,
-                    width: $crate::Value::Default(0),
-                    height: $crate::Value::Default(0),
-                    child: 0,
-                    text: String::new(),
-                    id: "",
-                    $( $defaults )*
-                }
-            }
-
-            /// Retrieves a mutable reference to the current child element, if any.
-            ///
-            /// # Returns
-            /// An `Option` containing a mutable reference to the child `Element` or `None`.
-            pub fn get_child(&mut self) -> Option<&mut Box<dyn $crate::Element>> {
-                self.children.get_mut(self.child)
-            }
-        }
-    };
-}
-
-#[macro_export]
-macro_rules! def_ {
-    ($name:ident { $($k:ident : $v:expr),* $(,)? }) => {
-        $name {
-            $(
-                $k : std::sync::Mutex::new($v)
-            ),*
-        }
-    };
-}
-
-/// Macro for creating a command response from a list of commands.
-///
-/// # Example
-/// ```
-/// command!(Update(1), Render(2));
-/// ```
-///
-/// # Parameters
-/// - A list of commands to be included in the `EventResponse::CommandList`.
-#[macro_export]
-macro_rules! command {
-    ($($cmd:expr),*) => {
-        EventResponse::CommandList(vec![$($cmd),*])
-    };
-}
-
 /// Macro for parsing parameters and children for an OSUI element.
 ///
 /// This macro updates the properties of an element based on provided key-value pairs,
@@ -219,30 +42,39 @@ macro_rules! parse_rsx_param {
 
     // For loop
     ($elem:expr, for ($($for:tt)*) { $($inner:tt)* } $($rest:tt)*) => {
-        for $($for)* {
-            $elem.children.push({$($inner)*})
+        if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
+        if let $crate::Children::Children(children, _) = &mut $elem.children {
+            for $($for)* {
+                children.push({$($inner)*})
+            }
         }
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
     // Expression
     ($elem:expr, {$ielem:expr} $($rest:tt)*) => {
-        $elem.children.push($ielem);
+        if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
+        if let $crate::Children::Children(children, _) = &mut $elem.children {
+            children.push({$ielem});
+        }
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
     // Element
     ($elem:expr, $pelem:path { $($inner:tt)* } $($rest:tt)*) => {
-        $elem.children.push(osui::rsx_elem!($pelem { $($inner)* }));
+        if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
+        if let $crate::Children::Children(children, _) = &mut $elem.children {
+            children.push(osui::rsx_elem!($pelem { $($inner)* }));
+        }
         osui::parse_rsx_param!($elem, $($rest)*)
     };
 
     // Text
     ($elem:expr, $text:expr) => {
-        $elem.text = format!($text);
+        if $elem.children.is_none() {$elem.children = $crate::Children::Text(format!($text))}
     };
     ($elem:expr, $text:expr, $($inner:tt)*) => {
-        $elem.text = format!($text, $($inner)*);
+        if $elem.children.is_none() {$elem.children = $crate::Children::Text(format!($text, $($inner)*))}
     };
 
     // Empty
@@ -309,7 +141,7 @@ macro_rules! rsx_elem_raw {
 #[macro_export]
 macro_rules! rsx {
     ($($inner:tt)*) => {{
-        $crate::rsx_elem_raw!( $crate::ui::div { $($inner)* } )
+        $crate::rsx_elem!( $crate::ui::div { $($inner)* } )
     }};
 }
 
@@ -333,21 +165,6 @@ macro_rules! css {
             ..Default::default()
         }
     }};
-}
-
-/// Macro for defining a `Arc<Mutex< T >>`
-#[macro_export]
-macro_rules! mux {
-    ($a:expr) => {
-        std::sync::Mutex::new($a)
-    };
-}
-
-#[macro_export]
-macro_rules! arc {
-    ($a:expr) => {
-        std::sync::Arc::new(std::sync::Mutex::new($a))
-    };
 }
 
 /// Macro for defining a `Value< T >`

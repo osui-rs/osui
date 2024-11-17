@@ -78,7 +78,7 @@ pub fn render_to_frame(
     state: crate::State,
     width: usize,
     frame: &mut Vec<String>,
-    element: &mut Box<dyn Element>,
+    element: &Box<dyn Element>,
 ) {
     let data = element.get_data();
     for (i, line) in element.render(state).split('\n').enumerate() {
@@ -130,7 +130,7 @@ pub enum Direction {
 }
 
 pub fn closest_component(
-    components: &[&mut dyn Element],
+    components: &[Box<dyn Element>],
     current_index: usize,
     direction: Direction,
 ) -> usize {
@@ -144,39 +144,32 @@ pub fn closest_component(
             match direction {
                 Direction::Left => match comp.0 {
                     Value::Custom(_) => {
-                        comp.0.get_value() < current.0.get_value()
-                            && comp.1 == current.1
+                        comp.0.get_value() < current.0.get_value() && comp.1 == current.1
                     }
                     Value::Default(_) => *i < current_index,
                 }, // Left
                 Direction::Right => match comp.0 {
                     Value::Custom(_) => {
-                        comp.0.get_value() > current.0.get_value()
-                            && comp.1 == current.1
+                        comp.0.get_value() > current.0.get_value() && comp.1 == current.1
                     }
                     Value::Default(_) => *i > current_index,
                 }, // Right
-                Direction::Up => {
-                    comp.1 < current.1
-                        && comp.0.get_value() == current.0.get_value()
-                } // Up
+                Direction::Up => comp.1 < current.1 && comp.0.get_value() == current.0.get_value(), // Up
                 Direction::Down => {
-                    comp.1 > current.1
-                        && comp.0.get_value() == current.0.get_value()
+                    comp.1 > current.1 && comp.0.get_value() == current.0.get_value()
                 } // Down
             }
         })
         .min_by_key(|(_, comp_)| {
             let comp = comp_.get_data();
-            current.0.get_value().abs_diff(comp.0.get_value())
-                + current.1.abs_diff(comp.1)
+            current.0.get_value().abs_diff(comp.0.get_value()) + current.1.abs_diff(comp.1)
         }) // Find the closest component
         .map(|(index, _)| index) // Return the index of the closest component
         .unwrap_or(current_index) // If no component is found, return the current index
 }
 
-pub fn create_frame(width: Value<usize>, height: Value<usize>) -> Vec<String> {
-    vec![" ".repeat(width.get_value()); height.get_value()]
+pub fn create_frame(width: usize, height: usize) -> Vec<String> {
+    vec![" ".repeat(width); height]
 }
 
 pub fn get_term_size() -> (usize, usize) {
