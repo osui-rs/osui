@@ -1,18 +1,19 @@
 //! The `styles` module defines various styling options for UI elements. This includes colors,
 //! fonts, padding, margins, and other visual properties that can be applied to UI components
 //! to change their appearance.
-//!
-//! # Example
-//! ```rust
-//! use crate::ui::styles::{Style, Color};
-//! 
-//! let style = Style {
-//!     color: Color::Blue,
-//!     padding: 5,
-//! };
-//! ```
 
-#[derive(Debug, Clone, PartialEq)]
+use std::{collections::HashMap, fmt::Debug};
+
+use dyn_clone::{clone_trait_object, DynClone};
+
+pub trait StyleCore: Debug + Send + Sync + DynClone {
+    fn ansi(&self) -> String;
+    fn ansi_bg(&self) -> String;
+}
+
+clone_trait_object!(StyleCore);
+
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Font {
     None,
     Bold,
@@ -20,11 +21,11 @@ pub enum Font {
     Italic,
     Reverse,
     Strike,
-    Mul(Vec<Font>), 
+    Mul(Vec<Font>),
 }
 
-impl Font {
-    pub fn ansi(&self) -> String {
+impl StyleCore for Font {
+    fn ansi(&self) -> String {
         String::from(match self {
             Font::None => "",
             Font::Bold => "\x1b[1m",
@@ -41,24 +42,15 @@ impl Font {
             }
         })
     }
-
-    
-    
-    pub fn prioritize<'a>(&'a self, secondary: &'a Font) -> &Font {
-        if secondary == &Font::None {
-            self
-        } else {
-            secondary
-        }
+    fn ansi_bg(&self) -> String {
+        self.ansi()
     }
 }
 
-
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Color {
-    None,
-    
-    Rgb(u8, u8, u8), 
+    NoColor,
+    Rgb(u8, u8, u8),
     Hex(String),
     Black,
     Red,
@@ -70,11 +62,10 @@ pub enum Color {
     White,
 }
 
-impl Color {
-    
-    pub fn ansi(&self) -> String {
+impl StyleCore for Color {
+    fn ansi(&self) -> String {
         String::from(match self {
-            Color::None => "",
+            Color::NoColor => "",
             Color::Rgb(r, g, b) => {
                 return format!("\x1b[38;2;{r};{g};{b}m");
             }
@@ -93,10 +84,9 @@ impl Color {
         })
     }
 
-    
-    pub fn ansi_bg(&self) -> String {
+    fn ansi_bg(&self) -> String {
         String::from(match self {
-            Color::None => "",
+            Color::NoColor => "",
             Color::Rgb(r, g, b) => {
                 return format!("\x1b[48;2;{r};{g};{b}m");
             }
@@ -114,21 +104,11 @@ impl Color {
             Color::White => "\x1b[47m",
         })
     }
-
-    
-    
-    pub fn prioritize<'a>(&'a self, secondary: &'a Color) -> &Color {
-        if secondary == &Color::None {
-            self
-        } else {
-            secondary
-        }
-    }
 }
 
 impl Default for Color {
     fn default() -> Self {
-        Color::None
+        Color::NoColor
     }
 }
 
@@ -141,24 +121,77 @@ impl Default for Font {
 fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
     let hex = hex.trim_start_matches('#');
 
-    
     let hex = if hex.len() == 3 {
         format!(
             "{}{}{}{}{}{}",
-            &hex[0..1], &hex[0..1],
-            &hex[1..2], &hex[1..2],
-            &hex[2..3], &hex[2..3]
+            &hex[0..1],
+            &hex[0..1],
+            &hex[1..2],
+            &hex[1..2],
+            &hex[2..3],
+            &hex[2..3]
         )
     } else if hex.len() == 6 {
         hex.to_string()
     } else {
-        return (255, 255, 255); 
+        return (255, 255, 255);
     };
 
-    
     let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(255);
     let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(255);
     let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(255);
 
     (r, g, b)
 }
+
+#[derive(PartialEq, Eq, Hash, Debug, Clone)]
+pub enum StyleName {
+    Class(String),
+    Id(String),
+    Component(String),
+}
+
+#[derive(Debug, Clone)]
+pub struct StyleElement {
+    pub color: Color,
+    pub other: HashMap<String, Box<dyn StyleCore>>,
+}
+
+impl Default for StyleElement {
+    fn default() -> Self {
+        StyleElement {
+            color: Color::NoColor,
+            other: HashMap::new(),
+        }
+    }
+}
+
+#[derive(Debug, Clone)]
+pub struct Style(pub StyleElement, pub HashMap<String, StyleElement>);
+
+impl Default for Style {
+    fn default() -> Self {
+        Style(StyleElement::default(), HashMap::new())
+    }
+}
+
+impl Style {
+    pub fn write(&self, state: &str, s: &str) -> String {
+        if state == "" {
+            return self.0.write(s);
+        }
+        if let Some(style_element) = self.1.get(state) {
+            style_element.write(s)
+        } else {
+            s.to_string()
+        }
+    }
+}
+
+impl StyleElement {
+    pub fn write(&self, s: &str) -> String {
+        format!("{}{s}\x1b[0m", self.color.ansi())
+    }
+}
+
+pub type Css = HashMap<StyleName, Style>;

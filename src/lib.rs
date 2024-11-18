@@ -20,6 +20,12 @@
 //! - `ui` - Contains all user interface components, enabling rich CLI experiences.
 //! - `utils` - Utility functions for common TUI tasks such as clearing the screen.
 
+use std::{
+    collections::HashMap,
+    fmt::Debug,
+    sync::{Arc, Mutex},
+};
+
 use crossterm::event::Event;
 
 pub mod app;
@@ -31,8 +37,19 @@ pub mod utils;
 /// of UI elements. It re-exports commonly used traits, structs, and utility functions to make
 /// the UI framework easier to use.
 pub mod prelude {
-    pub use crate::{app::run, rsx, rsx_elem, ui::*, StateChanger};
-    pub use crate::{Children, Component, Element, ElementCore, State, Value};
+    pub use crate::ui::Color::*;
+    pub use crate::{app::run, css, rsx, rsx_elem, ui::*, Handler};
+    pub use crate::{Children, Element, ElementCore, State, Value};
+    pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
+    pub fn sleep(ms: u64) {
+        std::thread::sleep(std::time::Duration::from_millis(ms));
+    }
+}
+
+pub mod prelude_extra{
+    pub use crate::ui::Color::*;
+    pub use crate::{app::run, css, rsx, rsx_elem, ui::*, Handler, StateChanger};
+    pub use crate::{Children, Component, Element, ElementCore, State, Value, run_handler};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
@@ -79,6 +96,7 @@ pub trait ElementCore: Send + Sync {
     fn update_data(&mut self, width: usize, height: usize);
     fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element>;
     fn get_child(&mut self) -> Option<&mut Element>;
+    fn set_styling(&mut self, styling: &HashMap<crate::ui::StyleName, crate::ui::Style>);
 }
 
 pub trait Component: ElementCore + std::fmt::Debug {
@@ -98,14 +116,28 @@ pub type Element = Box<dyn Component>;
 /// Handler Struct
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct Handler<T>(pub Box<dyn FnMut(&T, Event, &StateChanger) + Send>);
+pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, Event, &StateChanger) + Send + Sync>>);
 
 impl<T> Handler<T> {
     pub fn new<F>(handler_fn: F) -> Handler<T>
     where
-        F: FnMut(&T, Event, &StateChanger) + 'static + Send,
+        F: FnMut(&mut T, Event, &StateChanger) + 'static + Send + Sync,
     {
-        Handler(Box::new(handler_fn))
+        Handler(Arc::new(Mutex::new(handler_fn)))
+    }
+}
+
+impl<T> Default for Handler<T> {
+    fn default() -> Self {
+        Handler(Arc::new(Mutex::new(
+            |_: &mut T, _: Event, _: &StateChanger| {},
+        )))
+    }
+}
+
+impl<T> std::fmt::Debug for Handler<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Handler()")
     }
 }
 

@@ -48,6 +48,11 @@ pub fn element(_args: TokenStream, input: TokenStream) -> TokenStream {
                 );
                 fields.named.push(
                     syn::Field::parse_named
+                        .parse2(quote! { pub style: Style })
+                        .unwrap(),
+                );
+                fields.named.push(
+                    syn::Field::parse_named
                         .parse2(quote! { pub id: &'a str })
                         .unwrap(),
                 );
@@ -90,6 +95,20 @@ pub fn element(_args: TokenStream, input: TokenStream) -> TokenStream {
                     children.get_mut(*child)
                 } else {
                     None
+                }
+            }
+            fn set_styling(&mut self, styling: &std::collections::HashMap<StyleName, Style>) {
+                if let Some(style) = styling.get(&StyleName::Class(self.class.to_string())) {
+                    self.style = style.clone();
+                } else if let Some(style) = styling.get(&StyleName::Id(self.id.to_string())) {
+                    self.style = style.clone();
+                } else if let Some(style) = styling.get(&StyleName::Component(stringify!(#struct_name).to_string())) {
+                    self.style = style.clone();
+                }
+                if let Children::Children(children, _) = &mut self.children {
+                    for child in children {
+                        child.set_styling(styling);
+                    }
                 }
             }
         }

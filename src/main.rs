@@ -5,7 +5,15 @@ fn main() {
 }
 
 fn app() -> Element {
-    rsx! {
-        button { "This is a button!" }
+    rsx! { styling: Some(styles()),
+        button { class: "btn", "This is a button!" }
+    }
+}
+
+fn styles() -> Css {
+    css! {
+        .btn::click {
+            color: Blue
+        }
     }
 }

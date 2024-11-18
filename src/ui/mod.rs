@@ -1,18 +1,11 @@
 /// The `ui` module defines the basic building blocks for creating a terminal-based UI framework.
-/// This includes elements like `Text` and `Div`, which can be combined to create complex layouts
-/// and interactive UIs in the terminal. It also provides utility functions for rendering, event
-/// handling, and managing child components.
 ///
-/// Key Components:
-/// - `Text`: A simple text element that renders a string to the terminal.
-/// - `Div`: A container element that holds and renders child components, allowing navigation
-///   through them with keyboard events (Up, Down, Left, Right).
+/// # Modules
 /// - `styles`: A module for defining UI styles.
-/// - `utils`: Utility functions for rendering and managing state.
 pub mod styles;
 pub use styles::*;
 
-use crate::prelude::*;
+use crate::prelude_extra::*;
 use osui_element::{elem_fn, element};
 
 /// The `Text` element represents a piece of static text in the terminal UI.
@@ -68,7 +61,9 @@ impl Component for Text<'_> {
 #[element]
 #[elem_fn]
 #[derive(Default, Debug)]
-pub struct Div {}
+pub struct Div {
+    pub styling: Option<std::collections::HashMap<StyleName, Style>>,
+}
 
 impl Component for Div<'_> {
     fn render(&self, state: State) -> String {
@@ -93,6 +88,9 @@ impl Component for Div<'_> {
     }
 
     fn event(&mut self, event: Event, state: &crate::StateChanger) {
+        if let Some(styling) = self.styling.clone() {
+            self.set_styling(&styling);
+        }
         match event {
             Event::Key(key) => {
                 if let Children::Children(children, child) = &mut self.children {
@@ -142,13 +140,16 @@ impl Component for Div<'_> {
 #[element]
 #[elem_fn]
 #[derive(Default, Debug)]
-pub struct Button {}
+pub struct Button {
+    pub on_click: Handler<Button<'a>>,
+}
 
 impl Component for Button<'_> {
     fn render(&self, state: State) -> String {
         match state {
-            State::Custom(_) => format!("\x1b[32m{}\x1b[0m", self.children.get_text()),
-            _ => self.children.get_text(),
+            State::Custom(_) => self.style.write("click", &self.children.get_text()),
+            State::Hover => self.style.write("hover", &self.children.get_text()),
+            _ => self.style.write("", &self.children.get_text()),
         }
     }
 
@@ -157,6 +158,7 @@ impl Component for Button<'_> {
             Event::Key(key) => {
                 if key.code == KeyCode::Enter {
                     let prev_state = state.get_state();
+                    run_handler!(self.on_click(event, state));
                     state.set_state(State::Custom(0));
                     sleep(100);
                     state.set_state(prev_state);

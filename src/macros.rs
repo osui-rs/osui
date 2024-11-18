@@ -1,14 +1,14 @@
 /// **parse_rsx_param!** - A macro for parsing and setting parameters on elements, allowing for dynamic handling of element properties and children.
-/// 
+///
 /// This macro enables flexible configuration of UI elements. It handles setting fields, adding children, invoking paths, and processing complex structures.
 ///
 /// ## Example
 /// ```rust
 /// parse_rsx_param!(elem, title: "Hello", for (i in 0..5) { <child> }, text: "World");
 /// ```
-/// 
+///
 /// ## Syntax
-/// 
+///
 /// **Set property or field of an element:**
 /// ```rust
 /// parse_rsx_param!($elem, $($k:ident).+: $v:expr);
@@ -33,7 +33,7 @@
 /// ```rust
 /// parse_rsx_param!($elem, {$ielem:expr} $($rest:tt)*);
 /// ```
-/// 
+///
 /// **Set element text:**
 /// ```rust
 /// parse_rsx_param!($elem, $text:expr);
@@ -112,14 +112,14 @@ macro_rules! parse_rsx_param {
 }
 
 /// **rsx_elem!** - A macro to instantiate a UI element and apply parameters to it.
-/// 
+///
 /// This macro simplifies creating an element and applying a set of properties or children to it, enabling a declarative style of UI building.
 ///
 /// ## Example
 /// ```rust
 /// let element = rsx_elem!(ui::Button { text: "Click me" });
 /// ```
-/// 
+///
 /// ## Syntax
 /// ```rust
 /// rsx_elem!($elem:path { $($inner:tt)* })
@@ -143,9 +143,9 @@ macro_rules! rsx_elem {
 /// rsx! {
 ///     text { "Hello, World" }
 ///     div { button {"Click me!"} }
-/// } 
+/// }
 /// ```
-/// 
+///
 /// ## Syntax
 /// ```rust
 /// rsx!($($inner:tt)*)
@@ -165,48 +165,174 @@ macro_rules! val {
 }
 
 #[macro_export]
-macro_rules! write {
-        (($self:ident, $state:expr), $expr:expr) => {{
-        if $state == 0 {
-            return format!(
-                "{}{}{}{}\x1b[0m",
-                $self.style.color.ansi(),
-                $self.style.background.ansi_bg(),
-                $self.style.font.ansi(),
-                $expr
-            );
-        }
-        format!(
-            "{}{}{}{}\x1b[0m",
-            $self.style.hover_color.ansi(),
-            $self.style.hover_background.ansi_bg(),
-            $self.style.hover_font.ansi(),
-            $expr
-        )
+macro_rules! run_handler {
+    ($self:ident.$handler:ident ($($inner:tt)*)) => {{
+        let a = std::sync::Arc::clone(&$self.$handler.0);
+        let mut o = a.lock().unwrap();
+        o($self, $($inner)*);
     }};
-
-        ($self:ident, $kind:ident, $expr:expr) => {{
-        use paste::paste;
-        format!(
-            "{}{}{}{}\x1b[0m",
-            paste! {
-                $self.style.[<$kind _color>].ansi()
-            },
-            paste! {
-                $self.style.[<$kind _background>].ansi_bg()
-            },
-            paste! {
-                $self.style.[<$kind _font>].ansi()
-            },
-            $expr
-        )
+    ($self:ident.$handler:ident) => {{
+        &$self.$handler;
     }};
 }
 
 #[macro_export]
-macro_rules! run_handler {
-    ($self:ident.$handler:ident ($renderer:expr, $event:expr)) => {
-        let mut o = $self.$handler.0.lock().unwrap();
-        o($self, $renderer, $event);
-    };
+macro_rules! __css {
+    ($style:expr,)=>{};
+    (
+        $style:expr, ($name:ident): $value:expr
+    ) => {{
+        $style.other.insert(stringify!($name).to_string(), Box::new($value));
+    }};
+    (
+        $style:expr, ($name:ident): $value:expr, $($other:tt)*
+    ) => {{
+        $style.other.insert(stringify!($name).to_string(), Box::new($value));
+        $crate::__css!($($other)*);
+    }};
+    (
+        $style:expr, $name:ident: $value:expr
+    ) => {{
+        $style.$name = $value;
+    }};
+}
+
+#[macro_export]
+macro_rules! _css {
+    ($style:expr,) => {};
+    (
+        $hm:expr, .$name:ident { $($inner:tt)* } $($rest:tt)*
+    ) => {{
+        let name = $crate::ui::StyleName::Class(stringify!($name).to_string());
+        if let Some(style) = $hm.get_mut(&name) {
+            $crate::__css!(style.0, $($inner)*);
+        } else {
+            let mut style = $crate::ui::Style::default();
+
+            $crate::__css!(style.0, $($inner)*);
+
+            $hm.insert(
+                name,
+                style,
+            );
+        }
+        $crate::_css!($hm, $($rest)*);
+    }};
+    (
+        $hm:expr, .$name:ident::$kind:ident { $($inner:tt)* } $($rest:tt)*
+    ) => {{
+        let name = $crate::ui::StyleName::Class(stringify!($name).to_string());
+        if let Some(style) = $hm.get_mut(&name) {
+            let mut style_elem = $crate::ui::StyleElement::default();
+            $crate::__css!(style_elem, $($inner)*);
+            style.1.insert(stringify!($kind).to_string(), style_elem);
+        } else {
+            let mut style = $crate::ui::Style::default();
+
+            let mut style_elem = $crate::ui::StyleElement::default();
+            $crate::__css!(style_elem, $($inner)*);
+            style.1.insert(stringify!($kind).to_string(), style_elem);
+
+            $hm.insert(
+                name,
+                style,
+            );
+        }
+        $crate::_css!($hm, $($rest)*);
+    }};
+
+
+    (
+        $hm:expr, #$name:ident { $($inner:tt)* } $($rest:tt)*
+    ) => {{
+        let name = $crate::ui::StyleName::Id(stringify!($name).to_string());
+        if let Some(style) = $hm.get_mut(&name) {
+            $crate::__css!(style.0, $($inner)*);
+        } else {
+            let mut style = $crate::ui::Style::default();
+
+            $crate::__css!(style.0, $($inner)*);
+
+            $hm.insert(
+                name,
+                style,
+            );
+        }
+        $crate::_css!($hm, $($rest)*);
+    }};
+    (
+        $hm:expr, #$name:ident::$kind:ident { $($inner:tt)* } $($rest:tt)*
+    ) => {{
+        let name = $crate::ui::StyleName::Id(stringify!($name).to_string());
+        if let Some(style) = $hm.get_mut(&name) {
+            let mut style_elem = $crate::ui::StyleElement::default();
+            $crate::__css!(style_elem, $($inner)*);
+            style.1.insert(stringify!($kind).to_string(), style_elem);
+        } else {
+            let mut style = $crate::ui::Style::default();
+
+            let mut style_elem = $crate::ui::StyleElement::default();
+            $crate::__css!(style_elem, $($inner)*);
+            style.1.insert(stringify!($kind).to_string(), style_elem);
+
+            $hm.insert(
+                name,
+                style,
+            );
+        }
+        $crate::_css!($hm, $($rest)*);
+    }};
+
+
+    (
+        $hm:expr, $name:ident { $($inner:tt)* } $($rest:tt)*
+    ) => {{
+        let name = $crate::ui::StyleName::Component(stringify!($name).to_string());
+        if let Some(style) = $hm.get_mut(&name) {
+            $crate::__css!(style.0, $($inner)*);
+        } else {
+            let mut style = $crate::ui::Style::default();
+
+            $crate::__css!(style.0, $($inner)*);
+
+            $hm.insert(
+                name,
+                style,
+            );
+        }
+        $crate::_css!($hm, $($rest)*);
+    }};
+    (
+        $hm:expr, $name:ident::$kind:ident { $($inner:tt)* } $($rest:tt)*
+    ) => {{
+        let name = $crate::ui::StyleName::Component(stringify!($name).to_string());
+        if let Some(style) = $hm.get_mut(&name) {
+            let mut style_elem = $crate::ui::StyleElement::default();
+            $crate::__css!(style_elem, $($inner)*);
+            style.1.insert(stringify!($kind).to_string(), style_elem);
+        } else {
+            let mut style = $crate::ui::Style::default();
+
+            let mut style_elem = $crate::ui::StyleElement::default();
+            $crate::__css!(style_elem, $($inner)*);
+            style.1.insert(stringify!($kind).to_string(), style_elem);
+
+            $hm.insert(
+                name,
+                style,
+            );
+        }
+        $crate::_css!($hm, $($rest)*);
+    }};
+}
+
+#[macro_export]
+macro_rules! css {
+    (
+        $($inner:tt)*
+    ) => {{
+        let mut hm: $crate::ui::Css = std::collections::HashMap::new();
+        $crate::_css!(hm, $($inner)*);
+        hm
+    }};
 }
