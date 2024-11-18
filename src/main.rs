@@ -1,11 +1,11 @@
-use osui::{app::run, rsx, ui::*, Element};
+use osui::prelude::*;
 
 fn main() {
     while run(&mut app()) {}
 }
 
-fn app() -> Box<dyn Element> {
+fn app() -> Element {
     rsx! {
-        text { "Hello, World!" }
+        button { "This is a button!" }
     }
 }

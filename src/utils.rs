@@ -1,3 +1,15 @@
+/// The `utils` module contains helper functions and utilities that assist in rendering and
+/// managing UI state. These functions are used by UI elements like `Div` and `Text` for common
+/// tasks such as frame creation, event handling, and component selection.
+///
+/// # Example
+/// ```rust
+/// use crate::ui::utils::{create_frame, render_to_frame};
+/// 
+/// let frame = create_frame(50, 10);
+/// render_to_frame(crate::State::Normal, 50, &mut frame, &text_element);
+/// ```
+
 use crate::{Element, Value};
 use lazy_static::lazy_static;
 use regex::Regex;
@@ -78,7 +90,7 @@ pub fn render_to_frame(
     state: crate::State,
     width: usize,
     frame: &mut Vec<String>,
-    element: &Box<dyn Element>,
+    element: &Element,
 ) {
     let data = element.get_data();
     for (i, line) in element.render(state).split('\n').enumerate() {
@@ -130,7 +142,7 @@ pub enum Direction {
 }
 
 pub fn closest_component(
-    components: &[Box<dyn Element>],
+    components: &[Element],
     current_index: usize,
     direction: Direction,
 ) -> usize {

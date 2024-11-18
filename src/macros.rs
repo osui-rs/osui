@@ -1,15 +1,51 @@
-/// Macro for parsing parameters and children for an OSUI element.
+/// **parse_rsx_param!** - A macro for parsing and setting parameters on elements, allowing for dynamic handling of element properties and children.
+/// 
+/// This macro enables flexible configuration of UI elements. It handles setting fields, adding children, invoking paths, and processing complex structures.
 ///
-/// This macro updates the properties of an element based on provided key-value pairs,
-/// and adds child elements to the parent element.
+/// ## Example
+/// ```rust
+/// parse_rsx_param!(elem, title: "Hello", for (i in 0..5) { <child> }, text: "World");
+/// ```
+/// 
+/// ## Syntax
+/// 
+/// **Set property or field of an element:**
+/// ```rust
+/// parse_rsx_param!($elem, $($k:ident).+: $v:expr);
+/// ```
 ///
-/// # Parameters
-/// - `elem`: The element being updated.
-/// - Various key-value pairs, child elements, and text content. even for loops
+/// **Process multiple parameters:**
+/// ```rust
+/// parse_rsx_param!($elem, $($k:ident).+: $v:expr, $($rest:tt)*);
+/// ```
+///
+/// **Handle path expression:**
+/// ```rust
+/// parse_rsx_param!($elem, $p:path);
+/// ```
+///
+/// **Add nested children:**
+/// ```rust
+/// parse_rsx_param!($elem, for ($($for:tt)*) { $($inner:tt)* } $($rest:tt)*);
+/// ```
+///
+/// **Add child element directly:**
+/// ```rust
+/// parse_rsx_param!($elem, {$ielem:expr} $($rest:tt)*);
+/// ```
+/// 
+/// **Set element text:**
+/// ```rust
+/// parse_rsx_param!($elem, $text:expr);
+/// ```
+///
+/// **Handle empty case:**
+/// ```rust
+/// parse_rsx_param!($elem, );
+/// ```
 #[macro_export]
 macro_rules! parse_rsx_param {
-    // Properties
-    ($elem:expr, $($k:ident).+: $v:expr) => {
+        ($elem:expr, $($k:ident).+: $v:expr) => {
         $elem.$($k).+ = $v;
     };
 
@@ -18,8 +54,7 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-    // for completion purposes
-    ($elem:expr, $p:path) => {
+        ($elem:expr, $p:path) => {
         $p;
     };
     ($elem:expr, $($k:ident).+, $($rest:tt)*) => {
@@ -40,8 +75,7 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-    // For loop
-    ($elem:expr, for ($($for:tt)*) { $($inner:tt)* } $($rest:tt)*) => {
+        ($elem:expr, for ($($for:tt)*) { $($inner:tt)* } $($rest:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
         if let $crate::Children::Children(children, _) = &mut $elem.children {
             for $($for)* {
@@ -51,8 +85,7 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-    // Expression
-    ($elem:expr, {$ielem:expr} $($rest:tt)*) => {
+        ($elem:expr, {$ielem:expr} $($rest:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
         if let $crate::Children::Children(children, _) = &mut $elem.children {
             children.push({$ielem});
@@ -60,8 +93,7 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-    // Element
-    ($elem:expr, $pelem:path { $($inner:tt)* } $($rest:tt)*) => {
+        ($elem:expr, $pelem:path { $($inner:tt)* } $($rest:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
         if let $crate::Children::Children(children, _) = &mut $elem.children {
             children.push(osui::rsx_elem!($pelem { $($inner)* }));
@@ -69,75 +101,55 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*)
     };
 
-    // Text
-    ($elem:expr, $text:expr) => {
+        ($elem:expr, $text:expr) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Text(format!($text))}
     };
     ($elem:expr, $text:expr, $($inner:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Text(format!($text, $($inner)*))}
     };
 
-    // Empty
-    ($elem:expr, ) => {};
+        ($elem:expr, ) => {};
 }
 
-/// Macro for creating an OSUI element with parsed parameters.
+/// **rsx_elem!** - A macro to instantiate a UI element and apply parameters to it.
+/// 
+/// This macro simplifies creating an element and applying a set of properties or children to it, enabling a declarative style of UI building.
 ///
-/// # Example
+/// ## Example
+/// ```rust
+/// let element = rsx_elem!(ui::Button { text: "Click me" });
 /// ```
-/// rsx! {
-///     text { "Hello, World!" }
-///     div {
-///         button { y: 2, "click me" }
-///     }
-/// }
+/// 
+/// ## Syntax
+/// ```rust
+/// rsx_elem!($elem:path { $($inner:tt)* })
 /// ```
-///
-/// # For loops
-/// ```
-/// rsx! {
-///     text { "Welcome!" }
-///     for (i in 1..5) { // must be contained with ()
-///         rsx_elem!{text { y: i, "Text: {i}" }}
-///     }
-/// }
-/// ```
-///
-/// This macro provides a clean way to express OSUI elements, functioning like a div that can
-/// contain multiple components.
 #[macro_export]
 macro_rules! rsx_elem {
     ($elem:path { $($inner:tt)* }) => {{
         #[allow(unused_mut)]
         let mut elem = $elem();
         $crate::parse_rsx_param!(elem, $($inner)*);
-        elem as Box<dyn $crate::Element>
+        elem as $crate::Element
     }};
 }
 
-#[macro_export]
-macro_rules! rsx_elem_raw {
-    ($elem:path { $($inner:tt)* }) => {{
-        #[allow(unused_mut)]
-        let mut elem = $elem();
-        $crate::parse_rsx_param!(elem, $($inner)*);
-        elem
-    }};
-}
-
-/// Macro for defining a structured representation of UI elements in OSUI.
+/// **rsx!** - A shorthand macro to create a `div` element and apply nested content to it.
 ///
-/// # Example
-/// ```
+/// This macro is a simple wrapper for `rsx_elem!`, making it easy to create a `div` element and add children to it.
+///
+/// ## Example
+/// ```rust
 /// rsx! {
-///     text { "Hello, World!" }
-///     div {
-///         button { y: 2, "click me" }
-///     }
-/// }
+///     text { "Hello, World" }
+///     div { button {"Click me!"} }
+/// } 
 /// ```
-///
-/// This macro allows the creation of a root element that can contain other elements.
+/// 
+/// ## Syntax
+/// ```rust
+/// rsx!($($inner:tt)*)
+/// ```
 #[macro_export]
 macro_rules! rsx {
     ($($inner:tt)*) => {{
@@ -145,29 +157,6 @@ macro_rules! rsx {
     }};
 }
 
-/// Macro for defining CSS styles in OSUI.
-///
-/// # Example
-/// ```
-/// css!(Style; color: Color::Red; background: "white");
-/// ```
-///
-/// This macro creates a new style based on the provided properties, applying default values
-/// for any unspecified fields.
-#[macro_export]
-macro_rules! css {
-    (
-        $style:path;
-        $($inner:tt)*
-    ) => {{
-        $style {
-            $($inner)*
-            ..Default::default()
-        }
-    }};
-}
-
-/// Macro for defining a `Value< T >`
 #[macro_export]
 macro_rules! val {
     ($a:expr) => {
@@ -175,21 +164,9 @@ macro_rules! val {
     };
 }
 
-/// Macro for writing when requested to render
-///
-/// # Example
-/// ```
-/// write!(self, clicked, "Hello, World!") // For custom styles, You need (color, background, font)
-///
-/// write!((self, state), "Hello, World!") // When you don't need a custom style, you use () and put self and the state of the render
-/// ```
-///
-/// This macro returns a `String` depending on the state or the kind of style
-/// When on "state" mode it returns the default style if the state is 0
 #[macro_export]
 macro_rules! write {
-    // Default state styling
-    (($self:ident, $state:expr), $expr:expr) => {{
+        (($self:ident, $state:expr), $expr:expr) => {{
         if $state == 0 {
             return format!(
                 "{}{}{}{}\x1b[0m",
@@ -208,8 +185,7 @@ macro_rules! write {
         )
     }};
 
-    // Custom styles
-    ($self:ident, $kind:ident, $expr:expr) => {{
+        ($self:ident, $kind:ident, $expr:expr) => {{
         use paste::paste;
         format!(
             "{}{}{}{}\x1b[0m",
@@ -225,31 +201,6 @@ macro_rules! write {
             $expr
         )
     }};
-}
-
-#[macro_export]
-macro_rules! execute_response {
-    ($self:expr, $res:expr) => {
-        for response in $res.execute() {
-            match response {
-                EventResponse::UpdateElementById(id, elem) => {
-                    for old in &mut $self.children {
-                        if old.get_id() == id {
-                            *old = elem.clone();
-                        }
-                    }
-                }
-                EventResponse::UpdateSelf(elem) => {
-                    if let Some(child) = $self.get_child() {
-                        *child = elem;
-                    }
-                }
-                _ => {
-                    return response;
-                }
-            }
-        }
-    };
 }
 
 #[macro_export]

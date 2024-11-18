@@ -2,6 +2,8 @@ use proc_macro::TokenStream;
 use quote::quote;
 use syn::{parse::Parser, parse_macro_input, DeriveInput, Fields, LifetimeParam};
 
+/// Sets the required values and traits for a struct to be a element.
+/// You will still need to implement ElementCore yourself
 #[proc_macro_attribute]
 pub fn element(_args: TokenStream, input: TokenStream) -> TokenStream {
     let mut ast = parse_macro_input!(input as DeriveInput);
@@ -60,7 +62,7 @@ pub fn element(_args: TokenStream, input: TokenStream) -> TokenStream {
     }
 
     let expanded_impl = quote! {
-        impl<'a> ElementComponent for #struct_name<'a> {
+        impl<'a> ElementCore for #struct_name<'a> {
             fn get_data(&self) -> (Value<usize>, usize, String) {
                 (self.x, self.y, self.id.to_string())
             }
@@ -73,7 +75,7 @@ pub fn element(_args: TokenStream, input: TokenStream) -> TokenStream {
                     }
                 }
             }
-            fn get_element_by_id(&mut self, id: &str) -> Option<&mut Box<dyn Element>> {
+            fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element> {
                 if let Children::Children(children, _) = &mut self.children {
                     for elem in children {
                         if elem.get_data().2 == id {
@@ -83,7 +85,7 @@ pub fn element(_args: TokenStream, input: TokenStream) -> TokenStream {
                 }
                 None
             }
-            fn get_child(&mut self) -> Option<&mut Box<dyn Element>> {
+            fn get_child(&mut self) -> Option<&mut Element> {
                 if let Children::Children(children, child) = &mut self.children {
                     children.get_mut(*child)
                 } else {

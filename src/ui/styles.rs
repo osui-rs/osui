@@ -1,4 +1,17 @@
-/// Represents different font styles that can be applied to TUI elements.
+//! The `styles` module defines various styling options for UI elements. This includes colors,
+//! fonts, padding, margins, and other visual properties that can be applied to UI components
+//! to change their appearance.
+//!
+//! # Example
+//! ```rust
+//! use crate::ui::styles::{Style, Color};
+//! 
+//! let style = Style {
+//!     color: Color::Blue,
+//!     padding: 5,
+//! };
+//! ```
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Font {
     None,
@@ -7,11 +20,10 @@ pub enum Font {
     Italic,
     Reverse,
     Strike,
-    Mul(Vec<Font>), // Allows combining multiple font styles.
+    Mul(Vec<Font>), 
 }
 
 impl Font {
-    /// Converts the font style to an ANSI sequence.
     pub fn ansi(&self) -> String {
         String::from(match self {
             Font::None => "",
@@ -30,8 +42,8 @@ impl Font {
         })
     }
 
-    /// Returns the prioritized font between `self` and `secondary`, favoring `secondary`
-    /// if it is not `None`.
+    
+    
     pub fn prioritize<'a>(&'a self, secondary: &'a Font) -> &Font {
         if secondary == &Font::None {
             self
@@ -41,12 +53,12 @@ impl Font {
     }
 }
 
-/// Represents color options for elements, supporting both named colors and RGB values.
+
 #[derive(Debug, Clone, PartialEq)]
 pub enum Color {
     None,
-    /// Red, Green, blue
-    Rgb(u8, u8, u8), // RGB color representation.
+    
+    Rgb(u8, u8, u8), 
     Hex(String),
     Black,
     Red,
@@ -59,7 +71,7 @@ pub enum Color {
 }
 
 impl Color {
-    /// Converts the color to an ANSI foreground sequence.
+    
     pub fn ansi(&self) -> String {
         String::from(match self {
             Color::None => "",
@@ -81,7 +93,7 @@ impl Color {
         })
     }
 
-    /// Converts the color to an ANSI background sequence.
+    
     pub fn ansi_bg(&self) -> String {
         String::from(match self {
             Color::None => "",
@@ -103,8 +115,8 @@ impl Color {
         })
     }
 
-    /// Returns the prioritized color between `self` and `secondary`, favoring `secondary`
-    /// if it is not `None`.
+    
+    
     pub fn prioritize<'a>(&'a self, secondary: &'a Color) -> &Color {
         if secondary == &Color::None {
             self
@@ -129,7 +141,7 @@ impl Default for Font {
 fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
     let hex = hex.trim_start_matches('#');
 
-    // Expand 3-character hex codes to 6 characters
+    
     let hex = if hex.len() == 3 {
         format!(
             "{}{}{}{}{}{}",
@@ -140,10 +152,10 @@ fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
     } else if hex.len() == 6 {
         hex.to_string()
     } else {
-        return (255, 255, 255); // Return white for invalid hex length
+        return (255, 255, 255); 
     };
 
-    // Parse each pair of characters as u8
+    
     let r = u8::from_str_radix(&hex[0..2], 16).unwrap_or(255);
     let g = u8::from_str_radix(&hex[2..4], 16).unwrap_or(255);
     let b = u8::from_str_radix(&hex[4..6], 16).unwrap_or(255);

@@ -8,7 +8,7 @@
 //! ## Example Usage
 //!
 //! ```rust
-//! use osui::{self, rsx, ui::*};
+//! use osui::prelude::*;
 //!
 //! osui::app::run(&mut rsx! {
 //!     text { "Hello, World!" }
@@ -20,10 +20,28 @@
 //! - `ui` - Contains all user interface components, enabling rich CLI experiences.
 //! - `utils` - Utility functions for common TUI tasks such as clearing the screen.
 
+use crossterm::event::Event;
+
 pub mod app;
 pub mod macros;
 pub mod ui;
 pub mod utils;
+
+/// The `prelude` module provides commonly used imports and macros to simplify the development
+/// of UI elements. It re-exports commonly used traits, structs, and utility functions to make
+/// the UI framework easier to use.
+pub mod prelude {
+    pub use crate::{app::run, rsx, rsx_elem, ui::*, StateChanger};
+    pub use crate::{Children, Component, Element, ElementCore, State, Value};
+    pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
+    pub fn sleep(ms: u64) {
+        std::thread::sleep(std::time::Duration::from_millis(ms));
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// Value Enum
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, Copy)]
 pub enum Value<T: Copy + PartialEq> {
@@ -52,34 +70,48 @@ impl<T: Copy + PartialEq + Default> Default for Value<T> {
     }
 }
 
-pub trait ElementComponent: Send + Sync {
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// ElementCore Traits
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub trait ElementCore: Send + Sync {
     fn get_data(&self) -> (Value<usize>, usize, String);
     fn update_data(&mut self, width: usize, height: usize);
-    fn get_element_by_id(&mut self, id: &str) -> Option<&mut Box<dyn Element>>;
-    fn get_child(&mut self) -> Option<&mut Box<dyn Element>>;
+    fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element>;
+    fn get_child(&mut self) -> Option<&mut Element>;
 }
 
-pub trait Element: std::fmt::Debug + Send + Sync + ElementComponent {
+pub trait Component: ElementCore + std::fmt::Debug {
     fn render(&self, state: State) -> String {
         _ = state;
         String::new()
     }
 
-    fn event(&mut self, event: crossterm::event::Event, state: &StateChanger) {
+    fn event(&mut self, event: Event, state: &StateChanger) {
         (_, _) = (event, state)
     }
 }
 
-pub struct Handler<T>(pub Box<dyn FnMut(&T, crossterm::event::Event, &StateChanger) + Send>);
+pub type Element = Box<dyn Component>;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// Handler Struct
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub struct Handler<T>(pub Box<dyn FnMut(&T, Event, &StateChanger) + Send>);
 
 impl<T> Handler<T> {
     pub fn new<F>(handler_fn: F) -> Handler<T>
     where
-        F: FnMut(&T, crossterm::event::Event, &StateChanger) + 'static + Send,
+        F: FnMut(&T, Event, &StateChanger) + 'static + Send,
     {
         Handler(Box::new(handler_fn))
     }
 }
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// State Enum and StateChanger Struct
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum State {
@@ -100,6 +132,7 @@ impl State {
             _ => State::Custom((s - 4) as usize),
         }
     }
+
     pub fn to_u32(&self) -> u32 {
         match self {
             State::Exit => 0,
@@ -119,16 +152,21 @@ impl StateChanger {
             (*self.0) = s.to_u32();
         }
     }
+
     pub fn get_state(&self) -> State {
         State::from_u32(unsafe { *self.0 })
     }
 }
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// Children Enum
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
 #[derive(Debug)]
 pub enum Children {
     None,
     Text(String),
-    Children(Vec<Box<dyn Element>>, usize),
+    Children(Vec<Element>, usize),
 }
 
 impl Default for Children {
@@ -142,6 +180,12 @@ impl Children {
         match self {
             Children::None => true,
             _ => false,
+        }
+    }
+    pub fn get_text(&self) -> String {
+        match self {
+            Children::Text(text) => text.clone(),
+            _ => String::new(),
         }
     }
 }
