@@ -1,14 +1,10 @@
-# OSUI - A Terminal User Interface (TUI) Library
-
 <p align="center">
-  <img src="github/OSUI.png" alt="OSUI" width="200px"/>
+  <img src="github/OSUI-cropped.png" alt="OSUI" width="200px"/>
 </p>
 
 <p align="center">
   <b>OSUI is a customizable terminal user interface (TUI) library written in Rust. It provides a set of components and rsx to build interactive command-line interfaces with ease.</b>
 </p>
-
-<!-- <br/> -->
 
 ## Features
 
