@@ -10,7 +10,7 @@
 //! ```rust
 //! use osui::prelude::*;
 //!
-//! osui::app::run(&mut rsx! {
+//! run(&mut rsx! {
 //!     text { "Hello, World!" }
 //! });
 //! ```
@@ -39,17 +39,9 @@ pub mod utils;
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::{app::run, css, rsx, rsx_elem, ui::*, Handler};
-    pub use crate::{Children, Element, ElementCore, State, Value};
-    pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
-    pub fn sleep(ms: u64) {
-        std::thread::sleep(std::time::Duration::from_millis(ms));
-    }
-}
-
-pub mod prelude_extra{
-    pub use crate::ui::Color::*;
-    pub use crate::{app::run, css, rsx, rsx_elem, ui::*, Handler, StateChanger};
-    pub use crate::{Children, Component, Element, ElementCore, State, Value, run_handler};
+    pub use crate::{Element, State, StateChanger, Value};
+    // useful for Element making
+    pub use crate::{run_handler, Children, Component, ElementCore};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));

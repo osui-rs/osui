@@ -5,7 +5,7 @@
 pub mod styles;
 pub use styles::*;
 
-use crate::prelude_extra::*;
+use crate::prelude::*;
 use osui_element::{elem_fn, element};
 
 /// The `Text` element represents a piece of static text in the terminal UI.
