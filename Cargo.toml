@@ -14,6 +14,9 @@ path = "src/lib.rs"
 name = "osui"
 path = "src/main.rs"
 
+[build-dependencies]
+cc = "1.0"
+
 [dependencies]
 crossterm = "0.28.1"
 regex = "1.11.1"
