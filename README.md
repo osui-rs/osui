@@ -3,9 +3,15 @@
 </p>
 
 <p align="center">
-  <img alt="Crates.io Version" src="https://img.shields.io/crates/v/osui?style=flat" href="https://crates.io/crates/osui">
-  <img alt="GitHub Org's stars" src="https://img.shields.io/github/stars/osui-rs?style=flat" href="https://github.com/osui-rs">
-  <img alt="GitHub License" src="https://img.shields.io/github/license/osui-rs/osui?style=flat" href="https://github.com/osui-rs/osui">
+  <a href="https://crates.io/crates/osui">
+  <img alt="Crates.io Version" src="https://img.shields.io/crates/v/osui?style=flat">
+  </a>
+  <a href="https://github.com/osui-rs">
+    <img alt="GitHub Org's stars" src="https://img.shields.io/github/stars/osui-rs?style=flat">
+  </a>
+  <a href="https://github.com/osui-rs/osui">
+    <img alt="GitHub License" src="https://img.shields.io/github/license/osui-rs/osui?style=flat">
+  </a>
 </p>
 
 <p align="center">
