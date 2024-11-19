@@ -1,10 +1,10 @@
 [package]
 name = "osui"
-version = "0.0.3"
+version = "0.0.4"
 edition = "2021"
 license = "Apache-2.0"
 description = "A TUI library"
-repository = "https://github.com/orus-dev/osui"
+repository = "https://github.com/osui-rs/osui"
 
 [lib]
 name = "osui"
