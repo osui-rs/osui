@@ -3,6 +3,12 @@
 </p>
 
 <p align="center">
+  <img alt="Crates.io Version" src="https://img.shields.io/crates/v/osui?style=flat&link=https%3A%2F%2Fcrates.io%2Fcrates%2Fosui">
+  <img alt="GitHub Org's stars" src="https://img.shields.io/github/stars/osui-rs?style=flat&link=https%3A%2F%2Fgithub.com%2Fosui-rs">
+  <img alt="GitHub License" src="https://img.shields.io/github/license/osui-rs/osui?style=flat&link=https%3A%2F%2Fgithub.com%2Fosui-rs%2Fosui">
+</p>
+
+<p align="center">
   <b>OSUI is a customizable terminal user interface (TUI) library written in Rust. It provides a set of components and rsx to build interactive command-line interfaces with ease.</b>
 </p>
 
