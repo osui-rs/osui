@@ -41,7 +41,7 @@ pub use app::run;
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
-    pub use crate::{Element, State, StateChanger, Value};
+    pub use crate::{Element, Value};
     // useful for Element making
     pub use crate::{run_handler, Children, Component, ElementCore};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
@@ -99,8 +99,8 @@ pub trait Component: ElementCore + std::fmt::Debug {
         String::new()
     }
 
-    fn event(&mut self, event: Event, state: &StateChanger) {
-        (_, _) = (event, state)
+    fn event(&mut self, event: Event) {
+        _ = event
     }
 }
 
@@ -110,12 +110,12 @@ pub type Element = Box<dyn Component>;
 /// Handler Struct
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, Event, &StateChanger) + Send + Sync>>);
+pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, Event) + Send + Sync>>);
 
 impl<T> Handler<T> {
     pub fn new<F>(handler_fn: F) -> Handler<T>
     where
-        F: FnMut(&mut T, Event, &StateChanger) + 'static + Send + Sync,
+        F: FnMut(&mut T, Event) + 'static + Send + Sync,
     {
         Handler(Arc::new(Mutex::new(handler_fn)))
     }
@@ -123,64 +123,13 @@ impl<T> Handler<T> {
 
 impl<T> Default for Handler<T> {
     fn default() -> Self {
-        Handler(Arc::new(Mutex::new(
-            |_: &mut T, _: Event, _: &StateChanger| {},
-        )))
+        Handler(Arc::new(Mutex::new(|_: &mut T, _: Event| {})))
     }
 }
 
 impl<T> std::fmt::Debug for Handler<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Handler()")
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-/// State Enum and StateChanger Struct
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum State {
-    Exit,
-    Rebuild,
-    Normal,
-    Hover,
-    Custom(usize),
-}
-
-impl State {
-    pub fn from_u32(s: u32) -> State {
-        match s {
-            0 => State::Exit,
-            1 => State::Rebuild,
-            2 => State::Normal,
-            3 => State::Hover,
-            _ => State::Custom((s - 4) as usize),
-        }
-    }
-
-    pub fn to_u32(&self) -> u32 {
-        match self {
-            State::Exit => 0,
-            State::Rebuild => 1,
-            State::Normal => 2,
-            State::Hover => 3,
-            State::Custom(s) => (4 + s) as u32,
-        }
-    }
-}
-
-pub struct StateChanger(*mut u32);
-
-impl StateChanger {
-    pub fn set_state(&self, s: State) {
-        unsafe {
-            (*self.0) = s.to_u32();
-        }
-    }
-
-    pub fn get_state(&self) -> State {
-        State::from_u32(unsafe { *self.0 })
     }
 }
 

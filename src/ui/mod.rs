@@ -83,7 +83,7 @@ impl Component for Div<'_> {
         frame.join("\n")
     }
 
-    fn event(&mut self, event: Event, state: &crate::StateChanger) {
+    fn event(&mut self, event: Event) {
         if let Some(styling) = self.styling.clone() {
             self.set_styling(&styling);
         }
@@ -117,7 +117,7 @@ impl Component for Div<'_> {
 
                         _ => {
                             if let Some(c) = children.get_mut(*child) {
-                                c.event(event, state);
+                                c.event(event);
                             }
                             *child
                         }
@@ -126,7 +126,7 @@ impl Component for Div<'_> {
             }
             _ => {
                 if let Some(child) = self.get_child() {
-                    child.event(event, state);
+                    child.event(event);
                 }
             }
         }
@@ -143,7 +143,7 @@ pub struct Button {
 
 impl Component for Button<'_> {
     fn render(&self, focused: bool) -> String {
-        if self.state == "click" {
+        if self.state == "clicked" {
             return self.style.write("click", &self.children.get_text());
         }
         if focused {
@@ -153,15 +153,14 @@ impl Component for Button<'_> {
         }
     }
 
-    fn event(&mut self, event: Event, state: &StateChanger) {
+    fn event(&mut self, event: Event) {
         match event {
             Event::Key(key) => {
                 if key.code == KeyCode::Enter {
-                    let prev_state = state.get_state();
-                    run_handler!(self.on_click(event, state));
-                    state.set_state(State::Custom(0));
+                    self.state = "clicked";
+                    run_handler!(self.on_click(event));
                     sleep(100);
-                    state.set_state(prev_state);
+                    self.state = "";
                 }
             }
             _ => {}

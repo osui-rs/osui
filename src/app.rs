@@ -5,7 +5,7 @@ use crossterm::{
 
 use crate::{
     utils::{clear, create_frame, flush, get_term_size, hide_cursor, render_to_frame, show_cursor},
-    Element, StateChanger,
+    Element,
 };
 use std::{ffi::c_void, ptr::null};
 
@@ -49,7 +49,7 @@ fn event(element: &mut Element, event: Event) {
     if let crossterm::event::Event::Resize(width, height) = event {
         element.update_data(width as usize, height as usize);
     }
-    element.event(event, &StateChanger(&mut 0));
+    element.event(event);
 }
 
 pub fn run(element: &mut Element) -> bool {
