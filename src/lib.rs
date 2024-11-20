@@ -43,7 +43,7 @@ pub mod prelude {
     pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
     pub use crate::{Element, Value};
     // useful for Element making
-    pub use crate::{run_handler, Children, Component, ElementCore};
+    pub use crate::{run_handler, Children, ElementCore, ElementWidget};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
@@ -93,7 +93,7 @@ pub trait ElementCore: Send + Sync {
     fn set_styling(&mut self, styling: &HashMap<crate::ui::StyleName, crate::ui::Style>);
 }
 
-pub trait Component: ElementCore + std::fmt::Debug {
+pub trait ElementWidget: ElementCore + std::fmt::Debug {
     fn render(&self, focused: bool) -> String {
         _ = focused;
         String::new()
@@ -104,7 +104,7 @@ pub trait Component: ElementCore + std::fmt::Debug {
     }
 }
 
-pub type Element = Box<dyn Component>;
+pub type Element = Box<dyn ElementWidget>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// Handler Struct

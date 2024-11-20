@@ -12,7 +12,7 @@ fn app() -> Element {
 
 fn styles() -> Css {
     css! {
-        .btn::click {
+        .btn::clicked {
             color: Blue
         }
     }

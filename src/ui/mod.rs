@@ -28,7 +28,7 @@ use osui_element::{elem_fn, element};
 #[derive(Default, Debug)]
 pub struct Text {}
 
-impl Component for Text<'_> {
+impl ElementWidget for Text<'_> {
     fn render(&self, _: bool) -> String {
         if let Children::Text(text) = &self.children {
             text.clone()
@@ -65,7 +65,7 @@ pub struct Div {
     pub styling: Option<std::collections::HashMap<StyleName, Style>>,
 }
 
-impl Component for Div<'_> {
+impl ElementWidget for Div<'_> {
     fn render(&self, focused: bool) -> String {
         let mut frame = crate::utils::create_frame(self.width.get_value(), self.height.get_value());
 
@@ -141,10 +141,10 @@ pub struct Button {
     pub state: &'a str,
 }
 
-impl Component for Button<'_> {
+impl ElementWidget for Button<'_> {
     fn render(&self, focused: bool) -> String {
         if self.state == "clicked" {
-            return self.style.write("click", &self.children.get_text());
+            return self.style.write("clicked", &self.children.get_text());
         }
         if focused {
             self.style.write("hover", &self.children.get_text())
