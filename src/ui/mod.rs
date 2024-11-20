@@ -29,7 +29,7 @@ use osui_element::{elem_fn, element};
 pub struct Text {}
 
 impl Component for Text<'_> {
-    fn render(&self, _: crate::State) -> String {
+    fn render(&self, _: bool) -> String {
         if let Children::Text(text) = &self.children {
             text.clone()
         } else {
@@ -66,21 +66,17 @@ pub struct Div {
 }
 
 impl Component for Div<'_> {
-    fn render(&self, state: State) -> String {
+    fn render(&self, focused: bool) -> String {
         let mut frame = crate::utils::create_frame(self.width.get_value(), self.height.get_value());
 
         if let Children::Children(children, child) = &self.children {
             for (i, elem) in children.iter().enumerate() {
-                if i == *child {
-                    crate::utils::render_to_frame(state, self.width.get_value(), &mut frame, elem);
-                } else {
-                    crate::utils::render_to_frame(
-                        crate::State::Normal,
-                        self.width.get_value(),
-                        &mut frame,
-                        elem,
-                    );
-                }
+                crate::utils::render_to_frame(
+                    focused && i == *child,
+                    self.width.get_value(),
+                    &mut frame,
+                    elem,
+                );
             }
         }
 
@@ -142,14 +138,18 @@ impl Component for Div<'_> {
 #[derive(Default, Debug)]
 pub struct Button {
     pub on_click: Handler<Button<'a>>,
+    pub state: &'a str,
 }
 
 impl Component for Button<'_> {
-    fn render(&self, state: State) -> String {
-        match state {
-            State::Custom(_) => self.style.write("click", &self.children.get_text()),
-            State::Hover => self.style.write("hover", &self.children.get_text()),
-            _ => self.style.write("", &self.children.get_text()),
+    fn render(&self, focused: bool) -> String {
+        if self.state == "click" {
+            return self.style.write("click", &self.children.get_text());
+        }
+        if focused {
+            self.style.write("hover", &self.children.get_text())
+        } else {
+            self.style.write("", &self.children.get_text())
         }
     }
 

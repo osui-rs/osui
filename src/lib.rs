@@ -94,8 +94,8 @@ pub trait ElementCore: Send + Sync {
 }
 
 pub trait Component: ElementCore + std::fmt::Debug {
-    fn render(&self, state: State) -> String {
-        _ = state;
+    fn render(&self, focused: bool) -> String {
+        _ = focused;
         String::new()
     }
 

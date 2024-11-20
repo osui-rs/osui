@@ -87,13 +87,13 @@ fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
 
 /// Render to a frame
 pub fn render_to_frame(
-    state: crate::State,
+    focused: bool,
     width: usize,
     frame: &mut Vec<String>,
     element: &Element,
 ) {
     let data = element.get_data();
-    for (i, line) in element.render(state).split('\n').enumerate() {
+    for (i, line) in element.render(focused).split('\n').enumerate() {
         if (data.1 + i) < frame.len() {
             let frame_line = frame.get_mut(data.1 + i).unwrap();
             match data.0 {
