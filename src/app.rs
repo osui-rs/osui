@@ -36,6 +36,7 @@ extern "C" fn event_loop(ptr: *mut c_void) -> *const c_void {
     let element = unsafe { &mut *(ptr as *mut Element) };
     let (width, height) = get_term_size();
     element.update_data(width, height);
+    event(element, crossterm::event::Event::FocusGained);
     loop {
         if ptr.is_null() {
             break;

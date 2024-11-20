@@ -6,13 +6,13 @@ fn main() {
 
 fn app() -> Element {
     rsx! { styling: Some(styles()),
-        button { class: "btn", "This is a button!" }
+        button { class: "btn", id: "test", "This is a button!" }
     }
 }
 
 fn styles() -> Css {
     css! {
-        .btn::clicked {
+        .btn: clicked {
             color: Blue
         }
     }
