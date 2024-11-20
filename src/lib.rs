@@ -33,12 +33,14 @@ pub mod macros;
 pub mod ui;
 pub mod utils;
 
+pub use app::run;
+
 /// The `prelude` module provides commonly used imports and macros to simplify the development
 /// of UI elements. It re-exports commonly used traits, structs, and utility functions to make
 /// the UI framework easier to use.
 pub mod prelude {
     pub use crate::ui::Color::*;
-    pub use crate::{app::run, css, rsx, rsx_elem, ui::*, Handler};
+    pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
     pub use crate::{Element, State, StateChanger, Value};
     // useful for Element making
     pub use crate::{run_handler, Children, Component, ElementCore};

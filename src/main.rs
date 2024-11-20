@@ -1,7 +1,7 @@
 use osui::prelude::*;
 
 fn main() {
-    while run(&mut app()) {}
+    while osui::run(&mut app()) {}
 }
 
 fn app() -> Element {

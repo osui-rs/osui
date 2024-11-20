@@ -4,7 +4,8 @@
 #include <pthread.h>
 #include <time.h>
 
-typedef struct {
+typedef struct
+{
     uint32_t* state;
     void* element;
 } EventArgs;
@@ -13,7 +14,8 @@ extern void render(void* element, uint32_t state);
 extern void event(void* element, uint32_t* state);
 extern void init_event(void* element, uint32_t* state);
 
-void sleep_ms(long milliseconds) {
+void sleep_ms(long milliseconds)
+{
     struct timespec ts;
     ts.tv_sec = milliseconds / 1000;
     ts.tv_nsec = (milliseconds % 1000) * 1000000;
@@ -31,13 +33,25 @@ void *event_checker(void *args)
     return NULL;
 }
 
+void *command_checker(void *args)
+{
+    EventArgs* event_args = (EventArgs*)args;
+    init_event(event_args->element, event_args->state);
+    while (1) {
+        if (event_args->state == 0) { return NULL; }
+        event(event_args->element, event_args->state);
+    }
+    return NULL;
+}
+
 boolean_t c_run(void* element)
 {
     pthread_t thread;
     uint32_t state = 3;
     EventArgs event_args = { .element = element, .state = &state };
 
-    if (pthread_create(&thread, NULL, event_checker, &event_args) != 0) {
+    if (pthread_create(&thread, NULL, event_checker, &event_args) != 0)
+    {
         perror("Failed to create thread");
     }
 
