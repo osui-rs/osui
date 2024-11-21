@@ -93,6 +93,7 @@ pub trait ElementCore: Send + Sync {
     fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element>;
     fn get_child(&mut self) -> Option<&mut Element>;
     fn set_styling(&mut self, styling: &HashMap<crate::ui::StyleName, crate::ui::Style>);
+    fn type_id(&self) -> std::any::TypeId;
 }
 
 pub trait ElementWidget: ElementCore + std::fmt::Debug {
