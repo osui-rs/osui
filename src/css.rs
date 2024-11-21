@@ -1,41 +1,37 @@
 #[macro_export]
 macro_rules! __css {
-    ($style:expr,)=>{};
+    ($_style:expr,)=>{};
     (
-        $style:expr, ($name:ident): $value:expr
+        $_style:expr, $name:ident: $value:expr $(, $($other:tt)*)?
     ) => {{
-        $style.other.insert(stringify!($name).to_string(), Box::new($value));
+        $_style.$name = $value;
+        $crate::__css!($_style, $($($other)*)?);
     }};
     (
-        $style:expr, ($name:ident): $value:expr, $($other:tt)*
+        $_style:expr, ($name:ident): $value:expr $(, $($other:tt)*)?
     ) => {{
-        $style.other.insert(stringify!($name).to_string(), Box::new($value));
-        $crate::__css!($($other)*);
-    }};
-    (
-        $style:expr, $name:ident: $value:expr
-    ) => {{
-        $style.$name = $value;
+        $_style.other.insert(stringify!($name).to_string(), Box::new($value));
+        $crate::__css!($_style, $($($other)*)?);
     }};
 }
 
 #[macro_export]
 macro_rules! _css {
-    ($style:expr,) => {};
+    ($_style:expr,) => {};
     (
         $hm:expr, .$name:ident { $($inner:tt)* } $($rest:tt)*
     ) => {{
         let name = $crate::ui::StyleName::Class(stringify!($name).to_string());
-        if let Some(style) = $hm.get_mut(&name) {
-            $crate::__css!(style.0, $($inner)*);
+        if let Some(_style) = $hm.get_mut(&name) {
+            $crate::__css!(_style.0, $($inner)*);
         } else {
-            let mut style = $crate::ui::Style::default();
+            let mut _style = $crate::ui::Style::default();
 
-            $crate::__css!(style.0, $($inner)*);
+            $crate::__css!(_style.0, $($inner)*);
 
             $hm.insert(
                 name,
-                style,
+                _style,
             );
         }
         $crate::_css!($hm, $($rest)*);
@@ -44,20 +40,20 @@ macro_rules! _css {
         $hm:expr, .$name:ident:$kind:ident { $($inner:tt)* } $($rest:tt)*
     ) => {{
         let name = $crate::ui::StyleName::Class(stringify!($name).to_string());
-        if let Some(style) = $hm.get_mut(&name) {
+        if let Some(_style) = $hm.get_mut(&name) {
             let mut style_elem = $crate::ui::StyleElement::default();
             $crate::__css!(style_elem, $($inner)*);
-            style.1.insert(stringify!($kind).to_string(), style_elem);
+            _style.1.insert(stringify!($kind).to_string(), style_elem);
         } else {
-            let mut style = $crate::ui::Style::default();
+            let mut _style = $crate::ui::Style::default();
 
             let mut style_elem = $crate::ui::StyleElement::default();
             $crate::__css!(style_elem, $($inner)*);
-            style.1.insert(stringify!($kind).to_string(), style_elem);
+            _style.1.insert(stringify!($kind).to_string(), style_elem);
 
             $hm.insert(
                 name,
-                style,
+                _style,
             );
         }
         $crate::_css!($hm, $($rest)*);
@@ -68,16 +64,16 @@ macro_rules! _css {
         $hm:expr, #$name:ident { $($inner:tt)* } $($rest:tt)*
     ) => {{
         let name = $crate::ui::StyleName::Id(stringify!($name).to_string());
-        if let Some(style) = $hm.get_mut(&name) {
-            $crate::__css!(style.0, $($inner)*);
+        if let Some(_style) = $hm.get_mut(&name) {
+            $crate::__css!(_style.0, $($inner)*);
         } else {
-            let mut style = $crate::ui::Style::default();
+            let mut _style = $crate::ui::Style::default();
 
-            $crate::__css!(style.0, $($inner)*);
+            $crate::__css!(_style.0, $($inner)*);
 
             $hm.insert(
                 name,
-                style,
+                _style,
             );
         }
         $crate::_css!($hm, $($rest)*);
@@ -86,20 +82,20 @@ macro_rules! _css {
         $hm:expr, #$name:ident:$kind:ident { $($inner:tt)* } $($rest:tt)*
     ) => {{
         let name = $crate::ui::StyleName::Id(stringify!($name).to_string());
-        if let Some(style) = $hm.get_mut(&name) {
+        if let Some(_style) = $hm.get_mut(&name) {
             let mut style_elem = $crate::ui::StyleElement::default();
             $crate::__css!(style_elem, $($inner)*);
-            style.1.insert(stringify!($kind).to_string(), style_elem);
+            _style.1.insert(stringify!($kind).to_string(), style_elem);
         } else {
-            let mut style = $crate::ui::Style::default();
+            let mut _style = $crate::ui::Style::default();
 
             let mut style_elem = $crate::ui::StyleElement::default();
             $crate::__css!(style_elem, $($inner)*);
-            style.1.insert(stringify!($kind).to_string(), style_elem);
+            _style.1.insert(stringify!($kind).to_string(), style_elem);
 
             $hm.insert(
                 name,
-                style,
+                _style,
             );
         }
         $crate::_css!($hm, $($rest)*);
@@ -110,16 +106,16 @@ macro_rules! _css {
         $hm:expr, $name:ident { $($inner:tt)* } $($rest:tt)*
     ) => {{
         let name = $crate::ui::StyleName::Component(stringify!($name).to_string());
-        if let Some(style) = $hm.get_mut(&name) {
-            $crate::__css!(style.0, $($inner)*);
+        if let Some(_style) = $hm.get_mut(&name) {
+            $crate::__css!(_style.0, $($inner)*);
         } else {
-            let mut style = $crate::ui::Style::default();
+            let mut _style = $crate::ui::Style::default();
 
-            $crate::__css!(style.0, $($inner)*);
+            $crate::__css!(_style.0, $($inner)*);
 
             $hm.insert(
                 name,
-                style,
+                _style,
             );
         }
         $crate::_css!($hm, $($rest)*);
@@ -128,20 +124,20 @@ macro_rules! _css {
         $hm:expr, $name:ident:$kind:ident { $($inner:tt)* } $($rest:tt)*
     ) => {{
         let name = $crate::ui::StyleName::Component(stringify!($name).to_string());
-        if let Some(style) = $hm.get_mut(&name) {
+        if let Some(_style) = $hm.get_mut(&name) {
             let mut style_elem = $crate::ui::StyleElement::default();
             $crate::__css!(style_elem, $($inner)*);
-            style.1.insert(stringify!($kind).to_string(), style_elem);
+            _style.1.insert(stringify!($kind).to_string(), style_elem);
         } else {
-            let mut style = $crate::ui::Style::default();
+            let mut _style = $crate::ui::Style::default();
 
             let mut style_elem = $crate::ui::StyleElement::default();
             $crate::__css!(style_elem, $($inner)*);
-            style.1.insert(stringify!($kind).to_string(), style_elem);
+            _style.1.insert(stringify!($kind).to_string(), style_elem);
 
             $hm.insert(
                 name,
-                style,
+                _style,
             );
         }
         $crate::_css!($hm, $($rest)*);
@@ -156,7 +152,7 @@ macro_rules! _css {
 ///     color: Blue
 /// }
 /// ```
-/// 
+///
 /// # Returns
 /// `Css`
 #[macro_export]
@@ -167,5 +163,65 @@ macro_rules! css {
         let mut hm: $crate::ui::Css = std::collections::HashMap::new();
         $crate::_css!(hm, $($inner)*);
         hm
+    }};
+}
+
+#[macro_export]
+macro_rules! style {
+    (
+        $key:ident: $value:expr $(, $($rest:tt)*)?
+    ) => {{
+        let mut _style = $crate::ui::Style::default();
+        $crate::__css!(_style.0, $key: $value);
+        $crate::style!{ _style; $($($rest)*)? }
+    }};
+    (
+        $style:expr; $key:ident: $value:expr $(, $($rest:tt)*)?
+    ) => {{
+        let mut style_elem = $crate::ui::StyleElement::default();
+        $crate::__css!($style.0, $key: $value);
+        $crate::style!{ $style; $($($rest)*)? }
+    }};
+    (
+        ($key:ident): $value:expr $(, $($rest:tt)*)?
+    ) => {{
+        let mut _style = $crate::ui::Style::default();
+        $crate::__css!(_style.0, ($key): $value);
+        $crate::style!{ _style; $($($rest)*)? }
+    }};
+    (
+        $style:expr; ($key:ident): $value:expr $(, $($rest:tt)*)?
+    ) => {{
+        let mut style_elem = $crate::ui::StyleElement::default();
+        $crate::__css!($style.0, ($key): $value);
+        $crate::style!{ $style; $($($rest)*)? }
+    }};
+
+    (
+        $kind:ident {$($inner:tt)*} $(, $($rest:tt)*)?
+    ) => {{
+        let mut _style = $crate::ui::Style::default();
+        let mut style_elem = $crate::ui::StyleElement::default();
+        $crate::__css!(style_elem, $($inner)*);
+        _style.1.insert(stringify!($kind).to_string(), style_elem);
+        $crate::style!{ _style; $($($rest)*)? }
+    }};
+    (
+        $style:expr; $kind:ident {$($inner:tt)*} $(, $($rest:tt)*)?
+    ) => {{
+        let mut style_elem = $crate::ui::StyleElement::default();
+        $crate::__css!(style_elem, $($inner)*);
+        $style.1.insert(stringify!($kind).to_string(), style_elem);
+        $crate::style!{ $style; $($($rest)*)? }
+    }};
+
+    (
+        $style:expr;
+    ) => {{
+        $style
+    }};
+
+    () => {{
+        $crate::ui::Style::default()
     }};
 }

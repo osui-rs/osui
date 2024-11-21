@@ -1,12 +1,17 @@
+// use std::sync::Arc;
+
 use osui::prelude::*;
 
+pub struct App {}
+
 fn main() {
+    // let something = Arc::new(App {});
     while osui::run(&mut app()) {}
 }
 
 fn app() -> Element {
     rsx! { styling: Some(styles()),
-        button { class: "btn", id: "test", "This is a button!" }
+        button { class: "btn", "Hello, World!" }
     }
 }
 

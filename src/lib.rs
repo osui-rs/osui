@@ -29,11 +29,11 @@ use std::{
 use crossterm::event::Event;
 
 pub mod app;
+pub mod css;
 pub mod macros;
+pub mod rsx;
 pub mod ui;
 pub mod utils;
-pub mod rsx;
-pub mod css;
 
 pub use app::run;
 
@@ -43,7 +43,7 @@ pub use app::run;
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
-    pub use crate::{Element, Value};
+    pub use crate::{Element, Value, style};
     // useful for Element making
     pub use crate::{run_handler, Children, ElementCore, ElementWidget};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
@@ -139,6 +139,24 @@ impl<T> std::fmt::Debug for Handler<T> {
 /// Children Enum
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
+/// Child enum of an `Element`
+/// 
+/// # Example
+/// ```
+/// // Check if it's text
+/// if let Children::Text(text) {
+///     // do something
+/// }
+/// // Check if it's inner elements
+/// if let Children::Children(text) {
+///     // do something
+/// }
+/// ```
+/// 
+/// # Useful for
+/// - `Element::event`
+/// - `Element::render`
+/// - `Handler`
 #[derive(Debug)]
 pub enum Children {
     None,
@@ -163,6 +181,12 @@ impl Children {
         match self {
             Children::Text(text) => text.clone(),
             _ => String::new(),
+        }
+    }
+    pub fn get_text_mut(&mut self) -> Option<&mut String> {
+        match self {
+            Children::Text(text) => Some(text),
+            _ => None,
         }
     }
 }
