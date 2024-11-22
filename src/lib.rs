@@ -208,6 +208,11 @@ impl Children {
             }
         }
     }
+    pub fn add_child(&mut self, element: Element) {
+        if let Children::Children(children, _) = self {
+            children.push(element);
+        }
+    }
 }
 
 /// Converts a `Element` into the struct
@@ -219,6 +224,11 @@ pub enum Command {
     Exit,
     Render,
     GetElementById(String),
+}
+
+pub enum CommandResult {
+    Element(*mut Element),
+    None
 }
 
 pub struct Document {
@@ -235,9 +245,21 @@ impl Document {
             .send(Command::GetElementById(id.to_string()))
             .unwrap();
         let rx =
-            unsafe { &*(self.cmd_recv as *const std::sync::mpsc::Receiver<Option<*mut Element>>) };
-        if let Ok(Some(e)) = rx.recv() {
+            unsafe { &*(self.cmd_recv as *const std::sync::mpsc::Receiver<CommandResult>) };
+        if let Ok(CommandResult::Element(e)) = rx.recv() {
             Some(convert(unsafe { &mut *e }))
+        } else {
+            None
+        }
+    }
+    pub fn get_element_by_id_raw(&self, id: &str) -> Option<*mut Element> {
+        self.cmd_sender
+            .send(Command::GetElementById(id.to_string()))
+            .unwrap();
+        let rx =
+            unsafe { &*(self.cmd_recv as *const std::sync::mpsc::Receiver<CommandResult>) };
+        if let Ok(CommandResult::Element(e)) = rx.recv() {
+            Some(e)
         } else {
             None
         }

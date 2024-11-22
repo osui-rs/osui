@@ -17,8 +17,8 @@ pub struct LArgs<'a> {
     pub srx: mpsc::Receiver<Command>,
 
     // for returning command output
-    pub rtx: mpsc::Sender<Option<*mut Element>>,
-    pub rrx: mpsc::Receiver<Option<*mut Element>>,
+    pub rtx: mpsc::Sender<crate::CommandResult>,
+    pub rrx: mpsc::Receiver<crate::CommandResult>,
     pub running: bool,
 }
 
@@ -77,7 +77,7 @@ extern "C" fn event_loop(ptr: *mut c_void) -> *const c_void {
     let args = unsafe { &mut *(ptr as *mut LArgs) };
     let document = Document {
         cmd_sender: args.stx.clone(),
-        cmd_recv: &args.rrx as *const mpsc::Receiver<Option<*mut Element>> as *const c_void,
+        cmd_recv: &args.rrx as *const mpsc::Receiver<crate::CommandResult> as *const c_void,
     };
 
     let (width, height) = get_term_size();
@@ -115,9 +115,11 @@ extern "C" fn cmd_loop(ptr: *mut c_void) -> *const c_void {
             Command::GetElementById(id) => {
                 args.rtx
                     .send(if let Some(e) = args.element.get_element_by_id(&id) {
-                        Some(e as *mut Element)
+                        crate::CommandResult::Element(e as *mut Element)
+                    } else if args.element.get_data().2 == id {
+                        crate::CommandResult::Element(args.element as *mut Element)
                     } else {
-                        None
+                        crate::CommandResult::None
                     })
                     .unwrap();
             }
