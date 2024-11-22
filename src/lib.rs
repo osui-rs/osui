@@ -216,6 +216,7 @@ pub fn convert<T>(widget: &mut Box<dyn ElementWidget>) -> &mut Box<T> {
 
 pub enum Command {
     Exit,
+    Render,
     GetElementById(String),
 }
 
@@ -239,5 +240,8 @@ impl Document {
         } else {
             None
         }
+    }
+    pub fn render(&self) {
+        self.cmd_sender.send(Command::Render).unwrap();
     }
 }

@@ -9,13 +9,11 @@ fn main() {
 fn app() -> Element {
     rsx! { styling: Some(styles()),
         button { class: "btn", on_click: Handler::new(|_, _, document| {
-
             if let Some(txt) = document.get_element_by_id::<Text>("txt") {
                 txt.children.set_text("edited");
             }
-
         }), "Hello, World!" }
-        text { id: "txt", "Some text!" }
+        text { id: "txt", y: 2, "Some text!" }
     }
 }
 

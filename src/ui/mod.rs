@@ -159,8 +159,10 @@ impl ElementWidget for Button<'_> {
         match event {
             Event::Key(key) => {
                 if key.code == KeyCode::Enter {
+                    document.render();
                     self.state = "clicked";
                     run_handler!(self.on_click(event, document));
+                    document.render();
                     sleep(100);
                     self.state = "";
                 }

@@ -64,12 +64,7 @@ extern "C" fn render_loop(ptr: *mut c_void) -> bool {
     }
     let args = unsafe { &mut *(ptr as *mut LArgs) };
     while args.running {
-        let (width, height) = get_term_size();
-        let mut frame: Vec<String> = create_frame(width, height);
-        render_to_frame(true, width, &mut frame, args.element);
-        clear();
-        print!("{}", frame.join(""));
-        flush();
+        sleep(1000);
     }
     false
 }
@@ -92,12 +87,14 @@ extern "C" fn event_loop(ptr: *mut c_void) -> *const c_void {
         crossterm::event::Event::FocusGained,
         &document,
     );
+    document.render();
 
     while args.running {
         if ptr.is_null() {
             break;
         }
         event(args.element, crossterm::event::read().unwrap(), &document);
+        document.render();
     }
     null() as *const c_void
 }
@@ -123,6 +120,14 @@ extern "C" fn cmd_loop(ptr: *mut c_void) -> *const c_void {
                         None
                     })
                     .unwrap();
+            }
+            Command::Render => {
+                let (width, height) = get_term_size();
+                let mut frame: Vec<String> = create_frame(width, height);
+                render_to_frame(true, width, &mut frame, args.element);
+                clear();
+                print!("{}", frame.join(""));
+                flush();
             }
         }
     }
