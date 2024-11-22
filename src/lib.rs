@@ -43,7 +43,7 @@ pub use app::run;
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
-    pub use crate::{style, Element, Value};
+    pub use crate::{style, Command, Element, Value, Document};
     // useful for Element making
     pub use crate::{run_handler, Children, ElementCore, ElementWidget};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
@@ -194,4 +194,18 @@ impl Children {
 /// Converts a `Element` into the struct
 pub fn convert<T>(widget: &mut Box<dyn ElementWidget>) -> &mut Box<T> {
     unsafe { &mut *(widget as *mut _ as *mut Box<T>) }
+}
+
+pub enum Command {
+    Exit,
+}
+
+pub struct Document {
+    cmd_sender: std::sync::mpsc::Sender<Command>,
+}
+
+impl Document {
+    pub fn exit(&self) {
+        self.cmd_sender.send(Command::Exit).unwrap();
+    }
 }
