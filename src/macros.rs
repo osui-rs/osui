@@ -6,7 +6,7 @@ macro_rules! val {
 }
 
 #[macro_export]
-macro_rules! run_handler {
+macro_rules! call {
     ($self:ident.$handler:ident ($($inner:tt)*)) => {{
         let a = std::sync::Arc::clone(&$self.$handler.0);
         let mut o = a.lock().unwrap();

@@ -26,7 +26,9 @@ use osui_element::{elem_fn, element};
 #[element]
 #[elem_fn]
 #[derive(Default, Debug)]
-pub struct Text {}
+pub struct Text {
+    pub on_event: Handler<Text<'a>>,
+}
 
 impl ElementWidget for Text<'_> {
     fn render(&self, _: bool) -> String {
@@ -35,6 +37,9 @@ impl ElementWidget for Text<'_> {
         } else {
             String::new()
         }
+    }
+    fn event(&mut self, event: Event, document: &Document) {
+        call!(self.on_event(event, document));
     }
 }
 
@@ -161,7 +166,7 @@ impl ElementWidget for Button<'_> {
                 if key.code == KeyCode::Enter {
                     document.render();
                     self.state = "clicked";
-                    run_handler!(self.on_click(event, document));
+                    call!(self.on_click(event, document));
                     document.render();
                     sleep(100);
                     self.state = "";

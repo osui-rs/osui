@@ -30,6 +30,7 @@ use crossterm::event::Event;
 
 pub mod app;
 pub mod css;
+pub mod examples;
 pub mod macros;
 pub mod rsx;
 pub mod ui;
@@ -45,7 +46,7 @@ pub mod prelude {
     pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
     pub use crate::{style, Command, Document, Element, Value};
     // useful for Element making
-    pub use crate::{run_handler, Children, ElementCore, ElementWidget};
+    pub use crate::{call, Children, ElementCore, ElementWidget};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
