@@ -43,7 +43,7 @@ pub use app::run;
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
-    pub use crate::{Element, Value, style};
+    pub use crate::{style, Element, Value};
     // useful for Element making
     pub use crate::{run_handler, Children, ElementCore, ElementWidget};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
@@ -93,7 +93,6 @@ pub trait ElementCore: Send + Sync {
     fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element>;
     fn get_child(&mut self) -> Option<&mut Element>;
     fn set_styling(&mut self, styling: &HashMap<crate::ui::StyleName, crate::ui::Style>);
-    fn type_id(&self) -> std::any::TypeId;
 }
 
 pub trait ElementWidget: ElementCore + std::fmt::Debug {
@@ -141,7 +140,7 @@ impl<T> std::fmt::Debug for Handler<T> {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Child enum of an `Element`
-/// 
+///
 /// # Example
 /// ```
 /// // Check if it's text
@@ -153,7 +152,7 @@ impl<T> std::fmt::Debug for Handler<T> {
 ///     // do something
 /// }
 /// ```
-/// 
+///
 /// # Useful for
 /// - `Element::event`
 /// - `Element::render`
@@ -190,4 +189,9 @@ impl Children {
             _ => None,
         }
     }
+}
+
+/// Converts a `Element` into the struct
+pub fn convert<T>(widget: &mut Box<dyn ElementWidget>) -> &mut Box<T> {
+    unsafe { &mut *(widget as *mut _ as *mut Box<T>) }
 }
