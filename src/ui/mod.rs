@@ -83,9 +83,11 @@ impl ElementWidget for Div<'_> {
         frame.join("\n")
     }
 
-    fn event(&mut self, event: Event) {
-        if let Some(styling) = self.styling.clone() {
-            self.set_styling(&styling);
+    fn event(&mut self, event: Event, document: &Document) {
+        if event == Event::FocusGained {
+            if let Some(styling) = self.styling.clone() {
+                self.set_styling(&styling);
+            }
         }
         match event {
             Event::Key(key) => {
@@ -117,7 +119,7 @@ impl ElementWidget for Div<'_> {
 
                         _ => {
                             if let Some(c) = children.get_mut(*child) {
-                                c.event(event);
+                                c.event(event, document);
                             }
                             *child
                         }
@@ -126,7 +128,7 @@ impl ElementWidget for Div<'_> {
             }
             _ => {
                 if let Some(child) = self.get_child() {
-                    child.event(event);
+                    child.event(event, document);
                 }
             }
         }
@@ -153,12 +155,12 @@ impl ElementWidget for Button<'_> {
         }
     }
 
-    fn event(&mut self, event: Event) {
+    fn event(&mut self, event: Event, document: &Document) {
         match event {
             Event::Key(key) => {
                 if key.code == KeyCode::Enter {
                     self.state = "clicked";
-                    run_handler!(self.on_click(event));
+                    run_handler!(self.on_click(event, document));
                     sleep(100);
                     self.state = "";
                 }

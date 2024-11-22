@@ -9,22 +9,28 @@ use crate::utils::{
 };
 use std::{ffi::c_void, ptr::null, sync::mpsc};
 
-pub struct LArgs {
-    pub element: *mut c_void,
-    pub sender: *const c_void,
-    pub receiver: *const c_void,
+pub struct LArgs<'a> {
+    pub element: &'a mut Element,
+
+    // for sending commands
+    pub stx: mpsc::Sender<Command>,
+    pub srx: mpsc::Receiver<Command>,
+
+    // for returning command output
+    pub rtx: mpsc::Sender<Option<*mut Element>>,
+    pub rrx: mpsc::Receiver<Option<*mut Element>>,
     pub running: bool,
 }
 
 extern "C" {
-    fn c_run(element: *mut c_void, sender: *const c_void, receiver: *const c_void) -> bool;
+    fn c_run(args: *mut c_void) -> bool;
 }
 
-fn event(element: &mut Element, event: Event) {
+fn event(element: &mut Element, event: Event, document: &Document) {
     if let crossterm::event::Event::Resize(width, height) = event {
         element.update_data(width as usize, height as usize);
     }
-    element.event(event);
+    element.event(event, document);
 }
 
 pub fn run(element: &mut Element) -> bool {
@@ -32,12 +38,16 @@ pub fn run(element: &mut Element) -> bool {
     enable_raw_mode().unwrap();
     clear();
     unsafe {
-        let (tx, rx) = mpsc::channel::<Command>();
-        let c = c_run(
-            element as *mut Element as *mut c_void,
-            &tx as *const mpsc::Sender<Command> as *const c_void,
-            &rx as *const mpsc::Receiver<Command> as *const c_void,
-        );
+        let (stx, srx) = mpsc::channel();
+        let (rtx, rrx) = mpsc::channel();
+        let c = c_run(&mut LArgs {
+            running: true,
+            element,
+            stx,
+            srx,
+            rtx,
+            rrx,
+        } as *mut LArgs as *mut c_void);
         if !c {
             show_cursor();
             disable_raw_mode().unwrap();
@@ -48,18 +58,20 @@ pub fn run(element: &mut Element) -> bool {
 }
 
 #[no_mangle]
-extern "C" fn render(ptr: *mut c_void) -> bool {
+extern "C" fn render_loop(ptr: *mut c_void) -> bool {
     if ptr.is_null() {
         return false;
     }
-    let element = unsafe { &mut *(ptr as *mut Element) };
-    let (width, height) = get_term_size();
-    let mut frame: Vec<String> = create_frame(width, height);
-    render_to_frame(true, width, &mut frame, element);
-    clear();
-    print!("{}", frame.join(""));
-    flush();
-    true
+    let args = unsafe { &mut *(ptr as *mut LArgs) };
+    while args.running {
+        let (width, height) = get_term_size();
+        let mut frame: Vec<String> = create_frame(width, height);
+        render_to_frame(true, width, &mut frame, args.element);
+        clear();
+        print!("{}", frame.join(""));
+        flush();
+    }
+    false
 }
 
 #[no_mangle]
@@ -68,19 +80,24 @@ extern "C" fn event_loop(ptr: *mut c_void) -> *const c_void {
         return null() as *const c_void;
     }
     let args = unsafe { &mut *(ptr as *mut LArgs) };
-    let element = unsafe { &mut *(args.element as *mut Element) };
-    let tx = unsafe { &*(args.sender as *const mpsc::Sender<Command>) };
+    let document = Document {
+        cmd_sender: args.stx.clone(),
+        cmd_recv: &args.rrx as *const mpsc::Receiver<Option<*mut Element>> as *const c_void,
+    };
 
     let (width, height) = get_term_size();
-    element.update_data(width, height);
-    event(element, crossterm::event::Event::FocusGained);
+    args.element.update_data(width, height);
+    event(
+        args.element,
+        crossterm::event::Event::FocusGained,
+        &document,
+    );
 
     while args.running {
         if ptr.is_null() {
             break;
         }
-        event(element, crossterm::event::read().unwrap());
-        tx.send(Command::Exit).unwrap();
+        event(args.element, crossterm::event::read().unwrap(), &document);
     }
     null() as *const c_void
 }
@@ -91,13 +108,21 @@ extern "C" fn cmd_loop(ptr: *mut c_void) -> *const c_void {
         return null() as *const c_void;
     }
     let args = unsafe { &mut *(ptr as *mut LArgs) };
-    let _element = unsafe { &mut *(args.element as *mut Element) };
-    let rx = unsafe { &*(args.receiver as *const mpsc::Receiver<Command>) };
+
     loop {
-        match rx.recv().unwrap() {
+        match args.srx.recv().unwrap() {
             Command::Exit => {
                 args.running = false;
                 break;
+            }
+            Command::GetElementById(id) => {
+                args.rtx
+                    .send(if let Some(e) = args.element.get_element_by_id(&id) {
+                        Some(e as *mut Element)
+                    } else {
+                        None
+                    })
+                    .unwrap();
             }
         }
     }

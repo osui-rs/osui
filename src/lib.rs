@@ -43,7 +43,7 @@ pub use app::run;
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
-    pub use crate::{style, Command, Element, Value, Document};
+    pub use crate::{style, Command, Document, Element, Value};
     // useful for Element making
     pub use crate::{run_handler, Children, ElementCore, ElementWidget};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
@@ -101,8 +101,8 @@ pub trait ElementWidget: ElementCore + std::fmt::Debug {
         String::new()
     }
 
-    fn event(&mut self, event: Event) {
-        _ = event
+    fn event(&mut self, event: Event, document: &Document) {
+        _ = (event, document)
     }
 }
 
@@ -112,12 +112,12 @@ pub type Element = Box<dyn ElementWidget>;
 /// Handler Struct
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, Event) + Send + Sync>>);
+pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, Event, &Document) + Send + Sync>>);
 
 impl<T> Handler<T> {
     pub fn new<F>(handler_fn: F) -> Handler<T>
     where
-        F: FnMut(&mut T, Event) + 'static + Send + Sync,
+        F: FnMut(&mut T, Event, &Document) + 'static + Send + Sync,
     {
         Handler(Arc::new(Mutex::new(handler_fn)))
     }
@@ -125,7 +125,7 @@ impl<T> Handler<T> {
 
 impl<T> Default for Handler<T> {
     fn default() -> Self {
-        Handler(Arc::new(Mutex::new(|_: &mut T, _: Event| {})))
+        Handler(Arc::new(Mutex::new(|_: &mut T, _: Event, _: &Document| {})))
     }
 }
 
@@ -189,6 +189,24 @@ impl Children {
             _ => None,
         }
     }
+    pub fn set_text(&mut self, text: &str) {
+        match self {
+            Children::Text(t) => {
+                *t = text.to_string();
+            }
+            _ => {}
+        }
+    }
+    pub fn set_text_force(&mut self, text: &str) {
+        match self {
+            Children::Text(t) => {
+                *t = text.to_string();
+            }
+            _ => {
+                *self = Children::Text(text.to_string());
+            }
+        }
+    }
 }
 
 /// Converts a `Element` into the struct
@@ -198,14 +216,28 @@ pub fn convert<T>(widget: &mut Box<dyn ElementWidget>) -> &mut Box<T> {
 
 pub enum Command {
     Exit,
+    GetElementById(String),
 }
 
 pub struct Document {
     cmd_sender: std::sync::mpsc::Sender<Command>,
+    cmd_recv: *const std::ffi::c_void,
 }
 
 impl Document {
     pub fn exit(&self) {
         self.cmd_sender.send(Command::Exit).unwrap();
+    }
+    pub fn get_element_by_id<T>(&self, id: &str) -> Option<&mut Box<T>> {
+        self.cmd_sender
+            .send(Command::GetElementById(id.to_string()))
+            .unwrap();
+        let rx =
+            unsafe { &*(self.cmd_recv as *const std::sync::mpsc::Receiver<Option<*mut Element>>) };
+        if let Ok(Some(e)) = rx.recv() {
+            Some(convert(unsafe { &mut *e }))
+        } else {
+            None
+        }
     }
 }
