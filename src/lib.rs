@@ -43,6 +43,7 @@ pub use app::run;
 /// the UI framework easier to use.
 pub mod prelude {
     pub use crate::ui::Color::*;
+    pub use crate::ui::Number::*;
     pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
     pub use crate::{style, Command, Document, Element, Value};
     // useful for Element making
@@ -88,6 +89,11 @@ impl<T: Copy + PartialEq + Default> Default for Value<T> {
 /// ElementCore Traits
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
+/// ```
+/// RenderResult(output, (x, y), (width, height))
+/// ```
+pub struct RenderResult(String, (ui::Number, ui::Number));
+
 pub trait ElementCore: Send + Sync {
     fn get_data(&self) -> (Value<usize>, usize, String);
     fn update_data(&mut self, width: usize, height: usize);
@@ -97,10 +103,7 @@ pub trait ElementCore: Send + Sync {
 }
 
 pub trait ElementWidget: ElementCore + std::fmt::Debug {
-    fn render(&self, focused: bool) -> String {
-        _ = focused;
-        String::new()
-    }
+    fn render(&self, focused: bool) -> RenderResult;
 
     fn event(&mut self, event: Event, document: &Document) {
         _ = (event, document)

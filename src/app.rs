@@ -4,9 +4,7 @@ use crossterm::{
 };
 
 use crate::prelude::*;
-use crate::utils::{
-    clear, create_frame, flush, get_term_size, hide_cursor, render_to_frame, show_cursor,
-};
+use crate::utils::{clear, flush, get_term_size, hide_cursor, show_cursor, Frame};
 use std::{ffi::c_void, ptr::null, sync::mpsc};
 
 pub struct LArgs<'a> {
@@ -125,10 +123,10 @@ extern "C" fn cmd_loop(ptr: *mut c_void) -> *const c_void {
             }
             Command::Render => {
                 let (width, height) = get_term_size();
-                let mut frame: Vec<String> = create_frame(width, height);
-                render_to_frame(true, width, &mut frame, args.element);
+                let mut frame = Frame::new(width, height);
+                frame.render(true, args.element);
                 clear();
-                print!("{}", frame.join(""));
+                print!("{}", frame.output_nnl());
                 flush();
             }
         }

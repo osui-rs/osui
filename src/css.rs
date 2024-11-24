@@ -1,6 +1,31 @@
 #[macro_export]
 macro_rules! __css {
     ($_style:expr,)=>{};
+    // percentage (n%)
+    (
+        $_style:expr, $name:ident: $value:literal% $(, $($other:tt)*)?
+    ) => {{
+        $_style.$name = Number::Pe($value);
+        $crate::__css!($_style, $($($other)*)?);
+    }};
+    (
+        $_style:expr, ($name:ident): $value:literal% $(, $($other:tt)*)?
+    ) => {{
+        $_style.other.insert(stringify!($name).to_string(), Box::new(
+            Number::Pe($value)
+        ));
+        $crate::__css!($_style, $($($other)*)?);
+    }};
+
+    // Number
+    (
+        $_style:expr, $name:ident: $value:literal $(, $($other:tt)*)?
+    ) => {{
+        $_style.$name = Number::Px($value);
+        $crate::__css!($_style, $($($other)*)?);
+    }};
+
+    // Normal
     (
         $_style:expr, $name:ident: $value:expr $(, $($other:tt)*)?
     ) => {{

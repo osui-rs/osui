@@ -5,7 +5,7 @@
 pub mod styles;
 pub use styles::*;
 
-use crate::prelude::*;
+use crate::{prelude::*, RenderResult};
 use osui_element::{elem_fn, element};
 
 /// The `Text` element represents a piece of static text in the terminal UI.
@@ -31,12 +31,17 @@ pub struct Text {
 }
 
 impl ElementWidget for Text<'_> {
-    fn render(&self, _: bool) -> String {
-        if let Children::Text(text) = &self.children {
-            text.clone()
-        } else {
-            String::new()
-        }
+    fn render(&self, _: bool) -> RenderResult {
+        self.style.result(
+            "",
+            self.style.write("", &{
+                if let Children::Text(text) = &self.children {
+                    text.clone()
+                } else {
+                    String::new()
+                }
+            }),
+        )
     }
     fn event(&mut self, event: Event, document: &Document) {
         call!(self.on_event(event, document));
@@ -71,21 +76,16 @@ pub struct Div {
 }
 
 impl ElementWidget for Div<'_> {
-    fn render(&self, focused: bool) -> String {
-        let mut frame = crate::utils::create_frame(self.width.get_value(), self.height.get_value());
+    fn render(&self, focused: bool) -> RenderResult {
+        let mut frame = crate::utils::Frame::new(crate::utils::get_term_size().0, 12);
 
         if let Children::Children(children, child) = &self.children {
             for (i, elem) in children.iter().enumerate() {
-                crate::utils::render_to_frame(
-                    focused && i == *child,
-                    self.width.get_value(),
-                    &mut frame,
-                    elem,
-                );
+                frame.render(focused && i == *child, elem);
             }
         }
 
-        frame.join("\n")
+        self.style.result("", frame.output())
     }
 
     fn event(&mut self, event: Event, document: &Document) {
@@ -149,14 +149,20 @@ pub struct Button {
 }
 
 impl ElementWidget for Button<'_> {
-    fn render(&self, focused: bool) -> String {
-        if self.state == "clicked" {
-            return self.style.write("clicked", &self.children.get_text());
-        }
-        if focused {
-            self.style.write("hover", &self.children.get_text())
+    fn render(&self, focused: bool) -> RenderResult {
+        if self.state != "" {
+            self.style.result(
+                self.state,
+                self.style.write(self.state, &self.children.get_text()),
+            )
+        } else if focused {
+            self.style.result(
+                "hover",
+                self.style.write("hover", &self.children.get_text()),
+            )
         } else {
-            self.style.write("", &self.children.get_text())
+            self.style
+                .result("", self.style.write("", &self.children.get_text()))
         }
     }
 

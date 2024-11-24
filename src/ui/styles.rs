@@ -6,9 +6,12 @@ use std::{collections::HashMap, fmt::Debug};
 
 use dyn_clone::{clone_trait_object, DynClone};
 
+use crate::RenderResult;
+
 pub trait StyleCore: Debug + Send + Sync + DynClone {
     fn ansi(&self) -> String;
     fn ansi_bg(&self) -> String;
+    fn is_null(&self) -> bool;
 }
 
 clone_trait_object!(StyleCore);
@@ -44,6 +47,9 @@ impl StyleCore for Font {
     }
     fn ansi_bg(&self) -> String {
         self.ansi()
+    }
+    fn is_null(&self) -> bool {
+        *self == Self::None
     }
 }
 
@@ -104,6 +110,9 @@ impl StyleCore for Color {
             Color::White => "\x1b[47m",
         })
     }
+    fn is_null(&self) -> bool {
+        *self == Self::NoColor
+    }
 }
 
 impl Default for Color {
@@ -144,6 +153,15 @@ fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
     (r, g, b)
 }
 
+#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+pub enum Number {
+    Px(usize),
+    Pe(usize),
+    Center,
+    Auto,
+    Default,
+}
+
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub enum StyleName {
     Class(String),
@@ -154,6 +172,12 @@ pub enum StyleName {
 #[derive(Debug, Clone)]
 pub struct StyleElement {
     pub color: Color,
+    pub background: Color,
+    pub font: Font,
+    pub x: Number,
+    pub y: Number,
+    pub width: Number,
+    pub height: Number,
     pub other: HashMap<String, Box<dyn StyleCore>>,
 }
 
@@ -161,8 +185,41 @@ impl Default for StyleElement {
     fn default() -> Self {
         StyleElement {
             color: Color::NoColor,
+            background: Color::NoColor,
+            font: Font::None,
+            x: Number::Default,
+            y: Number::Default,
+            width: Number::Default,
+            height: Number::Default,
             other: HashMap::new(),
         }
+    }
+}
+
+impl StyleElement {
+    pub fn prioritize(mut self, other: &Self) -> StyleElement {
+        if !other.color.is_null() {
+            self.color = other.color.clone();
+        }
+        if !other.background.is_null() {
+            self.background = other.background.clone();
+        }
+        if !other.font.is_null() {
+            self.font = other.font.clone();
+        }
+        if other.x != Number::Default {
+            self.x = other.x.clone();
+        }
+        if other.y != Number::Default {
+            self.y = other.y.clone();
+        }
+        if other.width != Number::Default {
+            self.width = other.width.clone();
+        }
+        if other.height != Number::Default {
+            self.height = other.height.clone();
+        }
+        self
     }
 }
 
@@ -177,20 +234,30 @@ impl Default for Style {
 
 impl Style {
     pub fn write(&self, state: &str, s: &str) -> String {
-        if state == "" {
-            return self.0.write(s);
-        }
         if let Some(style_element) = self.1.get(state) {
             style_element.write(s)
         } else {
-            s.to_string()
+            return self.0.write(s);
+        }
+    }
+    pub fn result(&self, state: &str, s: String) -> RenderResult {
+        if let Some(style_element) = self.1.get(state) {
+            let style_element = self.0.clone().prioritize(&style_element.clone());
+            RenderResult(s, (style_element.x.clone(), style_element.y.clone()))
+        } else {
+            RenderResult(s, (self.0.x.clone(), self.0.y.clone()))
         }
     }
 }
 
 impl StyleElement {
     pub fn write(&self, s: &str) -> String {
-        format!("{}{s}\x1b[0m", self.color.ansi())
+        format!(
+            "{}{}{}{s}\x1b[0m",
+            self.color.ansi(),
+            self.background.ansi_bg(),
+            self.font.ansi()
+        )
     }
 }
 

@@ -6,4 +6,4 @@
 
 `x`, `y`: `n`, `n%`, `center`, `auto`;
 
-`display`: `row`, `column`, `overlap`;
+<!-- `display`: `row`, `column`, `overlap`; -->
