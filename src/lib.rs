@@ -228,7 +228,7 @@ pub enum Command {
 
 pub enum CommandResult {
     Element(*mut Element),
-    None
+    None,
 }
 
 pub struct Document {
@@ -241,12 +241,7 @@ impl Document {
         self.cmd_sender.send(Command::Exit).unwrap();
     }
     pub fn get_element_by_id<T>(&self, id: &str) -> Option<&mut Box<T>> {
-        self.cmd_sender
-            .send(Command::GetElementById(id.to_string()))
-            .unwrap();
-        let rx =
-            unsafe { &*(self.cmd_recv as *const std::sync::mpsc::Receiver<CommandResult>) };
-        if let Ok(CommandResult::Element(e)) = rx.recv() {
+        if let Some(e) = self.get_element_by_id_raw(id) {
             Some(convert(unsafe { &mut *e }))
         } else {
             None
@@ -256,8 +251,7 @@ impl Document {
         self.cmd_sender
             .send(Command::GetElementById(id.to_string()))
             .unwrap();
-        let rx =
-            unsafe { &*(self.cmd_recv as *const std::sync::mpsc::Receiver<CommandResult>) };
+        let rx = unsafe { &*(self.cmd_recv as *const std::sync::mpsc::Receiver<CommandResult>) };
         if let Ok(CommandResult::Element(e)) = rx.recv() {
             Some(e)
         } else {

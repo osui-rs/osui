@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="github/OSUI-cropped.png" alt="OSUI" width="200px"/>
+  <img src="github/OSUIw.svg" alt="OSUI" width="200px"/>
 </p>
 
 <p align="center">
