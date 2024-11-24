@@ -2,6 +2,8 @@
   <img src="github/OSUIw.svg" alt="OSUI" width="200px"/>
 </p>
 
+<h1 align="center">osui</h1>
+
 <p align="center">
   <a href="https://crates.io/crates/osui">
   <img alt="Crates.io Version" src="https://img.shields.io/crates/v/osui?style=flat">
