@@ -9,21 +9,6 @@ pub use styles::*;
 use crate::prelude::*;
 use osui_element::{elem_fn, element};
 
-/// The `Text` element represents a piece of static text in the terminal UI.
-///
-/// It is used to render plain text within a UI component. The `Text` element does not interact
-/// with events and only outputs the text when rendered.
-///
-/// # Example
-/// ```rust
-/// let text = Text::default();
-/// let rendered_text = text.render(crate::State::Normal);
-/// println!("{}", rendered_text);
-/// ```
-///
-/// ## Methods
-/// - `render(state: crate::State) -> String`: Renders the text to a string, depending on the state.
-///   If the element contains text as a child, it returns that text. Otherwise, it returns an empty string.
 #[element]
 #[elem_fn]
 #[derive(Default, Debug)]
@@ -49,26 +34,6 @@ impl ElementWidget for Text<'_> {
         call!(self.on_event(event, document));
     }
 }
-
-/// The `Div` element represents a container for other UI elements. It can hold child components
-/// and render them in a specific layout. The `Div` element also handles keyboard navigation through
-/// its children.
-///
-/// The `Div` element supports rendering a list of children and allows interactive navigation using
-/// arrow keys (Up, Down, Left, Right). It renders the selected child element differently based on the state.
-///
-/// # Example
-/// ```rust
-/// let div = Div::default();
-/// let rendered_div = div.render(crate::State::Normal);
-/// println!("{}", rendered_div);
-/// ```
-///
-/// ## Methods
-/// - `render(state: crate::State) -> String`: Renders the `Div` and its child elements to a string.
-///   The child elements are rendered according to the current selection (`child` index).
-/// - `event(event: Event, state: &crate::StateChanger)`: Handles keyboard events for
-///   navigation through child elements. Arrow keys (Up, Down, Left, Right) change the currently selected child.
 
 #[element]
 #[elem_fn]
@@ -128,6 +93,7 @@ impl ElementWidget for Button<'_> {
                     document.render();
                     sleep(100);
                     self.style.set_state("");
+                    document.rebuild();
                 }
             }
             _ => {}

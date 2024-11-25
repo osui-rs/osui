@@ -26,9 +26,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crossterm::event::Event;
-
-pub mod app;
 pub mod css;
 pub mod examples;
 pub mod macros;
@@ -36,13 +33,11 @@ pub mod rsx;
 pub mod ui;
 pub mod utils;
 
-pub use app::run;
-
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::ui::Number::*;
-    pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
-    pub use crate::{call, Children, ElementCore, ElementWidget, Element};
+    pub use crate::{self as osui, css, ersx, rsx, ui::*, Handler, launch};
+    pub use crate::{call, Children, Element, ElementCore, ElementWidget};
     pub use crate::{style, Command, Document, RenderResult, RenderWriter, Value};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
@@ -68,7 +63,7 @@ pub trait ElementCore {
 
 pub trait ElementWidget: ElementCore + std::fmt::Debug + Send + Sync {
     fn render(&self, focused: bool) -> Option<RenderResult>;
-    fn event(&mut self, event: Event, document: &Document) {
+    fn event(&mut self, event: crossterm::event::Event, document: &Document) {
         _ = (event, document)
     }
 }
@@ -77,11 +72,13 @@ pub trait ElementWidget: ElementCore + std::fmt::Debug + Send + Sync {
 /// Structs
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, Event, &Document) + Send + Sync>>);
+pub struct Handler<T>(
+    pub Arc<Mutex<dyn FnMut(&mut T, crossterm::event::Event, &Document) + Send + Sync>>,
+);
 
 pub struct Document {
-    cmd_sender: std::sync::mpsc::Sender<Command>,
-    cmd_recv: *const std::ffi::c_void,
+    element: *mut Element,
+    running: *mut Option<bool>,
 }
 
 /// ```
@@ -169,28 +166,48 @@ impl<T: Copy + PartialEq + Default> Default for Value<T> {
 
 impl Document {
     pub fn exit(&self) {
-        self.cmd_sender.send(Command::Exit).unwrap();
+        if !self.running.is_null() {
+            unsafe {
+                *self.running = Some(false);
+            }
+        }
+    }
+    pub fn rebuild(&self) {
+        if !self.running.is_null() {
+            unsafe {
+                *self.running = Some(true);
+            }
+        }
     }
     pub fn get_element_by_id<T>(&self, id: &str) -> Option<&mut Box<T>> {
         if let Some(e) = self.get_element_by_id_raw(id) {
-            Some(convert(unsafe { &mut *e }))
+            Some(unsafe { &mut *(e as *mut Element as *mut Box<T>) })
         } else {
             None
         }
     }
-    pub fn get_element_by_id_raw(&self, id: &str) -> Option<*mut Element> {
-        self.cmd_sender
-            .send(Command::GetElementById(id.to_string()))
-            .unwrap();
-        let rx = unsafe { &*(self.cmd_recv as *const std::sync::mpsc::Receiver<CommandResult>) };
-        if let Ok(CommandResult::Element(e)) = rx.recv() {
-            Some(e)
+    pub fn get_element_by_id_raw(&self, id: &str) -> Option<&mut Element> {
+        if !self.element.is_null() {
+            unsafe {
+                if (*self.element).get_id() == id {
+                    Some(&mut *self.element)
+                } else {
+                    (*self.element).get_element_by_id(id)
+                }
+            }
         } else {
             None
         }
     }
     pub fn render(&self) {
-        self.cmd_sender.send(Command::Render).unwrap();
+        if !self.running.is_null() {
+            let (width, height) = utils::get_term_size();
+            let mut frame = utils::Frame::new(width, height);
+            frame.render(true, unsafe { &*self.element });
+            utils::clear();
+            print!("{}", frame.output_nnl());
+            utils::flush();
+        }
     }
 }
 
@@ -254,7 +271,7 @@ impl Children {
 impl<T> Handler<T> {
     pub fn new<F>(handler_fn: F) -> Handler<T>
     where
-        F: FnMut(&mut T, Event, &Document) + 'static + Send + Sync,
+        F: FnMut(&mut T, crossterm::event::Event, &Document) + 'static + Send + Sync,
     {
         Handler(Arc::new(Mutex::new(handler_fn)))
     }
@@ -280,7 +297,9 @@ impl RenderWriter {
 
 impl<T> Default for Handler<T> {
     fn default() -> Self {
-        Handler(Arc::new(Mutex::new(|_: &mut T, _: Event, _: &Document| {})))
+        Handler(Arc::new(Mutex::new(
+            |_: &mut T, _: crossterm::event::Event, _: &Document| {},
+        )))
     }
 }
 
@@ -290,6 +309,30 @@ impl<T> std::fmt::Debug for Handler<T> {
     }
 }
 
-pub fn convert<T>(widget: &mut Box<dyn ElementWidget>) -> &mut Box<T> {
-    unsafe { &mut *(widget as *mut _ as *mut Box<T>) }
+pub fn run(element: &mut Element) -> bool {
+    let document = Document {
+        element: element,
+        running: &mut None,
+    };
+    let (width, height) = crate::utils::get_term_size();
+    element.event(
+        crossterm::event::Event::Resize(width as u16, height as u16),
+        &document,
+    );
+    element.event(crossterm::event::Event::FocusGained, &document);
+
+    utils::hide_cursor();
+    crossterm::terminal::enable_raw_mode().unwrap();
+    utils::clear();
+
+    while unsafe { *document.running } == None {
+        document.render();
+        element.event(crossterm::event::read().unwrap(), &document);
+    }
+
+    utils::show_cursor();
+    crossterm::terminal::disable_raw_mode().unwrap();
+    utils::clear();
+
+    unsafe { (*document.running).unwrap() }
 }

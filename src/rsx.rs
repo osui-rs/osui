@@ -50,7 +50,7 @@ macro_rules! parse_rsx_param {
     ($elem:expr, $elem_path:path { $($inner:tt)* } $($rest:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
         if let $crate::Children::Children(children, _) = &mut $elem.children {
-            children.push(osui::rsx_elem!($elem_path { $($inner)* }));
+            children.push(osui::ersx!($elem_path { $($inner)* }));
         }
         osui::parse_rsx_param!($elem, $($rest)*)
     };
@@ -66,7 +66,7 @@ macro_rules! parse_rsx_param {
 }
 
 #[macro_export]
-macro_rules! rsx_elem {
+macro_rules! ersx {
     ($elem:path { $($inner:tt)* }) => {{
         #[allow(unused_mut)]
         let mut elem = $elem();
@@ -89,7 +89,7 @@ macro_rules! rsx_elem {
 #[macro_export]
 macro_rules! rsx {
     ($($inner:tt)*) => {
-        $crate::rsx_elem!{ $crate::ui::div { $($inner)* } }
+        $crate::ersx!{ $crate::ui::div { $($inner)* } }
     };
 
 }

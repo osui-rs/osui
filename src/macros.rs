@@ -16,3 +16,10 @@ macro_rules! call {
         &$self.$handler;
     }};
 }
+
+#[macro_export]
+macro_rules! launch {
+    ($expr:expr) => {
+        while $crate::run(&mut $expr) {}
+    };
+}
