@@ -1,6 +1,23 @@
 #[macro_export]
 macro_rules! parse_rsx_param {
-        ($elem:expr, $($k:ident).+: $v:expr) => {
+    ($elem:expr, for ($($for:tt)*) $code:block $($rest:tt)*) => {
+        if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
+        if let $crate::Children::Children(children, _) = &mut $elem.children {
+            for $($for)* {
+                children.push($code)
+            }
+        }
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
+    ($elem:expr, if ($($if:tt)*) $code:block $($rest:tt)*) => {
+        if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
+        if let $crate::Children::Children(children, _) = &mut $elem.children {
+            if $($if)* {children.push($code)}
+        }
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
+
+    ($elem:expr, $($k:ident).+: $v:expr) => {
         $elem.$($k).+ = $v;
     };
 
@@ -29,17 +46,7 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-        ($elem:expr, for ($($for:tt)*) { $($inner:tt)* } $($rest:tt)*) => {
-        if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
-        if let $crate::Children::Children(children, _) = &mut $elem.children {
-            for $($for)* {
-                children.push({$($inner)*})
-            }
-        }
-        osui::parse_rsx_param!($elem, $($rest)*);
-    };
-
-        ($elem:expr, {$inner_elem:expr} $($rest:tt)*) => {
+    ($elem:expr, {$inner_elem:expr} $($rest:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
         if let $crate::Children::Children(children, _) = &mut $elem.children {
             children.push({$inner_elem});
@@ -47,7 +54,7 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-        ($elem:expr, $elem_path:path { $($inner:tt)* } $($rest:tt)*) => {
+    ($elem:expr, $elem_path:path { $($inner:tt)* } $($rest:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
         if let $crate::Children::Children(children, _) = &mut $elem.children {
             children.push(osui::rsx_elem!($elem_path { $($inner)* }));
@@ -76,14 +83,14 @@ macro_rules! rsx_elem {
 }
 
 /// Makes a div and puts elements into it
-/// 
+///
 /// # Example
 /// ```
 /// rsx! {
 ///     button { class: "btn", "Click me!" }
 /// }
 /// ```
-/// 
+///
 /// # Returns
 /// A `osui::Element` - Which is a `Box<dyn osui::ElementWidget>`
 #[macro_export]

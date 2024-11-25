@@ -7,7 +7,7 @@ use crate::prelude::*;
 use crate::utils::{clear, flush, get_term_size, hide_cursor, show_cursor, Frame};
 use std::{ffi::c_void, ptr::null, sync::mpsc};
 
-pub struct LArgs<'a> {
+struct LArgs<'a> {
     pub element: &'a mut Element,
 
     // for sending commands
@@ -56,18 +56,6 @@ pub fn run(element: &mut Element) -> bool {
 }
 
 #[no_mangle]
-extern "C" fn render_loop(ptr: *mut c_void) -> bool {
-    if ptr.is_null() {
-        return false;
-    }
-    let args = unsafe { &mut *(ptr as *mut LArgs) };
-    while args.running {
-        sleep(1000);
-    }
-    false
-}
-
-#[no_mangle]
 extern "C" fn event_loop(ptr: *mut c_void) -> *const c_void {
     if ptr.is_null() {
         return null() as *const c_void;
@@ -87,10 +75,7 @@ extern "C" fn event_loop(ptr: *mut c_void) -> *const c_void {
     );
     document.render();
 
-    while args.running {
-        if ptr.is_null() {
-            break;
-        }
+    while args.running || !ptr.is_null() {
         event(args.element, crossterm::event::read().unwrap(), &document);
         document.render();
     }
@@ -102,6 +87,7 @@ extern "C" fn cmd_loop(ptr: *mut c_void) -> *const c_void {
     if ptr.is_null() {
         return null() as *const c_void;
     }
+
     let args = unsafe { &mut *(ptr as *mut LArgs) };
 
     loop {

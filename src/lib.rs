@@ -38,16 +38,12 @@ pub mod utils;
 
 pub use app::run;
 
-/// The `prelude` module provides commonly used imports and macros to simplify the development
-/// of UI elements. It re-exports commonly used traits, structs, and utility functions to make
-/// the UI framework easier to use.
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::ui::Number::*;
     pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
-    pub use crate::{style, Command, Document, Element, Value};
-    // useful for Element making
     pub use crate::{call, Children, ElementCore, ElementWidget};
+    pub use crate::{style, Command, Document, Element, Value};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
@@ -55,7 +51,54 @@ pub mod prelude {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-/// Value Enum
+// Type aliases
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub type Element = Box<dyn ElementWidget>;
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// Traits
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub trait ElementCore: Send + Sync {
+    fn get_data(&self) -> (Value<usize>, usize, String);
+    fn update_data(&mut self, width: usize, height: usize);
+    fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element>;
+    fn get_child(&mut self) -> Option<&mut Element>;
+    fn set_styling(&mut self, styling: &HashMap<crate::ui::StyleName, crate::ui::Style>);
+}
+
+pub trait ElementWidget: ElementCore + std::fmt::Debug {
+    fn render(&self, focused: bool) -> RenderResult;
+
+    fn event(&mut self, event: Event, document: &Document) {
+        _ = (event, document)
+    }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// Structs
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, Event, &Document) + Send + Sync>>);
+
+pub struct Document {
+    cmd_sender: std::sync::mpsc::Sender<Command>,
+    cmd_recv: *const std::ffi::c_void,
+}
+
+/// ```
+/// RenderResult(output, (x, y))
+/// ```
+pub struct RenderResult(String, ui::StyleElement);
+pub struct RenderWriter {
+    w: String,
+    style: ui::Style,
+    focused: bool,
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// Enums
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug, Clone, Copy)]
@@ -63,6 +106,48 @@ pub enum Value<T: Copy + PartialEq> {
     Default(T),
     Custom(T),
 }
+
+/// Child enum of an `Element`
+///
+/// # Example
+/// ```
+/// // Check if it's text
+/// if let Children::Text(text) {
+///     // do something
+/// }
+/// // Check if it's inner elements
+/// if let Children::Children(text) {
+///     // do something
+/// }
+/// // recommended: use get_text
+/// children.get_text() // returns a empty string if it's not text
+/// ```
+///
+/// # Useful for
+/// - `Element::event`
+/// - `Element::render`
+/// - `Handler`
+#[derive(Debug)]
+pub enum Children {
+    None,
+    Text(String),
+    Children(Vec<Element>, usize),
+}
+
+pub enum Command {
+    Exit,
+    Render,
+    GetElementById(String),
+}
+
+pub enum CommandResult {
+    Element(*mut Element),
+    None,
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// Implementations
+//////////////////////////////////////////////////////////////////////////////////////////////////
 
 impl<T: Copy + PartialEq> Value<T> {
     pub fn get_value(&self) -> T {
@@ -85,87 +170,31 @@ impl<T: Copy + PartialEq + Default> Default for Value<T> {
     }
 }
 
-//////////////////////////////////////////////////////////////////////////////////////////////////
-/// ElementCore Traits
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-/// ```
-/// RenderResult(output, (x, y), (width, height))
-/// ```
-pub struct RenderResult(String, (ui::Number, ui::Number));
-
-pub trait ElementCore: Send + Sync {
-    fn get_data(&self) -> (Value<usize>, usize, String);
-    fn update_data(&mut self, width: usize, height: usize);
-    fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element>;
-    fn get_child(&mut self) -> Option<&mut Element>;
-    fn set_styling(&mut self, styling: &HashMap<crate::ui::StyleName, crate::ui::Style>);
-}
-
-pub trait ElementWidget: ElementCore + std::fmt::Debug {
-    fn render(&self, focused: bool) -> RenderResult;
-
-    fn event(&mut self, event: Event, document: &Document) {
-        _ = (event, document)
+impl Document {
+    pub fn exit(&self) {
+        self.cmd_sender.send(Command::Exit).unwrap();
     }
-}
-
-pub type Element = Box<dyn ElementWidget>;
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-/// Handler Struct
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, Event, &Document) + Send + Sync>>);
-
-impl<T> Handler<T> {
-    pub fn new<F>(handler_fn: F) -> Handler<T>
-    where
-        F: FnMut(&mut T, Event, &Document) + 'static + Send + Sync,
-    {
-        Handler(Arc::new(Mutex::new(handler_fn)))
+    pub fn get_element_by_id<T>(&self, id: &str) -> Option<&mut Box<T>> {
+        if let Some(e) = self.get_element_by_id_raw(id) {
+            Some(convert(unsafe { &mut *e }))
+        } else {
+            None
+        }
     }
-}
-
-impl<T> Default for Handler<T> {
-    fn default() -> Self {
-        Handler(Arc::new(Mutex::new(|_: &mut T, _: Event, _: &Document| {})))
+    pub fn get_element_by_id_raw(&self, id: &str) -> Option<*mut Element> {
+        self.cmd_sender
+            .send(Command::GetElementById(id.to_string()))
+            .unwrap();
+        let rx = unsafe { &*(self.cmd_recv as *const std::sync::mpsc::Receiver<CommandResult>) };
+        if let Ok(CommandResult::Element(e)) = rx.recv() {
+            Some(e)
+        } else {
+            None
+        }
     }
-}
-
-impl<T> std::fmt::Debug for Handler<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Handler()")
+    pub fn render(&self) {
+        self.cmd_sender.send(Command::Render).unwrap();
     }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-/// Children Enum
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-/// Child enum of an `Element`
-///
-/// # Example
-/// ```
-/// // Check if it's text
-/// if let Children::Text(text) {
-///     // do something
-/// }
-/// // Check if it's inner elements
-/// if let Children::Children(text) {
-///     // do something
-/// }
-/// ```
-///
-/// # Useful for
-/// - `Element::event`
-/// - `Element::render`
-/// - `Handler`
-#[derive(Debug)]
-pub enum Children {
-    None,
-    Text(String),
-    Children(Vec<Element>, usize),
 }
 
 impl Default for Children {
@@ -218,50 +247,45 @@ impl Children {
     }
 }
 
-/// Converts a `Element` into the struct
+impl<T> Handler<T> {
+    pub fn new<F>(handler_fn: F) -> Handler<T>
+    where
+        F: FnMut(&mut T, Event, &Document) + 'static + Send + Sync,
+    {
+        Handler(Arc::new(Mutex::new(handler_fn)))
+    }
+}
+
+impl RenderWriter {
+    pub fn new(focused: bool, style: ui::Style) -> RenderWriter {
+        RenderWriter {
+            w: String::new(),
+            style,
+            focused,
+        }
+    }
+
+    pub fn write(&mut self, s: &str) {
+        self.w += self.style.get(self.focused).write(s).as_str();
+    }
+
+    pub fn result(&self) -> RenderResult {
+        RenderResult(self.w.clone(), self.style.get(self.focused).clone())
+    }
+}
+
+impl<T> Default for Handler<T> {
+    fn default() -> Self {
+        Handler(Arc::new(Mutex::new(|_: &mut T, _: Event, _: &Document| {})))
+    }
+}
+
+impl<T> std::fmt::Debug for Handler<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Handler()")
+    }
+}
+
 pub fn convert<T>(widget: &mut Box<dyn ElementWidget>) -> &mut Box<T> {
     unsafe { &mut *(widget as *mut _ as *mut Box<T>) }
-}
-
-pub enum Command {
-    Exit,
-    Render,
-    GetElementById(String),
-}
-
-pub enum CommandResult {
-    Element(*mut Element),
-    None,
-}
-
-pub struct Document {
-    cmd_sender: std::sync::mpsc::Sender<Command>,
-    cmd_recv: *const std::ffi::c_void,
-}
-
-impl Document {
-    pub fn exit(&self) {
-        self.cmd_sender.send(Command::Exit).unwrap();
-    }
-    pub fn get_element_by_id<T>(&self, id: &str) -> Option<&mut Box<T>> {
-        if let Some(e) = self.get_element_by_id_raw(id) {
-            Some(convert(unsafe { &mut *e }))
-        } else {
-            None
-        }
-    }
-    pub fn get_element_by_id_raw(&self, id: &str) -> Option<*mut Element> {
-        self.cmd_sender
-            .send(Command::GetElementById(id.to_string()))
-            .unwrap();
-        let rx = unsafe { &*(self.cmd_recv as *const std::sync::mpsc::Receiver<CommandResult>) };
-        if let Ok(CommandResult::Element(e)) = rx.recv() {
-            Some(e)
-        } else {
-            None
-        }
-    }
-    pub fn render(&self) {
-        self.cmd_sender.send(Command::Render).unwrap();
-    }
 }

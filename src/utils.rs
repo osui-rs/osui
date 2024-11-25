@@ -103,7 +103,7 @@ impl Frame {
         let output = element.render(focused);
         let x;
         let mut y = 0;
-        match output.1 .1 {
+        match output.1.y {
             crate::ui::Number::Px(_y) => {
                 y = _y;
             }
@@ -128,7 +128,7 @@ impl Frame {
                 }
             }
         }
-        match output.1 .0 {
+        match output.1.x {
             crate::ui::Number::Px(_x) => {
                 x = _x;
             }

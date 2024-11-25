@@ -1,21 +1,23 @@
 use crate::prelude::*;
 
-pub fn event_logger() -> Element {
+pub fn examples() -> Element {
     rsx! {
         styling: Some(styling()),
-        button { class: "txt", "Hello, World!" }
+        if (2 == 2) {
+            rsx_elem! { button { class: "btn", "Hello, World!" } }
+        }
     }
 }
 
 pub fn styling() -> Css {
     css! {
-        .txt {
-            x: Center,
-            y: Center,
+        .btn {
+            x: 30%,
+            y: Auto,
             color: Red,
         }
-        
-        .txt: clicked {
+
+        .btn: clicked {
             color: Blue,
         }
     }

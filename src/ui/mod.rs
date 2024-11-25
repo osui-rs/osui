@@ -5,7 +5,7 @@
 pub mod styles;
 pub use styles::*;
 
-use crate::{prelude::*, RenderResult};
+use crate::{prelude::*, RenderResult, RenderWriter};
 use osui_element::{elem_fn, element};
 
 /// The `Text` element represents a piece of static text in the terminal UI.
@@ -31,17 +31,18 @@ pub struct Text {
 }
 
 impl ElementWidget for Text<'_> {
-    fn render(&self, _: bool) -> RenderResult {
-        self.style.result(
-            "",
-            self.style.write("", &{
-                if let Children::Text(text) = &self.children {
-                    text.clone()
-                } else {
-                    String::new()
-                }
-            }),
-        )
+    fn render(&self, focused: bool) -> RenderResult {
+        let mut writer = RenderWriter::new(focused, self.style.clone());
+
+        writer.write(&{
+            if let Children::Text(text) = &self.children {
+                text.clone()
+            } else {
+                String::new()
+            }
+        });
+
+        writer.result()
     }
     fn event(&mut self, event: Event, document: &Document) {
         call!(self.on_event(event, document));
@@ -77,6 +78,7 @@ pub struct Div {
 
 impl ElementWidget for Div<'_> {
     fn render(&self, focused: bool) -> RenderResult {
+        let mut writer = RenderWriter::new(focused, self.style.clone());
         let mut frame = crate::utils::Frame::new(crate::utils::get_term_size().0, 12);
 
         if let Children::Children(children, child) = &self.children {
@@ -84,8 +86,9 @@ impl ElementWidget for Div<'_> {
                 frame.render(focused && i == *child, elem);
             }
         }
+        writer.write(&frame.output());
 
-        self.style.result("", frame.output())
+        writer.result()
     }
 
     fn event(&mut self, event: Event, document: &Document) {
@@ -145,25 +148,13 @@ impl ElementWidget for Div<'_> {
 #[derive(Default, Debug)]
 pub struct Button {
     pub on_click: Handler<Button<'a>>,
-    pub state: &'a str,
 }
 
 impl ElementWidget for Button<'_> {
     fn render(&self, focused: bool) -> RenderResult {
-        if self.state != "" {
-            self.style.result(
-                self.state,
-                self.style.write(self.state, &self.children.get_text()),
-            )
-        } else if focused {
-            self.style.result(
-                "hover",
-                self.style.write("hover", &self.children.get_text()),
-            )
-        } else {
-            self.style
-                .result("", self.style.write("", &self.children.get_text()))
-        }
+        let mut writer = RenderWriter::new(focused, self.style.clone());
+        writer.write(&self.children.get_text());
+        writer.result()
     }
 
     fn event(&mut self, event: Event, document: &Document) {
@@ -171,11 +162,11 @@ impl ElementWidget for Button<'_> {
             Event::Key(key) => {
                 if key.code == KeyCode::Enter {
                     document.render();
-                    self.state = "clicked";
+                    self.style.set_state("clicked");
                     call!(self.on_click(event, document));
                     document.render();
                     sleep(100);
-                    self.state = "";
+                    self.style.set_state("");
                 }
             }
             _ => {}
