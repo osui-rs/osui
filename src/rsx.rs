@@ -9,13 +9,6 @@ macro_rules! parse_rsx_param {
         }
         osui::parse_rsx_param!($elem, $($rest)*);
     };
-    ($elem:expr, if ($($if:tt)*) $code:block $($rest:tt)*) => {
-        if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
-        if let $crate::Children::Children(children, _) = &mut $elem.children {
-            if $($if)* {children.push($code)}
-        }
-        osui::parse_rsx_param!($elem, $($rest)*);
-    };
 
     ($elem:expr, $($k:ident).+: $v:expr) => {
         $elem.$($k).+ = $v;
@@ -46,10 +39,10 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-    ($elem:expr, {$inner_elem:expr} $($rest:tt)*) => {
+    ($elem:expr, $code:block $($rest:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
         if let $crate::Children::Children(children, _) = &mut $elem.children {
-            children.push({$inner_elem});
+            children.push($code);
         }
         osui::parse_rsx_param!($elem, $($rest)*);
     };

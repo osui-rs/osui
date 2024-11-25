@@ -3,9 +3,10 @@
 /// # Modules
 /// - `styles`: A module for defining UI styles.
 pub mod styles;
+
 pub use styles::*;
 
-use crate::{prelude::*, RenderResult, RenderWriter};
+use crate::prelude::*;
 use osui_element::{elem_fn, element};
 
 /// The `Text` element represents a piece of static text in the terminal UI.
@@ -31,7 +32,7 @@ pub struct Text {
 }
 
 impl ElementWidget for Text<'_> {
-    fn render(&self, focused: bool) -> RenderResult {
+    fn render(&self, focused: bool) -> Option<RenderResult> {
         let mut writer = RenderWriter::new(focused, self.style.clone());
 
         writer.write(&{
@@ -42,7 +43,7 @@ impl ElementWidget for Text<'_> {
             }
         });
 
-        writer.result()
+        Some(writer.result())
     }
     fn event(&mut self, event: Event, document: &Document) {
         call!(self.on_event(event, document));
@@ -77,7 +78,7 @@ pub struct Div {
 }
 
 impl ElementWidget for Div<'_> {
-    fn render(&self, focused: bool) -> RenderResult {
+    fn render(&self, focused: bool) -> Option<RenderResult> {
         let mut writer = RenderWriter::new(focused, self.style.clone());
         let mut frame = crate::utils::Frame::new(crate::utils::get_term_size().0, 12);
 
@@ -88,7 +89,7 @@ impl ElementWidget for Div<'_> {
         }
         writer.write(&frame.output());
 
-        writer.result()
+        Some(writer.result())
     }
 
     fn event(&mut self, event: Event, document: &Document) {
@@ -97,48 +98,8 @@ impl ElementWidget for Div<'_> {
                 self.set_styling(&styling);
             }
         }
-        match event {
-            Event::Key(key) => {
-                if let Children::Children(children, child) = &mut self.children {
-                    *child = match key.code {
-                        KeyCode::Up => crate::utils::closest_component(
-                            children,
-                            *child,
-                            crate::utils::Direction::Up,
-                        ),
-
-                        KeyCode::Down => crate::utils::closest_component(
-                            children,
-                            *child,
-                            crate::utils::Direction::Down,
-                        ),
-
-                        KeyCode::Left => crate::utils::closest_component(
-                            children,
-                            *child,
-                            crate::utils::Direction::Left,
-                        ),
-
-                        KeyCode::Right => crate::utils::closest_component(
-                            children,
-                            *child,
-                            crate::utils::Direction::Right,
-                        ),
-
-                        _ => {
-                            if let Some(c) = children.get_mut(*child) {
-                                c.event(event, document);
-                            }
-                            *child
-                        }
-                    }
-                }
-            }
-            _ => {
-                if let Some(child) = self.get_child() {
-                    child.event(event, document);
-                }
-            }
+        if let Some(child) = self.children.get_child() {
+            child.event(event, document);
         }
     }
 }
@@ -151,10 +112,10 @@ pub struct Button {
 }
 
 impl ElementWidget for Button<'_> {
-    fn render(&self, focused: bool) -> RenderResult {
+    fn render(&self, focused: bool) -> Option<RenderResult> {
         let mut writer = RenderWriter::new(focused, self.style.clone());
         writer.write(&self.children.get_text());
-        writer.result()
+        Some(writer.result())
     }
 
     fn event(&mut self, event: Event, document: &Document) {
@@ -171,5 +132,27 @@ impl ElementWidget for Button<'_> {
             }
             _ => {}
         }
+    }
+}
+
+#[element]
+#[derive(Debug)]
+pub struct DataHolder<'a, T> {
+    pub data: T,
+}
+
+pub fn dataholder<'a, T: std::default::Default>() -> Box<DataHolder<'a, T>> {
+    Box::new(DataHolder {
+        style: Style::default(),
+        data: T::default(),
+        children: Children::None,
+        class: "",
+        id: "",
+    })
+}
+
+impl<'a, T: std::fmt::Debug + Send + Sync> ElementWidget for DataHolder<'a, T> {
+    fn render(&self, _: bool) -> Option<RenderResult> {
+        None
     }
 }

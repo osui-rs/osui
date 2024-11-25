@@ -1,7 +1,4 @@
-use crossterm::{
-    event::Event,
-    terminal::{disable_raw_mode, enable_raw_mode},
-};
+use crossterm::terminal::{disable_raw_mode, enable_raw_mode};
 
 use crate::prelude::*;
 use crate::utils::{clear, flush, get_term_size, hide_cursor, show_cursor, Frame};
@@ -22,13 +19,6 @@ struct LArgs<'a> {
 
 extern "C" {
     fn c_run(args: *mut c_void) -> bool;
-}
-
-fn event(element: &mut Element, event: Event, document: &Document) {
-    if let crossterm::event::Event::Resize(width, height) = event {
-        element.update_data(width as usize, height as usize);
-    }
-    element.event(event, document);
 }
 
 pub fn run(element: &mut Element) -> bool {
@@ -67,16 +57,17 @@ extern "C" fn event_loop(ptr: *mut c_void) -> *const c_void {
     };
 
     let (width, height) = get_term_size();
-    args.element.update_data(width, height);
-    event(
-        args.element,
-        crossterm::event::Event::FocusGained,
+    args.element.event(
+        crossterm::event::Event::Resize(width as u16, height as u16),
         &document,
     );
+    args.element
+        .event(crossterm::event::Event::FocusGained, &document);
     document.render();
 
     while args.running || !ptr.is_null() {
-        event(args.element, crossterm::event::read().unwrap(), &document);
+        args.element
+            .event(crossterm::event::read().unwrap(), &document);
         document.render();
     }
     null() as *const c_void
@@ -100,7 +91,7 @@ extern "C" fn cmd_loop(ptr: *mut c_void) -> *const c_void {
                 args.rtx
                     .send(if let Some(e) = args.element.get_element_by_id(&id) {
                         crate::CommandResult::Element(e as *mut Element)
-                    } else if args.element.get_data().2 == id {
+                    } else if args.element.get_id() == id {
                         crate::CommandResult::Element(args.element as *mut Element)
                     } else {
                         crate::CommandResult::None

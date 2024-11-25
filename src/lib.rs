@@ -42,8 +42,8 @@ pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::ui::Number::*;
     pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
-    pub use crate::{call, Children, ElementCore, ElementWidget};
-    pub use crate::{style, Command, Document, Element, Value};
+    pub use crate::{call, Children, ElementCore, ElementWidget, Element};
+    pub use crate::{style, Command, Document, RenderResult, RenderWriter, Value};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
@@ -60,17 +60,14 @@ pub type Element = Box<dyn ElementWidget>;
 /// Traits
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub trait ElementCore: Send + Sync {
-    fn get_data(&self) -> (Value<usize>, usize, String);
-    fn update_data(&mut self, width: usize, height: usize);
+pub trait ElementCore {
     fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element>;
-    fn get_child(&mut self) -> Option<&mut Element>;
     fn set_styling(&mut self, styling: &HashMap<crate::ui::StyleName, crate::ui::Style>);
+    fn get_id(&self) -> String;
 }
 
-pub trait ElementWidget: ElementCore + std::fmt::Debug {
-    fn render(&self, focused: bool) -> RenderResult;
-
+pub trait ElementWidget: ElementCore + std::fmt::Debug + Send + Sync {
+    fn render(&self, focused: bool) -> Option<RenderResult>;
     fn event(&mut self, event: Event, document: &Document) {
         _ = (event, document)
     }
@@ -243,6 +240,13 @@ impl Children {
     pub fn add_child(&mut self, element: Element) {
         if let Children::Children(children, _) = self {
             children.push(element);
+        }
+    }
+    pub fn get_child(&mut self) -> Option<&mut Element> {
+        if let Children::Children(children, child) = self {
+            children.get_mut(*child)
+        } else {
+            None
         }
     }
 }
