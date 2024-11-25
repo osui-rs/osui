@@ -30,11 +30,8 @@
 
 ## Getting Started
 
-To use OSUI in your project, include it in your `Cargo.toml`:
-
-```toml
-[dependencies]
-osui = "0.2"  # Replace with the latest version
+```bash
+cargo add osui
 ```
 
 ## Example Usage

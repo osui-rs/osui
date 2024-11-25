@@ -25,6 +25,14 @@ macro_rules! __css {
         $crate::__css!($_style, $($($other)*)?);
     }};
 
+    // Vector
+    (
+        $_style:expr, $name:ident: [$($inner:tt),*] $(, $($other:tt)*)?
+    ) => {{
+        $_style.$name = vec![$($inner),*];
+        $crate::__css!($_style, $($($other)*)?);
+    }};
+
     // Normal
     (
         $_style:expr, $name:ident: $value:expr $(, $($other:tt)*)?
@@ -32,6 +40,7 @@ macro_rules! __css {
         $_style.$name = $value;
         $crate::__css!($_style, $($($other)*)?);
     }};
+
     (
         $_style:expr, ($name:ident): $value:expr $(, $($other:tt)*)?
     ) => {{

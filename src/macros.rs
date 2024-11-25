@@ -1,11 +1,4 @@
 #[macro_export]
-macro_rules! val {
-    ($a:expr) => {
-        $crate::Value::new($a)
-    };
-}
-
-#[macro_export]
 macro_rules! call {
     ($self:ident.$handler:ident ($($inner:tt)*)) => {{
         let a = std::sync::Arc::clone(&$self.$handler.0);

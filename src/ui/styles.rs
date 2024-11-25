@@ -29,13 +29,11 @@ clone_trait_object!(StyleCore);
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Font {
-    None,
     Bold,
     Underline,
     Italic,
     Reverse,
     Strike,
-    Mul(Vec<Font>),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -77,7 +75,7 @@ pub enum StyleName {
 pub struct StyleElement {
     pub color: Color,
     pub background: Color,
-    pub font: Font,
+    pub font: Vec<Font>,
     pub x: Number,
     pub y: Number,
     pub width: Number,
@@ -138,7 +136,7 @@ impl Default for StyleElement {
         StyleElement {
             color: Color::NoColor,
             background: Color::NoColor,
-            font: Font::None,
+            font: Vec::new(),
             x: Number::Default,
             y: Number::Default,
             width: Number::Default,
@@ -228,12 +226,6 @@ impl Default for Color {
     }
 }
 
-impl Default for Font {
-    fn default() -> Self {
-        Font::None
-    }
-}
-
 fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
     let hex = hex.trim_start_matches('#');
 
@@ -263,25 +255,39 @@ fn hex_to_rgb(hex: &str) -> (u8, u8, u8) {
 impl StyleCore for Font {
     fn ansi(&self) -> String {
         String::from(match self {
-            Font::None => "",
             Font::Bold => "\x1b[1m",
             Font::Underline => "\x1b[4m",
             Font::Italic => "\x1b[3m",
             Font::Reverse => "\x1b[7m",
             Font::Strike => "\x1b[9m",
-            Font::Mul(v) => {
-                let mut s = String::new();
-                for n in v {
-                    s += n.ansi().as_str();
-                }
-                return s;
-            }
         })
     }
     fn ansi_bg(&self) -> String {
         self.ansi()
     }
     fn is_null(&self) -> bool {
-        *self == Self::None
+        false
+    }
+}
+
+impl StyleCore for Vec<Font> {
+    fn ansi(&self) -> String {
+        let mut a = String::new();
+        for i in self {
+            a += i.ansi().as_str();
+        }
+        a
+    }
+
+    fn ansi_bg(&self) -> String {
+        let mut a = String::new();
+        for i in self {
+            a += i.ansi_bg().as_str();
+        }
+        a
+    }
+
+    fn is_null(&self) -> bool {
+        self.len() == 0
     }
 }

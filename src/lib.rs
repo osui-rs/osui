@@ -10,13 +10,12 @@
 //! ```rust
 //! use osui::prelude::*;
 //!
-//! run(&mut rsx! {
+//! launch(rsx! {
 //!     text { "Hello, World!" }
 //! });
 //! ```
 //!
 //! ## Modules
-//! - `app` - The main function for rendering.
 //! - `ui` - Contains all user interface components, enabling rich CLI experiences.
 //! - `utils` - Utility functions for common TUI tasks such as clearing the screen.
 
@@ -36,9 +35,10 @@ pub mod utils;
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::ui::Number::*;
-    pub use crate::{self as osui, css, ersx, rsx, ui::*, Handler, launch};
+    pub use crate::ui::Font::*;
+    pub use crate::{self as osui, css, ersx, launch, rsx, ui::*, Handler};
     pub use crate::{call, Children, Element, ElementCore, ElementWidget};
-    pub use crate::{style, Command, Document, RenderResult, RenderWriter, Value};
+    pub use crate::{style, Document, RenderResult, RenderWriter};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
@@ -95,32 +95,6 @@ pub struct RenderWriter {
 /// Enums
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug, Clone, Copy)]
-pub enum Value<T: Copy + PartialEq> {
-    Default(T),
-    Custom(T),
-}
-
-/// Child enum of an `Element`
-///
-/// # Example
-/// ```
-/// // Check if it's text
-/// if let Children::Text(text) {
-///     // do something
-/// }
-/// // Check if it's inner elements
-/// if let Children::Children(text) {
-///     // do something
-/// }
-/// // recommended: use get_text
-/// children.get_text() // returns a empty string if it's not text
-/// ```
-///
-/// # Useful for
-/// - `Element::event`
-/// - `Element::render`
-/// - `Handler`
 #[derive(Debug)]
 pub enum Children {
     None,
@@ -128,41 +102,9 @@ pub enum Children {
     Children(Vec<Element>, usize),
 }
 
-pub enum Command {
-    Exit,
-    Render,
-    GetElementById(String),
-}
-
-pub enum CommandResult {
-    Element(*mut Element),
-    None,
-}
-
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// Implementations
 //////////////////////////////////////////////////////////////////////////////////////////////////
-
-impl<T: Copy + PartialEq> Value<T> {
-    pub fn get_value(&self) -> T {
-        match self {
-            Value::Custom(s) => *s,
-            Value::Default(s) => *s,
-        }
-    }
-
-    pub fn try_set_value(&mut self, value: T) {
-        if let Value::Default(_) = *self {
-            *self = Value::Default(value);
-        }
-    }
-}
-
-impl<T: Copy + PartialEq + Default> Default for Value<T> {
-    fn default() -> Self {
-        Self::Default(T::default())
-    }
-}
 
 impl Document {
     pub fn exit(&self) {
