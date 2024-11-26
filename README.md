@@ -1,6 +1,8 @@
 <p align="center">
-  <img src="github/OSUI-cropped.png" alt="OSUI" width="200px"/>
+  <img src="github/OSUIw.svg" alt="OSUI" width="200px"/>
 </p>
+
+<h1 align="center">osui</h1>
 
 <p align="center">
   <a href="https://crates.io/crates/osui">
@@ -28,11 +30,8 @@
 
 ## Getting Started
 
-To use OSUI in your project, include it in your `Cargo.toml`:
-
-```toml
-[dependencies]
-osui = "0.2"  # Replace with the latest version
+```bash
+cargo add osui
 ```
 
 ## Example Usage

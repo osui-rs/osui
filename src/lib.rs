@@ -10,13 +10,12 @@
 //! ```rust
 //! use osui::prelude::*;
 //!
-//! run(&mut rsx! {
+//! launch(rsx! {
 //!     text { "Hello, World!" }
 //! });
 //! ```
 //!
 //! ## Modules
-//! - `app` - The main function for rendering.
 //! - `ui` - Contains all user interface components, enabling rich CLI experiences.
 //! - `utils` - Utility functions for common TUI tasks such as clearing the screen.
 
@@ -26,24 +25,20 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crossterm::event::Event;
-
-pub mod app;
+pub mod css;
+pub mod examples;
 pub mod macros;
+pub mod rsx;
 pub mod ui;
 pub mod utils;
 
-pub use app::run;
-
-/// The `prelude` module provides commonly used imports and macros to simplify the development
-/// of UI elements. It re-exports commonly used traits, structs, and utility functions to make
-/// the UI framework easier to use.
 pub mod prelude {
     pub use crate::ui::Color::*;
-    pub use crate::{self as osui, css, rsx, rsx_elem, ui::*, Handler};
-    pub use crate::{Element, Value};
-    // useful for Element making
-    pub use crate::{run_handler, Children, ElementCore, ElementWidget};
+    pub use crate::ui::Number::*;
+    pub use crate::ui::Font::*;
+    pub use crate::{self as osui, css, ersx, launch, rsx, ui::*, Handler};
+    pub use crate::{call, Children, Element, ElementCore, ElementWidget};
+    pub use crate::{style, Document, RenderResult, RenderWriter};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
@@ -51,90 +46,53 @@ pub mod prelude {
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-/// Value Enum
+// Type aliases
 //////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Debug, Clone, Copy)]
-pub enum Value<T: Copy + PartialEq> {
-    Default(T),
-    Custom(T),
-}
-
-impl<T: Copy + PartialEq> Value<T> {
-    pub fn get_value(&self) -> T {
-        match self {
-            Value::Custom(s) => *s,
-            Value::Default(s) => *s,
-        }
-    }
-
-    pub fn try_set_value(&mut self, value: T) {
-        if let Value::Default(_) = *self {
-            *self = Value::Default(value);
-        }
-    }
-}
-
-impl<T: Copy + PartialEq + Default> Default for Value<T> {
-    fn default() -> Self {
-        Self::Default(T::default())
-    }
-}
-
-//////////////////////////////////////////////////////////////////////////////////////////////////
-/// ElementCore Traits
-//////////////////////////////////////////////////////////////////////////////////////////////////
-
-pub trait ElementCore: Send + Sync {
-    fn get_data(&self) -> (Value<usize>, usize, String);
-    fn update_data(&mut self, width: usize, height: usize);
-    fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element>;
-    fn get_child(&mut self) -> Option<&mut Element>;
-    fn set_styling(&mut self, styling: &HashMap<crate::ui::StyleName, crate::ui::Style>);
-}
-
-pub trait ElementWidget: ElementCore + std::fmt::Debug {
-    fn render(&self, focused: bool) -> String {
-        _ = focused;
-        String::new()
-    }
-
-    fn event(&mut self, event: Event) {
-        _ = event
-    }
-}
 
 pub type Element = Box<dyn ElementWidget>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-/// Handler Struct
+/// Traits
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, Event) + Send + Sync>>);
-
-impl<T> Handler<T> {
-    pub fn new<F>(handler_fn: F) -> Handler<T>
-    where
-        F: FnMut(&mut T, Event) + 'static + Send + Sync,
-    {
-        Handler(Arc::new(Mutex::new(handler_fn)))
-    }
+pub trait ElementCore {
+    fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element>;
+    fn set_styling(&mut self, styling: &HashMap<crate::ui::StyleName, crate::ui::Style>);
+    fn get_id(&self) -> String;
 }
 
-impl<T> Default for Handler<T> {
-    fn default() -> Self {
-        Handler(Arc::new(Mutex::new(|_: &mut T, _: Event| {})))
-    }
-}
-
-impl<T> std::fmt::Debug for Handler<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Handler()")
+pub trait ElementWidget: ElementCore + std::fmt::Debug + Send + Sync {
+    fn render(&self, focused: bool) -> Option<RenderResult>;
+    fn event(&mut self, event: crossterm::event::Event, document: &Document) {
+        _ = (event, document)
     }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
-/// Children Enum
+/// Structs
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub struct Handler<T>(
+    pub Arc<Mutex<dyn FnMut(&mut T, crossterm::event::Event, &Document) + Send + Sync>>,
+);
+
+pub struct Document {
+    element: *mut Element,
+    running: *mut Option<bool>,
+}
+
+/// ```
+/// RenderResult(output, (x, y))
+/// ```
+pub struct RenderResult(String, ui::StyleElement);
+pub struct RenderWriter {
+    w: String,
+    style: ui::Style,
+    focused: bool,
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// Enums
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 #[derive(Debug)]
@@ -142,6 +100,57 @@ pub enum Children {
     None,
     Text(String),
     Children(Vec<Element>, usize),
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+/// Implementations
+//////////////////////////////////////////////////////////////////////////////////////////////////
+
+impl Document {
+    pub fn exit(&self) {
+        if !self.running.is_null() {
+            unsafe {
+                *self.running = Some(false);
+            }
+        }
+    }
+    pub fn rebuild(&self) {
+        if !self.running.is_null() {
+            unsafe {
+                *self.running = Some(true);
+            }
+        }
+    }
+    pub fn get_element_by_id<T>(&self, id: &str) -> Option<&mut Box<T>> {
+        if let Some(e) = self.get_element_by_id_raw(id) {
+            Some(unsafe { &mut *(e as *mut Element as *mut Box<T>) })
+        } else {
+            None
+        }
+    }
+    pub fn get_element_by_id_raw(&self, id: &str) -> Option<&mut Element> {
+        if !self.element.is_null() {
+            unsafe {
+                if (*self.element).get_id() == id {
+                    Some(&mut *self.element)
+                } else {
+                    (*self.element).get_element_by_id(id)
+                }
+            }
+        } else {
+            None
+        }
+    }
+    pub fn render(&self) {
+        if !self.running.is_null() {
+            let (width, height) = utils::get_term_size();
+            let mut frame = utils::Frame::new(width, height);
+            frame.render(true, unsafe { &*self.element });
+            utils::clear();
+            print!("{}", frame.output_nnl());
+            utils::flush();
+        }
+    }
 }
 
 impl Default for Children {
@@ -163,4 +172,109 @@ impl Children {
             _ => String::new(),
         }
     }
+    pub fn get_text_mut(&mut self) -> Option<&mut String> {
+        match self {
+            Children::Text(text) => Some(text),
+            _ => None,
+        }
+    }
+    pub fn set_text(&mut self, text: &str) {
+        match self {
+            Children::Text(t) => {
+                *t = text.to_string();
+            }
+            _ => {}
+        }
+    }
+    pub fn set_text_force(&mut self, text: &str) {
+        match self {
+            Children::Text(t) => {
+                *t = text.to_string();
+            }
+            _ => {
+                *self = Children::Text(text.to_string());
+            }
+        }
+    }
+    pub fn add_child(&mut self, element: Element) {
+        if let Children::Children(children, _) = self {
+            children.push(element);
+        }
+    }
+    pub fn get_child(&mut self) -> Option<&mut Element> {
+        if let Children::Children(children, child) = self {
+            children.get_mut(*child)
+        } else {
+            None
+        }
+    }
+}
+
+impl<T> Handler<T> {
+    pub fn new<F>(handler_fn: F) -> Handler<T>
+    where
+        F: FnMut(&mut T, crossterm::event::Event, &Document) + 'static + Send + Sync,
+    {
+        Handler(Arc::new(Mutex::new(handler_fn)))
+    }
+}
+
+impl RenderWriter {
+    pub fn new(focused: bool, style: ui::Style) -> RenderWriter {
+        RenderWriter {
+            w: String::new(),
+            style,
+            focused,
+        }
+    }
+
+    pub fn write(&mut self, s: &str) {
+        self.w += self.style.get(self.focused).write(s).as_str();
+    }
+
+    pub fn result(&self) -> RenderResult {
+        RenderResult(self.w.clone(), self.style.get(self.focused).clone())
+    }
+}
+
+impl<T> Default for Handler<T> {
+    fn default() -> Self {
+        Handler(Arc::new(Mutex::new(
+            |_: &mut T, _: crossterm::event::Event, _: &Document| {},
+        )))
+    }
+}
+
+impl<T> std::fmt::Debug for Handler<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Handler()")
+    }
+}
+
+pub fn run(element: &mut Element) -> bool {
+    let document = Document {
+        element: element,
+        running: &mut None,
+    };
+    let (width, height) = crate::utils::get_term_size();
+    element.event(
+        crossterm::event::Event::Resize(width as u16, height as u16),
+        &document,
+    );
+    element.event(crossterm::event::Event::FocusGained, &document);
+
+    utils::hide_cursor();
+    crossterm::terminal::enable_raw_mode().unwrap();
+    utils::clear();
+
+    while unsafe { *document.running } == None {
+        document.render();
+        element.event(crossterm::event::read().unwrap(), &document);
+    }
+
+    utils::show_cursor();
+    crossterm::terminal::disable_raw_mode().unwrap();
+    utils::clear();
+
+    unsafe { (*document.running).unwrap() }
 }

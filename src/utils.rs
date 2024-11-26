@@ -5,12 +5,11 @@
 /// # Example
 /// ```rust
 /// use crate::ui::utils::{create_frame, render_to_frame};
-/// 
+///
 /// let frame = create_frame(50, 10);
 /// render_to_frame(crate::State::Normal, 50, &mut frame, &text_element);
 /// ```
-
-use crate::{Element, Value};
+use crate::Element;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{
@@ -49,7 +48,7 @@ pub fn compress_string(input: &str, re: &Regex) -> (String, HashMap<usize, Strin
 }
 
 /// Merges a frame withe a line by x
-fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
+fn merge_line(frame_: &str, line_: &str, x: usize) -> (String, String) {
     let (frame_, fm) = compress_string(frame_, &ANSI);
     let (mut line_, lm) = compress_string(line_, &ANSI);
 
@@ -82,35 +81,86 @@ fn merge_line(frame_: &str, line_: &str, x: usize) -> String {
         }
     }
 
-    res
+    (res, line_)
 }
 
-/// Render to a frame
-pub fn render_to_frame(
-    focused: bool,
+pub struct Frame {
+    frame: Vec<String>,
     width: usize,
-    frame: &mut Vec<String>,
-    element: &Element,
-) {
-    let data = element.get_data();
-    for (i, line) in element.render(focused).split('\n').enumerate() {
-        if (data.1 + i) < frame.len() {
-            let frame_line = frame.get_mut(data.1 + i).unwrap();
-            match data.0 {
-                Value::Custom(x) => {
-                    *frame_line = merge_line(&frame_line, line, x);
+    used: Vec<usize>,
+}
+
+impl Frame {
+    pub fn new(width: usize, height: usize) -> Self {
+        Self {
+            frame: vec![" ".repeat(width); height],
+            width,
+            used: vec![0; height],
+        }
+    }
+    pub fn render(&mut self, focused: bool, element: &Element) {
+        if let Some(output) = element.render(focused) {
+            let x;
+            let mut y = 0;
+            match output.1.y {
+                crate::ui::Number::Px(_y) => {
+                    y = _y;
                 }
-                _ => {
-                    for (x, c) in frame_line.chars().rev().enumerate() {
-                        if c != ' ' {
-                            *frame_line = merge_line(&frame_line, line, width - x);
-                            return;
+                crate::ui::Number::Pe(p) => y = (self.frame.len() * p) / 100,
+                crate::ui::Number::Center => {
+                    y = (self.frame.len() - output.0.matches('\n').count() + 1) / 2
+                }
+                crate::ui::Number::Auto => {
+                    for (i, n) in self.used.iter().enumerate() {
+                        if *n == 0 {
+                            y = i;
+                            break;
                         }
                     }
-                    *frame_line = merge_line(&frame_line, line, 0);
+                }
+                crate::ui::Number::Default => {
+                    for (i, n) in self.used.iter().enumerate() {
+                        if *n == 0 {
+                            y = i;
+                            break;
+                        }
+                    }
+                }
+            }
+            match output.1.x {
+                crate::ui::Number::Px(_x) => {
+                    x = _x;
+                }
+                crate::ui::Number::Pe(p) => x = (self.width * p) / 100,
+                crate::ui::Number::Center => {
+                    x = (self.width
+                        - ANSI
+                            .replace_all(&output.0.lines().next().unwrap_or(""), "")
+                            .len())
+                        / 2;
+                }
+                crate::ui::Number::Auto => {
+                    x = *self.used.get(y).unwrap();
+                }
+                crate::ui::Number::Default => {
+                    x = 0;
+                }
+            }
+            for (i, line) in output.0.split('\n').enumerate() {
+                if self.frame.len() > y + i {
+                    let frame_line = self.frame.get_mut(y + i).unwrap();
+                    let merged = merge_line(&frame_line, line, x);
+                    *frame_line = merged.0;
+                    *self.used.get_mut(y + i).unwrap() += merged.1.len() - 1;
                 }
             }
         }
+    }
+    pub fn output(&self) -> String {
+        self.frame.join("\n")
+    }
+    pub fn output_nnl(&self) -> String {
+        self.frame.join("")
     }
 }
 
@@ -131,57 +181,6 @@ pub fn show_cursor() {
 
 pub fn flush() {
     stdout().flush().unwrap();
-}
-
-#[derive(Debug, Clone)]
-pub enum Direction {
-    Left,
-    Right,
-    Up,
-    Down,
-}
-
-pub fn closest_component(
-    components: &[Element],
-    current_index: usize,
-    direction: Direction,
-) -> usize {
-    let current = &components[current_index].get_data();
-
-    components
-        .iter()
-        .enumerate()
-        .filter(|(i, comp_)| {
-            let comp = comp_.get_data();
-            match direction {
-                Direction::Left => match comp.0 {
-                    Value::Custom(_) => {
-                        comp.0.get_value() < current.0.get_value() && comp.1 == current.1
-                    }
-                    Value::Default(_) => *i < current_index,
-                }, // Left
-                Direction::Right => match comp.0 {
-                    Value::Custom(_) => {
-                        comp.0.get_value() > current.0.get_value() && comp.1 == current.1
-                    }
-                    Value::Default(_) => *i > current_index,
-                }, // Right
-                Direction::Up => comp.1 < current.1 && comp.0.get_value() == current.0.get_value(), // Up
-                Direction::Down => {
-                    comp.1 > current.1 && comp.0.get_value() == current.0.get_value()
-                } // Down
-            }
-        })
-        .min_by_key(|(_, comp_)| {
-            let comp = comp_.get_data();
-            current.0.get_value().abs_diff(comp.0.get_value()) + current.1.abs_diff(comp.1)
-        }) // Find the closest component
-        .map(|(index, _)| index) // Return the index of the closest component
-        .unwrap_or(current_index) // If no component is found, return the current index
-}
-
-pub fn create_frame(width: usize, height: usize) -> Vec<String> {
-    vec![" ".repeat(width); height]
 }
 
 pub fn get_term_size() -> (usize, usize) {
