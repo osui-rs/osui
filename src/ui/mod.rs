@@ -93,7 +93,6 @@ impl ElementWidget for Button<'_> {
                     document.render();
                     sleep(100);
                     self.style.set_state("");
-                    document.rebuild();
                 }
             }
             _ => {}
@@ -107,7 +106,7 @@ pub struct DataHolder<'a, T> {
     pub data: T,
 }
 
-pub fn dataholder<'a, T: std::default::Default>() -> Box<DataHolder<'a, T>> {
+pub fn data_holder<'a, T: std::default::Default>() -> Box<DataHolder<'a, T>> {
     Box::new(DataHolder {
         style: Style::default(),
         data: T::default(),

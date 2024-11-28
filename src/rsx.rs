@@ -55,14 +55,23 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*)
     };
 
-        ($elem:expr, $text:expr) => {
+    ($elem:expr, $elem_path:path as $t:ty { $($inner:tt)* } $($rest:tt)*) => {
+        if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
+        if let $crate::Children::Children(children, _) = &mut $elem.children {
+            children.push(osui::ersx!($elem_path as $t { $($inner)* }));
+        }
+        osui::parse_rsx_param!($elem, $($rest)*)
+    };
+
+    ($elem:expr, $text:expr) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Text(format!($text))}
     };
+
     ($elem:expr, $text:expr, $($inner:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Text(format!($text, $($inner)*))}
     };
 
-        ($elem:expr, ) => {};
+    ($elem:expr, ) => {};
 }
 
 #[macro_export]
@@ -70,6 +79,13 @@ macro_rules! ersx {
     ($elem:path { $($inner:tt)* }) => {{
         #[allow(unused_mut)]
         let mut elem = $elem();
+        $crate::parse_rsx_param!(elem, $($inner)*);
+        elem as $crate::Element
+    }};
+
+    ($elem:path as $t:ty { $($inner:tt)* }) => {{
+        #[allow(unused_mut)]
+        let mut elem = paste::paste!{$elem::<$t>}();
         $crate::parse_rsx_param!(elem, $($inner)*);
         elem as $crate::Element
     }};
