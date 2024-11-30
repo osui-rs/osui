@@ -1,4 +1,16 @@
 #[macro_export]
+macro_rules! check_expr {
+    (|| $code:block) => {
+        $crate::Handler::new(move |_, _, _| $code)
+    };
+    (|$($inner:tt)*| $code:block) => {
+        $crate::Handler::new(move |$($inner)*| $code)
+    };
+    ($expr:expr) => {
+        $expr
+    };
+}
+#[macro_export]
 macro_rules! parse_rsx_param {
     ($elem:expr, for ($($for:tt)*) $code:block $($rest:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
@@ -10,33 +22,33 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-    ($elem:expr, $($k:ident).+: $v:expr) => {
-        $elem.$($k).+ = $v;
+    ($elem:expr, $($k:ident).+: fn($($params:tt)*) $code:block $(, $($rest:tt)*)?) => {
+        $elem.$($k).+ = $crate::Handler::new(|$($params)*| $code);
+        osui::parse_rsx_param!($elem, $($($rest)*)?);
     };
 
-    ($elem:expr, $($k:ident).+: $v:expr, $($rest:tt)*) => {
-        $elem.$($k).+ = $v;
-        osui::parse_rsx_param!($elem, $($rest)*);
+    ($elem:expr, $($k:ident).+: $v:expr $(, $($rest:tt)*)?) => {
+        $elem.$($k).+ = $crate::check_expr!($v);
+        osui::parse_rsx_param!($elem, $($($rest)*)?);
     };
-        ($elem:expr, $p:path) => {
+    ($elem:expr, $p:path) => {
         $p;
     };
     ($elem:expr, $($k:ident).+, $($rest:tt)*) => {
-        $elem.$($k).+;
+        $elem.$($k).+ = true;
         osui::parse_rsx_param!($elem, $($rest)*);
     };
     ($elem:expr, $($k:ident).+., $($rest:tt)*) => {
-        $elem.$($k).
-        +.;
+        $elem.$($k).+.;
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
     ($elem:expr, $($k:ident).+.: $v:expr) => {
-        $elem.$($k).+. = $v;
+        $elem.$($k).+. = $crate::check_expr!($v);
     };
-    ($elem:expr, $($k:ident).+.: $v:expr, $($rest:tt)*) => {
-        $elem.$($k).+. = $v;
-        osui::parse_rsx_param!($elem, $($rest)*);
+    ($elem:expr, $($k:ident).+.: $v:expr, $(, $($rest:tt)*)?) => {
+        $elem.$($k).+. = $crate::check_expr!($v);
+        osui::parse_rsx_param!($elem, $($($rest)*)?);
     };
 
     ($elem:expr, $code:block $($rest:tt)*) => {
@@ -64,14 +76,15 @@ macro_rules! parse_rsx_param {
     };
 
     ($elem:expr, $text:expr) => {
-        if $elem.children.is_none() {$elem.children = $crate::Children::Text(format!($text))}
+        $elem.children.set_text_force(&format!($text))
     };
 
     ($elem:expr, $text:expr, $($inner:tt)*) => {
-        if $elem.children.is_none() {$elem.children = $crate::Children::Text(format!($text, $($inner)*))}
+        $elem.children.set_text_force(&format!($text, $($inner)*))
     };
 
     ($elem:expr, ) => {};
+    ($elem:expr) => {};
 }
 
 #[macro_export]

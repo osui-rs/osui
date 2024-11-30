@@ -34,8 +34,8 @@ pub mod utils;
 
 pub mod prelude {
     pub use crate::ui::Color::*;
-    pub use crate::ui::Number::*;
     pub use crate::ui::Font::*;
+    pub use crate::ui::Number::*;
     pub use crate::{self as osui, css, ersx, launch, rsx, ui::*, Handler};
     pub use crate::{call, Children, Element, ElementCore, ElementWidget};
     pub use crate::{style, Document, RenderResult, RenderWriter};
@@ -114,7 +114,7 @@ impl Document {
             }
         }
     }
-    pub fn rebuild(&self) {
+    pub fn restart(&self) {
         if !self.running.is_null() {
             unsafe {
                 *self.running = Some(true);
@@ -150,6 +150,9 @@ impl Document {
             print!("{}", frame.output_nnl());
             utils::flush();
         }
+    }
+    pub fn draw(&mut self, element: &mut Element) {
+        self.element = element;
     }
 }
 

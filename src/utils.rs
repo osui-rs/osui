@@ -108,7 +108,8 @@ impl Frame {
                 }
                 crate::ui::Number::Pe(p) => y = (self.frame.len() * p) / 100,
                 crate::ui::Number::Center => {
-                    y = (self.frame.len() - output.0.matches('\n').count() + 1) / 2
+                    let content_height = output.0.lines().count();
+                    y = (self.frame.len() - content_height) / 2;
                 }
                 crate::ui::Number::Auto => {
                     for (i, n) in self.used.iter().enumerate() {
