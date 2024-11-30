@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="github/OSUI.png" alt="OSUI" width="200px"/>
+  <img src="github/osui.png" alt="OSUI" width="200px"/>
 </p>
 
 <h1 align="center">osui</h1>
