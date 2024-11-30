@@ -20,6 +20,8 @@
   <b>OSUI is a customizable terminal user interface (TUI) library written in Rust. It provides a set of components and rsx to build interactive command-line interfaces with ease.</b>
 </p>
 
+## [Documentation](https://osui.netlify.app/docs)
+
 ## Features
 
 - Custom rsx syntax.
@@ -27,30 +29,6 @@
 - Handle keyboard input seamlessly.
 - Create complex layouts using nested elements.
 - Customizable element sizes and styles.
-
-## Getting Started
-
-```bash
-cargo add osui
-```
-
-## Example Usage
-
-Here’s a simple example of how to create a basic UI with OSUI:
-
-```rust
-use osui::prelude::*;
-
-fn main() {
-    run(&mut rsx! {
-        text { "Hello, World!" }
-    });
-}
-```
-
-## How it works
-Credit to priz.js (discord) for the idea of using C for multithreading
-<img src="github/multithread.png"/>
 
 ## Contributing
 
