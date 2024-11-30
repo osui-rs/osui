@@ -62,7 +62,7 @@ pub trait ElementCore {
 }
 
 pub trait ElementWidget: ElementCore + std::fmt::Debug + Send + Sync {
-    fn render(&self, focused: bool) -> Option<RenderResult>;
+    fn render(&self, focused: bool, width: usize, height: usize) -> RenderResult;
     fn event(&mut self, event: crossterm::event::Event, document: &Document) {
         _ = (event, document)
     }

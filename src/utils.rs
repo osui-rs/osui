@@ -99,7 +99,8 @@ impl Frame {
         }
     }
     pub fn render(&mut self, focused: bool, element: &Element) {
-        if let Some(output) = element.render(focused) {
+        let output = element.render(focused, self.width, self.frame.len());
+        if output.1.visible {
             let x;
             let mut y = 0;
             match output.1.y {

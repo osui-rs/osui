@@ -12,13 +12,13 @@ pub fn examples() -> Element {
 
 pub fn styling() -> Css {
     css! {
-        .btn {
+        "btn" {
             x: Center,
             y: Center,
             color: Red,
         }
 
-        .btn: clicked {
+        "btn": clicked {
             color: Blue,
         }
     }

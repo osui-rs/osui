@@ -80,6 +80,7 @@ pub struct StyleElement {
     pub y: Number,
     pub width: Number,
     pub height: Number,
+    pub visible: bool,
     pub other: HashMap<String, Box<dyn StyleCore>>,
 }
 
@@ -141,6 +142,7 @@ impl Default for StyleElement {
             y: Number::Default,
             width: Number::Default,
             height: Number::Default,
+            visible: true,
             other: HashMap::new(),
         }
     }

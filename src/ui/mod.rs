@@ -17,7 +17,7 @@ pub struct Text {
 }
 
 impl ElementWidget for Text<'_> {
-    fn render(&self, focused: bool) -> Option<RenderResult> {
+    fn render(&self, focused: bool, _: usize, _: usize) -> RenderResult {
         let mut writer = RenderWriter::new(focused, self.style.clone());
 
         writer.write(&{
@@ -28,7 +28,7 @@ impl ElementWidget for Text<'_> {
             }
         });
 
-        Some(writer.result())
+        writer.result()
     }
     fn event(&mut self, event: Event, document: &Document) {
         call!(self.on_event(event, document));
@@ -43,9 +43,9 @@ pub struct Div {
 }
 
 impl ElementWidget for Div<'_> {
-    fn render(&self, focused: bool) -> Option<RenderResult> {
+    fn render(&self, focused: bool, width: usize, height: usize) -> RenderResult {
         let mut writer = RenderWriter::new(focused, self.style.clone());
-        let mut frame = crate::utils::Frame::new(crate::utils::get_term_size().0, 12);
+        let mut frame = crate::utils::Frame::new(width, height);
 
         if let Children::Children(children, child) = &self.children {
             for (i, elem) in children.iter().enumerate() {
@@ -54,7 +54,7 @@ impl ElementWidget for Div<'_> {
         }
         writer.write(&frame.output());
 
-        Some(writer.result())
+        writer.result()
     }
 
     fn event(&mut self, event: Event, document: &Document) {
@@ -77,10 +77,10 @@ pub struct Button {
 }
 
 impl ElementWidget for Button<'_> {
-    fn render(&self, focused: bool) -> Option<RenderResult> {
+    fn render(&self, focused: bool, _: usize, _: usize) -> RenderResult {
         let mut writer = RenderWriter::new(focused, self.style.clone());
         writer.write(&self.children.get_text());
-        Some(writer.result())
+        writer.result()
     }
 
     fn event(&mut self, event: Event, document: &Document) {
@@ -117,7 +117,7 @@ pub fn data_holder<'a, T: std::default::Default>() -> Box<DataHolder<'a, T>> {
 }
 
 impl<'a, T: std::fmt::Debug + Send + Sync> ElementWidget for DataHolder<'a, T> {
-    fn render(&self, _: bool) -> Option<RenderResult> {
-        None
+    fn render(&self, focused: bool, _: usize, _: usize) -> RenderResult {
+        RenderWriter::new(focused, self.style.clone()).result()
     }
 }
