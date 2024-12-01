@@ -4,7 +4,9 @@ pub fn examples() -> Element {
     rsx! {
         styling: Some(styling()),
 
-        button { class: "btn", "Click me!\nsdusajuda" }
+        button { class: "btn", on_click: fn(_, _, document) {
+            document.exit();
+        }, "Click me!" }
 
         text { "Welcome!" }
     }
