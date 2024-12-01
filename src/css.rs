@@ -19,7 +19,7 @@ macro_rules! __css {
 
     // Number
     (
-        $_style:expr, $name:ident: $value:literal $(, $($other:tt)*)?
+        $_style:expr, $name:ident: $value:literal px $(, $($other:tt)*)?
     ) => {{
         $_style.$name = Number::Px($value);
         $crate::__css!($_style, $($($other)*)?);

@@ -20,13 +20,9 @@ impl ElementWidget for Text<'_> {
     fn render(&self, focused: bool, _: usize, _: usize) -> RenderResult {
         let mut writer = RenderWriter::new(focused, self.style.clone());
 
-        writer.write(&{
-            if let Children::Text(text) = &self.children {
-                text.clone()
-            } else {
-                String::new()
-            }
-        });
+        if let Children::Text(text) = &self.children {
+            writer.write(&text);
+        }
 
         writer.result()
     }

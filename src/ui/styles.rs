@@ -75,12 +75,14 @@ pub enum StyleName {
 pub struct StyleElement {
     pub color: Color,
     pub background: Color,
+    pub outline_color: Color,
     pub font: Vec<Font>,
     pub x: Number,
     pub y: Number,
     pub width: Number,
     pub height: Number,
     pub visible: bool,
+    pub outline: bool,
     pub other: HashMap<String, Box<dyn StyleCore>>,
 }
 
@@ -123,12 +125,18 @@ impl Style {
 
 impl StyleElement {
     pub fn write(&self, s: &str) -> String {
-        format!(
-            "{}{}{}{s}\x1b[0m",
-            self.color.ansi(),
-            self.background.ansi_bg(),
-            self.font.ansi()
-        )
+        s.split('\n')
+            .into_iter()
+            .map(|p| {
+                format!(
+                    "{}{}{}{p}\x1b[0m",
+                    self.color.ansi(),
+                    self.background.ansi_bg(),
+                    self.font.ansi()
+                )
+            })
+            .collect::<Vec<String>>()
+            .join("\n")
     }
 }
 
@@ -138,11 +146,13 @@ impl Default for StyleElement {
             color: Color::NoColor,
             background: Color::NoColor,
             font: Vec::new(),
+            outline_color: Color::NoColor,
             x: Number::Default,
             y: Number::Default,
             width: Number::Default,
             height: Number::Default,
             visible: true,
+            outline: false,
             other: HashMap::new(),
         }
     }
@@ -291,5 +301,15 @@ impl StyleCore for Vec<Font> {
 
     fn is_null(&self) -> bool {
         self.len() == 0
+    }
+}
+
+impl Number {
+    pub fn as_size(&self) -> Option<&usize> {
+        match self {
+            Number::Px(s) => return Some(s),
+            _ => {}
+        }
+        None
     }
 }

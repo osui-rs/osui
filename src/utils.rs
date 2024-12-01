@@ -9,7 +9,6 @@
 /// let frame = create_frame(50, 10);
 /// render_to_frame(crate::State::Normal, 50, &mut frame, &text_element);
 /// ```
-use crate::Element;
 use lazy_static::lazy_static;
 use regex::Regex;
 use std::{
@@ -29,11 +28,12 @@ pub fn compress_string(input: &str, re: &Regex) -> (String, HashMap<usize, Strin
 
     let mut i = 0;
     while i < input_chars.len() {
-        if let Some(loc) = re.find(&input[i..]) {
+        let remaining_input: String = input_chars[i..].iter().collect();
+        if let Some(loc) = re.find(&remaining_input) {
             if loc.start() == 0 {
-                let ansi_seq = &input[i..i + loc.end()];
-                matches_map.insert(res.len(), ansi_seq.to_string());
-                i += ansi_seq.chars().count();
+                let matched_chars: String = input_chars[i..i + loc.end()].iter().collect();
+                matches_map.insert(res.len(), matched_chars.clone());
+                i += loc.end();
             } else {
                 res.push(input_chars[i]);
                 i += 1;
@@ -48,9 +48,12 @@ pub fn compress_string(input: &str, re: &Regex) -> (String, HashMap<usize, Strin
 }
 
 /// Merges a frame withe a line by x
-fn merge_line(frame_: &str, line_: &str, x: usize) -> (String, String) {
+fn merge_line(
+    frame_: &str,
+    (mut line_, lm): (String, HashMap<usize, String>),
+    x: usize,
+) -> (String, String) {
     let (frame_, fm) = compress_string(frame_, &ANSI);
-    let (mut line_, lm) = compress_string(line_, &ANSI);
 
     if let Some(_) = lm.get(&line_.len()) {
         line_.push('\n');
@@ -98,11 +101,12 @@ impl Frame {
             used: vec![0; height],
         }
     }
-    pub fn render(&mut self, focused: bool, element: &Element) {
+    pub fn render(&mut self, focused: bool, element: &crate::Element) {
         let output = element.render(focused, self.width, self.frame.len());
         if output.1.visible {
             let x;
             let mut y = 0;
+            let mut width = 0_usize;
             match output.1.y {
                 crate::ui::Number::Px(_y) => {
                     y = _y;
@@ -148,13 +152,57 @@ impl Frame {
                     x = 0;
                 }
             }
-            for (i, line) in output.0.split('\n').enumerate() {
+
+            let mut svec: Vec<(String, HashMap<usize, String>)> = Vec::new();
+
+            match output.1.width {
+                crate::ui::Number::Auto | crate::ui::Number::Default => {
+                    for line in output.0.split('\n') {
+                        let (line, lm) = compress_string(line, &ANSI);
+                        if line.len() > width {
+                            width = line.len();
+                        }
+                        svec.push((line, lm));
+                    }
+                }
+                crate::ui::Number::Px(p) => {
+                    width = p;
+                    for line in output.0.split('\n') {
+                        svec.push(compress_string(line, &ANSI));
+                    }
+                }
+                _ => {}
+            }
+
+            if output.1.outline {
+                let frame_line = self.frame.get_mut(y).unwrap();
+                *frame_line = merge_line(&frame_line, ("_".repeat(width), HashMap::new()), x + 1).0;
+                y += 1;
+            }
+
+            for (i, (line, lm)) in svec.iter().enumerate() {
                 if self.frame.len() > y + i {
                     let frame_line = self.frame.get_mut(y + i).unwrap();
-                    let merged = merge_line(&frame_line, line, x);
+                    let merged = if output.1.outline {
+                        merge_line(
+                            &frame_line,
+                            (
+                                format!("|{}|", format_string(line, width)),
+                                lm.into_iter().map(|(k, v)| (k + 1, v.clone())).collect(),
+                            ),
+                            x,
+                        )
+                    } else {
+                        merge_line(&frame_line, (format_string(line, width), lm.clone()), x)
+                    };
                     *frame_line = merged.0;
                     *self.used.get_mut(y + i).unwrap() += merged.1.len() - 1;
                 }
+            }
+
+            if output.1.outline {
+                let frame_line = self.frame.get_mut(y + svec.len()).unwrap();
+                *frame_line = merge_line(&frame_line, ("¯".repeat(width), HashMap::new()), x + 1).0;
             }
         }
     }
@@ -164,6 +212,15 @@ impl Frame {
     pub fn output_nnl(&self) -> String {
         self.frame.join("")
     }
+}
+
+fn format_string(input: &str, width: usize) -> String {
+    let truncated = if input.len() > width {
+        &input[..width]
+    } else {
+        input
+    };
+    format!("{:<width$}", truncated, width = width)
 }
 
 pub fn clear() {
