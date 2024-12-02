@@ -12,6 +12,17 @@ macro_rules! check_expr {
 }
 #[macro_export]
 macro_rules! parse_rsx_param {
+    // Data fields
+    ($elem:expr, @$name:ident: $type:ty; $($rest:tt)*) => {
+        if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
+        if let $crate::Children::Children(children, _) = &mut $elem.children {
+            let mut $name = $crate::ui::data_holder::<$type>();
+            $name.id = stringify!($name);
+            children.push($name);
+        }
+        osui::parse_rsx_param!($elem, $($rest)*)
+    };
+
     ($elem:expr, for ($($for:tt)*) $code:block $($rest:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
         if let $crate::Children::Children(children, _) = &mut $elem.children {

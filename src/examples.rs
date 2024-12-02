@@ -4,11 +4,18 @@ pub fn examples() -> Element {
     rsx! {
         styling: Some(styling()),
 
-        button { class: "btn", on_click: fn(_, _, document) {
-            document.exit();
+        button { class: "btn", on_click: fn(btn: &mut Button, _, document) {
+            let count = document.use_state::<u32>("count");
+            *count += 1;
+            btn.children.set_text(&count.to_string());
+            if *count == 10 {
+                document.exit();
+            }
         }, "Click me!" }
 
         text { "Welcome!" }
+
+        @count: i32;
     }
 }
 

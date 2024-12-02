@@ -114,6 +114,6 @@ pub fn data_holder<'a, T: std::default::Default>() -> Box<DataHolder<'a, T>> {
 
 impl<'a, T: std::fmt::Debug + Send + Sync> ElementWidget for DataHolder<'a, T> {
     fn render(&self, focused: bool, _: usize, _: usize) -> RenderResult {
-        RenderWriter::new(focused, self.style.clone()).result()
+        RenderWriter::new(focused, self.style.clone()).hidden()
     }
 }

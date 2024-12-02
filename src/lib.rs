@@ -154,6 +154,10 @@ impl Document {
     pub fn draw(&mut self, element: &mut Element) {
         self.element = element;
     }
+
+    pub fn use_state<T>(&self, name: &str) -> &mut T {
+        &mut self.get_element_by_id::<crate::ui::DataHolder<T>>(name).unwrap().data
+    }
 }
 
 impl Default for Children {
@@ -236,6 +240,11 @@ impl RenderWriter {
     }
 
     pub fn result(&self) -> RenderResult {
+        RenderResult(self.w.clone(), self.style.get(self.focused).clone())
+    }
+
+    pub fn hidden(&mut self) -> RenderResult {
+        self.style.0.visible = false;
         RenderResult(self.w.clone(), self.style.get(self.focused).clone())
     }
 }
