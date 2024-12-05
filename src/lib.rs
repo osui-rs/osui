@@ -25,6 +25,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use ui::Style;
+
 pub mod css;
 pub mod examples;
 pub mod macros;
@@ -38,7 +40,7 @@ pub mod prelude {
     pub use crate::ui::Number::*;
     pub use crate::{self as osui, css, ersx, launch, rsx, ui::*, Handler};
     pub use crate::{call, Children, Element, ElementCore, ElementWidget};
-    pub use crate::{style, Document, RenderResult, RenderWriter};
+    pub use crate::{style, Document};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
@@ -59,10 +61,11 @@ pub trait ElementCore {
     fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element>;
     fn set_styling(&mut self, styling: &HashMap<crate::ui::StyleName, crate::ui::Style>);
     fn get_id(&self) -> String;
+    fn get_style(&self) -> &Style;
 }
 
-pub trait ElementWidget: ElementCore + std::fmt::Debug + Send + Sync {
-    fn render(&self, focused: bool, width: usize, height: usize) -> RenderResult;
+pub trait ElementWidget: ElementCore + std::fmt::Debug {
+    fn render(&self, writer: &mut Writer);
     fn event(&mut self, event: crossterm::event::Event, document: &Document) {
         _ = (event, document)
     }
@@ -72,23 +75,18 @@ pub trait ElementWidget: ElementCore + std::fmt::Debug + Send + Sync {
 /// Structs
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct Handler<T>(
-    pub Arc<Mutex<dyn FnMut(&mut T, crossterm::event::Event, &Document) + Send + Sync>>,
-);
+pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, crossterm::event::Event, &Document)>>);
 
 pub struct Document {
     element: *mut Element,
     running: *mut Option<bool>,
 }
 
-/// ```
-/// RenderResult(output, (x, y))
-/// ```
-pub struct RenderResult(String, ui::StyleElement);
-pub struct RenderWriter {
-    w: String,
-    style: ui::Style,
+pub struct Writer {
+    text: String,
+    style: Style,
     focused: bool,
+    size: (u16, u16),
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -143,7 +141,7 @@ impl Document {
     }
     pub fn render(&self) {
         if !self.running.is_null() {
-            let (width, height) = utils::get_term_size();
+            let (width, height) = crossterm::terminal::size().unwrap();
             let mut frame = utils::Frame::new(width, height);
             frame.render(true, unsafe { &*self.element });
             utils::clear();
@@ -154,9 +152,11 @@ impl Document {
     pub fn draw(&mut self, element: &mut Element) {
         self.element = element;
     }
-
     pub fn use_state<T>(&self, name: &str) -> &mut T {
-        &mut self.get_element_by_id::<crate::ui::DataHolder<T>>(name).unwrap().data
+        &mut self
+            .get_element_by_id::<crate::ui::DataHolder<T>>(name)
+            .unwrap()
+            .data
     }
 }
 
@@ -220,32 +220,32 @@ impl Children {
 impl<T> Handler<T> {
     pub fn new<F>(handler_fn: F) -> Handler<T>
     where
-        F: FnMut(&mut T, crossterm::event::Event, &Document) + 'static + Send + Sync,
+        F: FnMut(&mut T, crossterm::event::Event, &Document) + 'static,
     {
         Handler(Arc::new(Mutex::new(handler_fn)))
     }
 }
 
-impl RenderWriter {
-    pub fn new(focused: bool, style: ui::Style) -> RenderWriter {
-        RenderWriter {
-            w: String::new(),
+impl Writer {
+    pub fn new(focused: bool, style: ui::Style, size: (u16, u16)) -> Writer {
+        Writer {
+            text: String::new(),
             style,
             focused,
+            size,
         }
     }
 
     pub fn write(&mut self, s: &str) {
-        self.w += self.style.get(self.focused).write(s).as_str();
+        self.text += self.style.get(self.focused).write(s).as_str();
     }
 
-    pub fn result(&self) -> RenderResult {
-        RenderResult(self.w.clone(), self.style.get(self.focused).clone())
+    pub fn get_size(&self) -> (u16, u16) {
+        self.size
     }
 
-    pub fn hidden(&mut self) -> RenderResult {
-        self.style.0.visible = false;
-        RenderResult(self.w.clone(), self.style.get(self.focused).clone())
+    pub fn get_focused(&self) -> bool {
+        self.focused
     }
 }
 
@@ -268,11 +268,8 @@ pub fn run(element: &mut Element) -> bool {
         element: element,
         running: &mut None,
     };
-    let (width, height) = crate::utils::get_term_size();
-    element.event(
-        crossterm::event::Event::Resize(width as u16, height as u16),
-        &document,
-    );
+
+    // Send initial event
     element.event(crossterm::event::Event::FocusGained, &document);
 
     utils::hide_cursor();

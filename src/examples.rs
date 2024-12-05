@@ -19,18 +19,38 @@ pub fn examples() -> Element {
     }
 }
 
+pub fn todo_app() -> Element {
+    rsx! {
+        styling: Some(styling()),
+        class: "root",
+        div {
+            class: "first",
+            text { class: "title", "not started" }
+        }
+        div {
+            class: "second",
+            text { class: "title", "completed" }
+        }
+    }
+}
+
 pub fn styling() -> Css {
     css! {
-        "btn" {
-            outline: true,
-            x: Center,
-            y: Center,
-            width: Auto,
-            color: Red,
+        "first" {
+            x: Auto,
+            y: 0 px,
+            width: 50%,
         }
-
-        "btn": clicked {
-            color: Blue,
+        "second" {
+            x: Auto,
+            y: 0 px,
+            width: 50%,
+        }
+        "root" {
+            width: 100%,
+        }
+        "title" {
+            x: Center
         }
     }
 }

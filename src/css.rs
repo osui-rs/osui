@@ -236,6 +236,7 @@ macro_rules! css {
     (
         $($inner:tt)*
     ) => {{
+        #[allow(unused_mut)]
         let mut hm: $crate::ui::Css = std::collections::HashMap::new();
         $crate::_css!(hm, $($inner)*);
         hm

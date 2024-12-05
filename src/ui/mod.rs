@@ -17,14 +17,10 @@ pub struct Text {
 }
 
 impl ElementWidget for Text<'_> {
-    fn render(&self, focused: bool, _: usize, _: usize) -> RenderResult {
-        let mut writer = RenderWriter::new(focused, self.style.clone());
-
+    fn render(&self, writer: &mut crate::Writer) {
         if let Children::Text(text) = &self.children {
             writer.write(&text);
         }
-
-        writer.result()
     }
     fn event(&mut self, event: Event, document: &Document) {
         call!(self.on_event(event, document));
@@ -39,18 +35,17 @@ pub struct Div {
 }
 
 impl ElementWidget for Div<'_> {
-    fn render(&self, focused: bool, width: usize, height: usize) -> RenderResult {
-        let mut writer = RenderWriter::new(focused, self.style.clone());
+    fn render(&self, writer: &mut crate::Writer) {
+        let (width, height) = writer.get_size();
         let mut frame = crate::utils::Frame::new(width, height);
 
         if let Children::Children(children, child) = &self.children {
             for (i, elem) in children.iter().enumerate() {
-                frame.render(focused && i == *child, elem);
+                frame.render(writer.get_focused() && i == *child, elem);
             }
         }
-        writer.write(&frame.output());
 
-        writer.result()
+        writer.write(&frame.output());
     }
 
     fn event(&mut self, event: Event, document: &Document) {
@@ -73,10 +68,8 @@ pub struct Button {
 }
 
 impl ElementWidget for Button<'_> {
-    fn render(&self, focused: bool, _: usize, _: usize) -> RenderResult {
-        let mut writer = RenderWriter::new(focused, self.style.clone());
+    fn render(&self, writer: &mut crate::Writer) {
         writer.write(&self.children.get_text());
-        writer.result()
     }
 
     fn event(&mut self, event: Event, document: &Document) {
@@ -113,7 +106,5 @@ pub fn data_holder<'a, T: std::default::Default>() -> Box<DataHolder<'a, T>> {
 }
 
 impl<'a, T: std::fmt::Debug + Send + Sync> ElementWidget for DataHolder<'a, T> {
-    fn render(&self, focused: bool, _: usize, _: usize) -> RenderResult {
-        RenderWriter::new(focused, self.style.clone()).hidden()
-    }
+    fn render(&self, _writer: &mut crate::Writer) {}
 }

@@ -53,8 +53,8 @@ pub enum Color {
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 pub enum Number {
-    Px(usize),
-    Pe(usize),
+    Px(u16),
+    Pe(u16),
     Center,
     Auto,
     Default,
@@ -305,11 +305,38 @@ impl StyleCore for Vec<Font> {
 }
 
 impl Number {
-    pub fn as_size(&self) -> Option<&usize> {
+    pub fn as_size(&self, text_size: u16, frame_size: u16) -> u16 {
         match self {
-            Number::Px(s) => return Some(s),
-            _ => {}
+            Number::Px(s) => *s,
+            Number::Pe(pe) => (frame_size * pe) / 100,
+            Number::Default => frame_size,
+            crate::ui::Number::Auto => text_size,
+            _ => 0,
         }
-        None
+    }
+    pub fn as_position_y(&self, used: &Vec<u16>, content_size: u16, frame_size: u16) -> u16 {
+        match self {
+            crate::ui::Number::Px(px) => *px,
+            crate::ui::Number::Pe(pe) => (frame_size * pe) / 100,
+            crate::ui::Number::Center => (frame_size - content_size) / 2,
+            crate::ui::Number::Auto | crate::ui::Number::Default => {
+                let mut x = 0;
+                for (i, n) in used.iter().enumerate() {
+                    if *n == 0 {
+                        x = i as u16;
+                        break;
+                    }
+                }
+                x
+            }
+        }
+    }
+    pub fn as_position_x(&self, used: &u16, content_size: u16, frame_size: u16) -> u16 {
+        match self {
+            crate::ui::Number::Px(px) => *px,
+            crate::ui::Number::Pe(pe) => (frame_size * pe) / 100,
+            crate::ui::Number::Center => (frame_size - content_size) / 2,
+            crate::ui::Number::Auto | crate::ui::Number::Default => *used,
+        }
     }
 }
