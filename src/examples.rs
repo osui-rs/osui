@@ -24,33 +24,28 @@ pub fn todo_app() -> Element {
         styling: Some(styling()),
         class: "root",
         div {
-            class: "first",
+            class: "tab",
             text { class: "title", "not started" }
         }
-        div {
-            class: "second",
-            text { class: "title", "completed" }
-        }
+        // div {
+        //     class: "tab",
+        //     text { class: "title", "completed" }
+        // }
     }
 }
 
 pub fn styling() -> Css {
     css! {
-        "first" {
-            x: Auto,
-            y: 0 px,
-            width: 50%,
-        }
-        "second" {
-            x: Auto,
-            y: 0 px,
-            width: 50%,
-        }
-        "root" {
-            width: 100%,
+        "tab" {
+            // x: 0 px,
+            // y: Auto,
+            // height: 50%,
+            outline: true,
         }
         "title" {
-            x: Center
+            // x: Center,
+            // color: Red,
+            // width: 15 px,
         }
     }
 }

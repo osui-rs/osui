@@ -1,86 +1,36 @@
-/// The `utils` module contains helper functions and utilities that assist in rendering and
-/// managing UI state. These functions are used by UI elements like `Div` and `Text` for common
-/// tasks such as frame creation, event handling, and component selection.
-///
-/// # Example
-/// ```rust
-/// use crate::ui::utils::{create_frame, render_to_frame};
-///
-/// let frame = create_frame(50, 10);
-/// render_to_frame(crate::State::Normal, 50, &mut frame, &text_element);
-/// ```
-use lazy_static::lazy_static;
-use regex::Regex;
-use std::{
-    collections::HashMap,
-    io::{stdout, Write},
-};
+use std::io::{stdout, Write};
 
-lazy_static! {
-    pub static ref ANSI: Regex = Regex::new(r"(\x1b\[([0-9;]*)[a-zA-Z])+").unwrap();
-}
+pub fn overlay(layer0: &str, layer1: &str, mut index: usize) -> String {
+    let layer0: Vec<char> = layer0.chars().collect();
+    let layer1: Vec<char> = layer1.chars().collect();
+    let mut layer1_index = 0;
+    let mut result = String::new();
+    let mut is_ansi = false;
+    let mut ansi = String::new();
 
-/// Compress a string by a regex pattern
-pub fn compress_string(input: &str, re: &Regex) -> (String, HashMap<usize, String>) {
-    let mut matches_map = HashMap::new();
-    let mut res = String::new();
-    let input_chars: Vec<char> = input.chars().collect();
-
-    let mut i = 0;
-    while i < input_chars.len() {
-        let remaining_input: String = input_chars[i..].iter().collect();
-        if let Some(loc) = re.find(&remaining_input) {
-            if loc.start() == 0 {
-                let matched_chars: String = input_chars[i..i + loc.end()].iter().collect();
-                matches_map.insert(res.len(), matched_chars.clone());
-                i += loc.end();
-            } else {
-                res.push(input_chars[i]);
-                i += 1;
+    for (i, &c) in layer0.iter().enumerate() {
+        if c == '\0' {
+            if is_ansi {
+                result.push_str(&ansi);
+                ansi.clear();
             }
+            is_ansi = !is_ansi;
+            index += 1;
+        } else if is_ansi {
+            ansi.push(c);
+            index += 1;
+        } else if i >= index && layer1_index < layer1.len() {
+            if layer1[layer1_index] == '\0' {
+                result.push(c);
+            }
+            result.push(layer1[layer1_index]);
+            layer1_index += 1;
         } else {
-            res.push(input_chars[i]);
-            i += 1;
+            result.push(c);
         }
     }
 
-    (res, matches_map)
-}
-
-/// Merges a frame withe a line by x
-fn merge_line(frame_: &str, (mut line_, lm): (String, HashMap<usize, String>), x: usize) -> String {
-    let (frame_, fm) = compress_string(frame_, &ANSI);
-
-    if let Some(_) = lm.get(&line_.len()) {
-        line_.push('\n');
-    }
-
-    let mut res = String::new();
-    let frame: Vec<char> = frame_.chars().collect();
-    let line: Vec<char> = (line_).chars().collect();
-
-    let flen = frame.len();
-    let llen = line.len();
-
-    for i in 0..flen {
-        if let Some(v) = fm.get(&i) {
-            res.push_str(v);
-        }
-        if i >= x && i - x < llen && line[i - x] != '\t' {
-            if let Some(v) = lm.get(&(i - x)) {
-                res.push_str(v);
-            }
-            if line[i - x] == '\n' {
-                res.push(frame[i]);
-            } else {
-                res.push(line[i - x]);
-            }
-        } else {
-            res.push(frame[i]);
-        }
-    }
-
-    res
+    result
 }
 
 pub struct Frame {
@@ -98,31 +48,49 @@ impl Frame {
         }
     }
     pub fn render(&mut self, focused: bool, element: &crate::Element) {
+        let style = element.get_style().get(focused);
         let mut writer = crate::Writer::new(
             focused,
-            element.get_style().clone(),
+            style.clone(),
             (self.width, self.frame.len() as u16),
         );
-        let style = writer.style.get(focused);
-        element.render(&mut writer);
         if style.visible {
             let frame_height = self.frame.len() as u16;
-            let width = style.width.as_size(writer.text.len() as u16, self.width);
-            let height = style.height.as_size(0, frame_height);
+            let (width, height) = writer.get_size();
             let y = style.y.as_position_y(&self.used, height, frame_height) as usize;
-            let x = style
-                .x
-                .as_position_x(self.used.get(y).unwrap(), width, self.width)
-                as usize;
-
-            for (i, line) in writer.text.lines().enumerate() {
-                if frame_height > (y + i) as u16 {
-                    let frame_line = self.frame.get_mut(y + i).unwrap();
-                    let (line_, lm) = compress_string(line, &ANSI);
-                    let formatted = format_string(&line_, width as usize);
-                    *frame_line =
-                        merge_line(&frame_line, (formatted.clone(), lm.clone()), x as usize);
-                    *self.used.get_mut(y + i).unwrap() += (x + formatted.len()) as u16;
+            if let Some(y_) = self.used.get(y) {
+                let x = style.x.as_position_x(y_, width, self.width) as usize;
+                if style.outline {
+                    // {
+                    //     let frame_line = self.frame.get_mut(y).unwrap();
+                    //     *frame_line =
+                    //         overlay(&frame_line, &"_".repeat(width as usize - 2), x as usize);
+                    //     // *self.used.get_mut(y - 1).unwrap() += (x as u16 + width + 1) as u16;
+                    // }
+                    // {
+                    //     if let Some(frame_line) = self.frame.get_mut(y + height as usize) {
+                    //         *frame_line = overlay(
+                    //             &frame_line,
+                    //             &"⎻".repeat(width as usize - 2),
+                    //             x as usize + 1,
+                    //         );
+                    //         // *self.used.get_mut(y + height as usize).unwrap() +=
+                    //         //     (x as u16 + width + 1) as u16;
+                    //     }
+                    // }
+                    // y += 1;
+                }
+                element.render(&mut writer);
+                for (i, line) in writer.text.lines().enumerate() {
+                    if frame_height > (y + i) as u16 {
+                        let frame_line = self.frame.get_mut(y + i).unwrap();
+                        if style.outline {
+                            *frame_line = overlay(frame_line, &format!("a{line}b"), x as usize);
+                        } else {
+                            *frame_line = overlay(frame_line, line, x as usize);
+                        }
+                        // *self.used.get_mut(y + i).unwrap() += (x + formatted.len()) as u16;
+                    }
                 }
             }
         }
@@ -136,16 +104,25 @@ impl Frame {
     pub fn output_nnl(&self) -> String {
         self.frame.join("")
     }
+
+    pub fn output_array(&self) -> &Vec<String> {
+        &self.frame
+    }
 }
 
-fn format_string(input: &str, width: usize) -> String {
-    let truncated = if input.len() > width {
-        &input[..width]
-    } else {
-        input
-    };
-    format!("{:<width$}", truncated, width = width)
-}
+// fn format_string(input: &str, width: usize, outline: bool) -> String {
+//     let truncated = if input.len() > width {
+//         let input_chars: Vec<char> = input.chars().collect();
+//         input_chars[..width].iter().collect::<String>()
+//     } else {
+//         input.to_string()
+//     };
+//     if outline {
+//         format!("a{:<width$}b", truncated, width = width)
+//     } else {
+//         format!("{:<width$}", truncated, width = width)
+//     }
+// }
 
 pub fn clear() {
     print!("\x1B[2J\x1B[H");

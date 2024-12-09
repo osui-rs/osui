@@ -82,9 +82,10 @@ pub struct Document {
     running: *mut Option<bool>,
 }
 
+#[derive(Debug)]
 pub struct Writer {
     text: String,
-    style: Style,
+    style: ui::StyleElement,
     focused: bool,
     size: (u16, u16),
 }
@@ -145,7 +146,7 @@ impl Document {
             let mut frame = utils::Frame::new(width, height);
             frame.render(true, unsafe { &*self.element });
             utils::clear();
-            print!("{}", frame.output_nnl());
+            print!("{}", frame.output_nnl().replace("\n", ""));
             utils::flush();
         }
     }
@@ -227,7 +228,7 @@ impl<T> Handler<T> {
 }
 
 impl Writer {
-    pub fn new(focused: bool, style: ui::Style, size: (u16, u16)) -> Writer {
+    pub fn new(focused: bool, style: ui::StyleElement, size: (u16, u16)) -> Writer {
         Writer {
             text: String::new(),
             style,
@@ -237,15 +238,18 @@ impl Writer {
     }
 
     pub fn write(&mut self, s: &str) {
-        self.text += self.style.get(self.focused).write(s).as_str();
-    }
-
-    pub fn get_size(&self) -> (u16, u16) {
-        self.size
+        self.text += self.style.write(s).as_str();
     }
 
     pub fn get_focused(&self) -> bool {
         self.focused
+    }
+
+    pub fn get_size(&self) -> (u16, u16) {
+        (
+            self.style.width.as_size(self.size.0, self.style.outline),
+            self.style.height.as_size(self.size.1, self.style.outline),
+        )
     }
 }
 
