@@ -128,7 +128,7 @@ impl StyleElement {
             .into_iter()
             .map(|p| {
                 format!(
-                    "\0{}{}{}\0{p}\0\x1b[0m\0",
+                    "{}{}{}{p}\x1b[0m",
                     self.color.ansi(),
                     self.background.ansi_bg(),
                     self.font.ansi()
@@ -317,11 +317,11 @@ impl Number {
             self.as_size_raw(frame_size)
         }
     }
-    pub fn as_position_y(&self, used: &Vec<u16>, content_size: u16, frame_size: u16) -> u16 {
+    pub fn as_position_y(&self, used: &Vec<u16>, frame_size: u16) -> u16 {
         match self {
             crate::ui::Number::Px(px) => *px,
             crate::ui::Number::Pe(pe) => (frame_size * pe) / 100,
-            crate::ui::Number::Center => (frame_size - content_size) / 2,
+            crate::ui::Number::Center => (frame_size) / 2,
             crate::ui::Number::Auto | crate::ui::Number::Default => {
                 let mut y = 0;
                 for (i, n) in used.iter().enumerate() {
@@ -334,11 +334,11 @@ impl Number {
             }
         }
     }
-    pub fn as_position_x(&self, used: &u16, content_size: u16, frame_size: u16) -> u16 {
+    pub fn as_position_x(&self, used: &u16, frame_size: u16) -> u16 {
         match self {
             crate::ui::Number::Px(px) => *px,
             crate::ui::Number::Pe(pe) => (frame_size * pe) / 100,
-            crate::ui::Number::Center => (frame_size - content_size) / 2,
+            crate::ui::Number::Center => (frame_size) / 2,
             crate::ui::Number::Auto | crate::ui::Number::Default => *used,
         }
     }

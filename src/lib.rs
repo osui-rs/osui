@@ -84,10 +84,10 @@ pub struct Document {
 
 #[derive(Debug)]
 pub struct Writer {
-    text: String,
     style: ui::StyleElement,
     focused: bool,
     size: (u16, u16),
+    absolute: (u16, u16),
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -143,10 +143,9 @@ impl Document {
     pub fn render(&self) {
         if !self.running.is_null() {
             let (width, height) = crossterm::terminal::size().unwrap();
-            let mut frame = utils::Frame::new(width, height);
-            frame.render(true, unsafe { &*self.element });
+            let mut frame = utils::Frame::new((0, 0), (width, height));
             utils::clear();
-            print!("{}", frame.output_nnl().replace("\n", ""));
+            frame.render(true, unsafe { &*self.element });
             utils::flush();
         }
     }
@@ -228,17 +227,29 @@ impl<T> Handler<T> {
 }
 
 impl Writer {
-    pub fn new(focused: bool, style: ui::StyleElement, size: (u16, u16)) -> Writer {
+    pub fn new(
+        focused: bool,
+        style: ui::StyleElement,
+        absolute: (u16, u16),
+        size: (u16, u16),
+    ) -> Writer {
         Writer {
-            text: String::new(),
             style,
             focused,
             size,
+            absolute,
         }
     }
 
     pub fn write(&mut self, s: &str) {
-        self.text += self.style.write(s).as_str();
+        for (i, line) in s.lines().enumerate() {
+            print!(
+                "\x1B[{};{}H{}",
+                self.absolute.1 + 1 + i as u16,
+                self.absolute.0 + 1,
+                self.style.write(line)
+            );
+        }
     }
 
     pub fn get_focused(&self) -> bool {
@@ -250,6 +261,10 @@ impl Writer {
             self.style.width.as_size(self.size.0, self.style.outline),
             self.style.height.as_size(self.size.1, self.style.outline),
         )
+    }
+
+    pub fn new_frame(&self) -> crate::utils::Frame {
+        crate::utils::Frame::new(self.absolute, self.get_size())
     }
 }
 

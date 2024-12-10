@@ -26,26 +26,30 @@ pub fn todo_app() -> Element {
         div {
             class: "tab",
             text { class: "title", "not started" }
+            text { class: "todo", "TODO: Something" }
         }
-        // div {
-        //     class: "tab",
-        //     text { class: "title", "completed" }
-        // }
+        div {
+            class: "tab",
+            text { class: "title", "completed" }
+        }
     }
 }
 
 pub fn styling() -> Css {
     css! {
         "tab" {
-            // x: 0 px,
-            // y: Auto,
-            // height: 50%,
+            x: Auto,
+            width: 50%,
             outline: true,
         }
         "title" {
-            // x: Center,
-            // color: Red,
-            // width: 15 px,
+            width: Auto,
+            color: Red,
+        }
+        "todo" {
+            x: 0 px,
+            y: Auto,
+            color: Green,
         }
     }
 }

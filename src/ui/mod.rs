@@ -36,16 +36,13 @@ pub struct Div {
 
 impl ElementWidget for Div<'_> {
     fn render(&self, writer: &mut crate::Writer) {
-        let (width, height) = writer.get_size();
-        let mut frame = crate::utils::Frame::new(width, height);
+        let mut frame = writer.new_frame();
 
         if let Children::Children(children, child) = &self.children {
             for (i, elem) in children.iter().enumerate() {
                 frame.render(writer.get_focused() && i == *child, elem);
             }
         }
-
-        writer.write(&frame.output());
     }
 
     fn event(&mut self, event: Event, document: &Document) {
