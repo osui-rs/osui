@@ -310,31 +310,16 @@ impl Number {
             _ => frame_size,
         }
     }
-    pub fn as_size(&self, frame_size: u16, outline: bool) -> u16 {
-        if outline {
+    pub fn as_size(&self, written: u16, frame_size: u16, outline: bool) -> u16 {
+        if *self == Number::Auto || *self == Number::Default {
+            written
+        } else if outline {
             self.as_size_raw(frame_size) - 2
         } else {
             self.as_size_raw(frame_size)
         }
     }
-    pub fn as_position_y(&self, used: &Vec<u16>, frame_size: u16) -> u16 {
-        match self {
-            crate::ui::Number::Px(px) => *px,
-            crate::ui::Number::Pe(pe) => (frame_size * pe) / 100,
-            crate::ui::Number::Center => (frame_size) / 2,
-            crate::ui::Number::Auto | crate::ui::Number::Default => {
-                let mut y = 0;
-                for (i, n) in used.iter().enumerate() {
-                    if *n == 0 {
-                        y = i as u16;
-                        break;
-                    }
-                }
-                y
-            }
-        }
-    }
-    pub fn as_position_x(&self, used: &u16, frame_size: u16) -> u16 {
+    pub fn as_position(&self, used: &u16, frame_size: u16) -> u16 {
         match self {
             crate::ui::Number::Px(px) => *px,
             crate::ui::Number::Pe(pe) => (frame_size * pe) / 100,

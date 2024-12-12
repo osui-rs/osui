@@ -18,9 +18,7 @@ pub struct Text {
 
 impl ElementWidget for Text<'_> {
     fn render(&self, writer: &mut crate::Writer) {
-        if let Children::Text(text) = &self.children {
-            writer.write(&text);
-        }
+        writer.write(&self.children.get_text());
     }
     fn event(&mut self, event: Event, document: &Document) {
         call!(self.on_event(event, document));
@@ -77,31 +75,11 @@ impl ElementWidget for Button<'_> {
                     self.style.set_state("clicked");
                     call!(self.on_click(event, document));
                     document.render();
-                    sleep(100);
+                    sleep(65);
                     self.style.set_state("");
                 }
             }
             _ => {}
         }
     }
-}
-
-#[element]
-#[derive(Debug)]
-pub struct DataHolder<'a, T> {
-    pub data: T,
-}
-
-pub fn data_holder<'a, T: std::default::Default>() -> Box<DataHolder<'a, T>> {
-    Box::new(DataHolder {
-        style: Style::default(),
-        data: T::default(),
-        children: Children::None,
-        class: "",
-        id: "",
-    })
-}
-
-impl<'a, T: std::fmt::Debug + Send + Sync> ElementWidget for DataHolder<'a, T> {
-    fn render(&self, _writer: &mut crate::Writer) {}
 }

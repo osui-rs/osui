@@ -12,17 +12,6 @@ macro_rules! check_expr {
 }
 #[macro_export]
 macro_rules! parse_rsx_param {
-    // Data fields
-    ($elem:expr, @$name:ident: $type:ty; $($rest:tt)*) => {
-        if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
-        if let $crate::Children::Children(children, _) = &mut $elem.children {
-            let mut $name = $crate::ui::data_holder::<$type>();
-            $name.id = stringify!($name);
-            children.push($name);
-        }
-        osui::parse_rsx_param!($elem, $($rest)*)
-    };
-
     ($elem:expr, for ($($for:tt)*) $code:block $($rest:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
         if let $crate::Children::Children(children, _) = &mut $elem.children {
@@ -34,7 +23,17 @@ macro_rules! parse_rsx_param {
     };
 
     ($elem:expr, $($k:ident).+: fn($($params:tt)*) $code:block $(, $($rest:tt)*)?) => {
-        $elem.$($k).+ = $crate::Handler::new(|$($params)*| $code);
+        $elem.$($k).+ = $crate::Handler::new(move |$($params)*| $code);
+        osui::parse_rsx_param!($elem, $($($rest)*)?);
+    };
+
+    ($elem:expr, $($k:ident).+: fn($($params:tt)*) @$($v:ident),* $code:block $(, $($rest:tt)*)?) => {
+        $elem.$($k).+ = $crate::Handler::new({
+            $(
+                let $v = $v.copy_state();
+            )*
+            move |$($params)*| $code
+        });
         osui::parse_rsx_param!($elem, $($($rest)*)?);
     };
 
@@ -78,16 +77,8 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*)
     };
 
-    ($elem:expr, $elem_path:path as $t:ty { $($inner:tt)* } $($rest:tt)*) => {
-        if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
-        if let $crate::Children::Children(children, _) = &mut $elem.children {
-            children.push(osui::ersx!($elem_path as $t { $($inner)* }));
-        }
-        osui::parse_rsx_param!($elem, $($rest)*)
-    };
-
     ($elem:expr, $text:expr) => {
-        $elem.children.set_text_force(&format!($text))
+        $elem.children.set_text_force(std::sync::Arc::new(move || format!($text)))
     };
 
     ($elem:expr, $text:expr, $($inner:tt)*) => {

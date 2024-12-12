@@ -1,5 +1,5 @@
-use osui::{examples::todo_app, prelude::*};
+use osui::{examples::todo_app, launch};
 
 fn main() {
-    launch!(todo_app())
+    launch!(todo_app());
 }

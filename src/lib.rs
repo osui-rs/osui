@@ -37,10 +37,10 @@ pub mod utils;
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::ui::Font::*;
-    pub use crate::ui::Number::*;
+    pub use crate::ui::Number::{Auto, Center};
     pub use crate::{self as osui, css, ersx, launch, rsx, ui::*, Handler};
     pub use crate::{call, Children, Element, ElementCore, ElementWidget};
-    pub use crate::{style, Document};
+    pub use crate::{style, Document, State};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
@@ -88,17 +88,27 @@ pub struct Writer {
     focused: bool,
     size: (u16, u16),
     absolute: (u16, u16),
+    written: (u16, u16),
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// Enums
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-#[derive(Debug)]
 pub enum Children {
     None,
-    Text(String),
+    Text(Arc<dyn Fn() -> String>),
     Children(Vec<Element>, usize),
+}
+
+impl std::fmt::Debug for Children {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str(&match self {
+            Self::None => String::new(),
+            Self::Children(a, b) => format!("({b}, {a:?})"),
+            Self::Text(a) => format!("{:?}", a()),
+        })
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -152,12 +162,6 @@ impl Document {
     pub fn draw(&mut self, element: &mut Element) {
         self.element = element;
     }
-    pub fn use_state<T>(&self, name: &str) -> &mut T {
-        &mut self
-            .get_element_by_id::<crate::ui::DataHolder<T>>(name)
-            .unwrap()
-            .data
-    }
 }
 
 impl Default for Children {
@@ -175,31 +179,25 @@ impl Children {
     }
     pub fn get_text(&self) -> String {
         match self {
-            Children::Text(text) => text.clone(),
+            Children::Text(text) => text(),
             _ => String::new(),
         }
     }
-    pub fn get_text_mut(&mut self) -> Option<&mut String> {
-        match self {
-            Children::Text(text) => Some(text),
-            _ => None,
-        }
-    }
-    pub fn set_text(&mut self, text: &str) {
+    pub fn set_text(&mut self, text: Arc<dyn Fn() -> String>) {
         match self {
             Children::Text(t) => {
-                *t = text.to_string();
+                *t = text;
             }
             _ => {}
         }
     }
-    pub fn set_text_force(&mut self, text: &str) {
+    pub fn set_text_force(&mut self, text: Arc<dyn Fn() -> String>) {
         match self {
             Children::Text(t) => {
-                *t = text.to_string();
+                *t = text;
             }
             _ => {
-                *self = Children::Text(text.to_string());
+                *self = Children::Text(text);
             }
         }
     }
@@ -238,6 +236,7 @@ impl Writer {
             focused,
             size,
             absolute,
+            written: (0, 1),
         }
     }
 
@@ -249,6 +248,11 @@ impl Writer {
                 self.absolute.0 + 1,
                 self.style.write(line)
             );
+            let line_len = line.len() as u16;
+            if line_len > self.written.0 {
+                self.written.0 = line_len;
+            }
+            self.written.1 += 1;
         }
     }
 
@@ -258,8 +262,23 @@ impl Writer {
 
     pub fn get_size(&self) -> (u16, u16) {
         (
-            self.style.width.as_size(self.size.0, self.style.outline),
-            self.style.height.as_size(self.size.1, self.style.outline),
+            self.style
+                .width
+                .as_size(self.size.0, self.size.0, self.style.outline),
+            self.style
+                .height
+                .as_size(self.size.1, self.size.1, self.style.outline),
+        )
+    }
+
+    pub fn get_size_root(&self) -> (u16, u16) {
+        (
+            self.style
+                .width
+                .as_size(self.written.0, self.size.0, self.style.outline),
+            self.style
+                .height
+                .as_size(self.written.1, self.size.1, self.style.outline),
         )
     }
 
@@ -305,4 +324,27 @@ pub fn run(element: &mut Element) -> bool {
     utils::clear();
 
     unsafe { (*document.running).unwrap() }
+}
+
+pub struct State<T>(Arc<Mutex<T>>);
+impl<T> State<T> {
+    pub fn new<'a>(v: T) -> State<T> {
+        State(Arc::new(Mutex::new(v)))
+    }
+    pub fn use_state<'a>(&'a self) -> std::sync::MutexGuard<'a, T> {
+        self.0.lock().unwrap()
+    }
+    pub fn copy_state<'a>(&'a self) -> State<T> {
+        State(Arc::clone(&self.0))
+    }
+}
+
+impl<T: std::fmt::Display> std::fmt::Display for State<T> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // Acquire the lock, handle potential poisoning
+        match self.0.lock() {
+            Ok(guard) => write!(f, "{}", *guard),
+            Err(poisoned) => write!(f, "<Poisoned: {}>", *poisoned.into_inner()),
+        }
+    }
 }
