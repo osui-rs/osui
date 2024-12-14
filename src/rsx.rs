@@ -82,7 +82,7 @@ macro_rules! parse_rsx_param {
     };
 
     ($elem:expr, $text:expr, $($inner:tt)*) => {
-        $elem.children.set_text_force(&format!($text, $($inner)*))
+        $elem.children.set_text_force(std::sync::Arc::new(move || format!($text, $($inner)*)))
     };
 
     ($elem:expr, ) => {};
