@@ -25,14 +25,11 @@ impl Frame {
         if style.visible {
             let y = style.y.as_position(
                 &{
-                    let mut y_ = 0;
-                    for n in self.used.iter().rev() {
-                        if *n == 0 {
-                            break;
-                        }
-                        y_ += 1;
+                    let mut y = 0;
+                    while y < self.used.len() && self.used[y] != 0 {
+                        y += 1;
                     }
-                    y_
+                    y as u16
                 },
                 self.height,
             );

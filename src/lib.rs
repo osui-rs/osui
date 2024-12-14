@@ -80,6 +80,7 @@ pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, crossterm::event::Event, &
 pub struct Document {
     element: *mut Element,
     running: *mut Option<bool>,
+    css: ui::Css,
 }
 
 #[derive(Debug)]
@@ -98,6 +99,7 @@ pub struct Writer {
 pub enum Children {
     None,
     Text(Arc<dyn Fn() -> String>),
+    StaticText(String),
     Children(Vec<Element>, usize),
 }
 
@@ -107,6 +109,7 @@ impl std::fmt::Debug for Children {
             Self::None => String::new(),
             Self::Children(a, b) => format!("({b}, {a:?})"),
             Self::Text(a) => format!("{:?}", a()),
+            Self::StaticText(a) => format!("{a:?}"),
         })
     }
 }
@@ -116,6 +119,13 @@ impl std::fmt::Debug for Children {
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
 impl Document {
+    pub fn with_elem(element: &mut Element) -> Document {
+        Document {
+            element,
+            running: &mut None,
+            css: HashMap::new(),
+        }
+    }
     pub fn exit(&self) {
         if !self.running.is_null() {
             unsafe {
@@ -151,7 +161,10 @@ impl Document {
         }
     }
     pub fn render(&self) {
-        if !self.running.is_null() {
+        if !self.element.is_null() {
+            unsafe {
+                (*self.element).set_styling(&self.css);
+            }
             let (width, height) = crossterm::terminal::size().unwrap();
             let mut frame = utils::Frame::new((0, 0), (width, height));
             utils::clear();
@@ -159,8 +172,33 @@ impl Document {
             utils::flush();
         }
     }
+    pub fn set_css(&mut self, css: ui::Css) {
+        self.css = css;
+    }
     pub fn draw(&mut self, element: &mut Element) {
         self.element = element;
+    }
+    pub fn run(&self) -> bool {
+        unsafe { *self.running = None }
+        let element = unsafe { &mut *self.element };
+
+        // Send initial event
+        element.event(crossterm::event::Event::FocusGained, self);
+
+        utils::hide_cursor();
+        crossterm::terminal::enable_raw_mode().unwrap();
+        utils::clear();
+
+        while unsafe { *self.running } == None {
+            self.render();
+            element.event(crossterm::event::read().unwrap(), self);
+        }
+
+        utils::show_cursor();
+        crossterm::terminal::disable_raw_mode().unwrap();
+        utils::clear();
+
+        unsafe { (*self.running).unwrap() }
     }
 }
 
@@ -180,6 +218,7 @@ impl Children {
     pub fn get_text(&self) -> String {
         match self {
             Children::Text(text) => text(),
+            Children::StaticText(text) => text.clone(),
             _ => String::new(),
         }
     }
@@ -201,16 +240,51 @@ impl Children {
             }
         }
     }
+    pub fn set_static_force(&mut self, text: String) {
+        *self = Children::StaticText(text);
+    }
     pub fn add_child(&mut self, element: Element) {
         if let Children::Children(children, _) = self {
             children.push(element);
         }
     }
-    pub fn get_child(&mut self) -> Option<&mut Element> {
+    pub fn get_child(&mut self) -> (Option<&mut Element>, usize) {
         if let Children::Children(children, child) = self {
-            children.get_mut(*child)
+            let l = children.len();
+            (children.get_mut(*child), l)
         } else {
-            None
+            (None, 0)
+        }
+    }
+    pub fn get_child_idx(&mut self) -> (Option<(&mut Element, &mut usize)>, usize) {
+        if let Children::Children(children, child) = self {
+            let l = children.len();
+            if let Some(d) = children.get_mut(*child) {
+                (Some((d, child)), l)
+            } else {
+                (None, 0)
+            }
+        } else {
+            (None, 0)
+        }
+    }
+    pub fn set_child(&mut self, index: usize) {
+        if let Children::Children(_, child) = self {
+            *child = index;
+        }
+    }
+    pub fn len(&self) -> usize {
+        if let Children::Children(children, _) = self {
+            children.len()
+        } else {
+            0
+        }
+    }
+    pub fn index(&self) -> usize {
+        if let Children::Children(_, c) = self {
+            *c
+        } else {
+            0
         }
     }
 }
@@ -236,7 +310,7 @@ impl Writer {
             focused,
             size,
             absolute,
-            written: (0, 1),
+            written: (0, 0),
         }
     }
 
@@ -299,31 +373,6 @@ impl<T> std::fmt::Debug for Handler<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.write_str("Handler()")
     }
-}
-
-pub fn run(element: &mut Element) -> bool {
-    let document = Document {
-        element: element,
-        running: &mut None,
-    };
-
-    // Send initial event
-    element.event(crossterm::event::Event::FocusGained, &document);
-
-    utils::hide_cursor();
-    crossterm::terminal::enable_raw_mode().unwrap();
-    utils::clear();
-
-    while unsafe { *document.running } == None {
-        document.render();
-        element.event(crossterm::event::read().unwrap(), &document);
-    }
-
-    utils::show_cursor();
-    crossterm::terminal::disable_raw_mode().unwrap();
-    utils::clear();
-
-    unsafe { (*document.running).unwrap() }
 }
 
 pub struct State<T>(Arc<Mutex<T>>);

@@ -1,31 +1,32 @@
 use crate::prelude::*;
 
 pub fn todo_app() -> Element {
-    let count = State::new(0);
+    let todo = vec!["Foo", "Bar"];
 
     rsx! {
-        styling: Some(styling()),
-
-        button { on_click: fn(_, _, _) @count {
-            let mut count = count.use_state();
-            *count += 1;
-        }, class: "btn", "Count: {count}" }
+        for (t in todo) {
+            ersx!( button{ class: "todo", on_click: fn(btn: &mut Button, _, _) {
+                btn.class = if btn.class == "todo" {
+                    "complete"
+                } else {
+                    "todo"
+                };
+            }, "{t}" } )
+        }
     }
 }
 
-pub fn styling() -> Css {
+pub fn todo_styling() -> Css {
     css! {
-        "title" {
+        "todo" {
+            x: 0 px,
+            y: Auto,
+            color: Red,
+        }
+        "complete" {
+            x: 0 px,
+            y: Auto,
             color: Green,
-            x: Center,
-        }
-
-        "container" {
-            width: 50%,
-        }
-
-        "btn": "clicked" {
-            color: Red
         }
     }
 }

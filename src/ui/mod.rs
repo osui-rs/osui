@@ -12,16 +12,11 @@ use osui_element::{elem_fn, element};
 #[element]
 #[elem_fn]
 #[derive(Default, Debug)]
-pub struct Text {
-    pub on_event: Handler<Text<'a>>,
-}
+pub struct Text {}
 
 impl ElementWidget for Text<'_> {
     fn render(&self, writer: &mut crate::Writer) {
         writer.write(&self.children.get_text());
-    }
-    fn event(&mut self, event: Event, document: &Document) {
-        call!(self.on_event(event, document));
     }
 }
 
@@ -49,8 +44,31 @@ impl ElementWidget for Div<'_> {
                 self.set_styling(&styling);
             }
         }
-        if let Some(child) = self.children.get_child() {
-            child.event(event, document);
+        if let (Some((child, i)), l) = self.children.get_child_idx() {
+            match event {
+                Event::Key(k) => match k.code {
+                    KeyCode::Tab => {
+                        child.event(Event::FocusLost, document);
+                        if *i < l - 1 {
+                            *i += 1;
+                        } else {
+                            *i = 0;
+                        }
+                        child.event(Event::FocusGained, document);
+                    }
+                    KeyCode::BackTab => {
+                        child.event(Event::FocusLost, document);
+                        if *i > 0 {
+                            *i -= 1;
+                        } else {
+                            *i = l - 1;
+                        }
+                        child.event(Event::FocusGained, document);
+                    }
+                    _ => child.event(event, document),
+                },
+                _ => child.event(event, document),
+            }
         }
     }
 }
