@@ -59,8 +59,8 @@ pub type Element = Box<dyn ElementWidget>;
 
 pub trait ElementCore {
     fn get_element_by_id(&mut self, id: &str) -> Option<&mut Element>;
-    fn set_styling(&mut self, styling: &HashMap<crate::ui::StyleName, crate::ui::Style>);
     fn get_id(&self) -> String;
+    fn get_class(&self) -> String;
     fn get_style(&self) -> &Style;
 }
 
@@ -85,6 +85,7 @@ pub struct Document {
 
 #[derive(Debug)]
 pub struct Writer {
+    css: *const ui::Css,
     style: ui::StyleElement,
     focused: bool,
     size: (u16, u16),
@@ -162,11 +163,11 @@ impl Document {
     }
     pub fn render(&self) {
         if !self.element.is_null() {
-            unsafe {
-                (*self.element).set_styling(&self.css);
-            }
+            // unsafe {
+            //     (*self.element).set_styling(&self.css);
+            // }
             let (width, height) = crossterm::terminal::size().unwrap();
-            let mut frame = utils::Frame::new((0, 0), (width, height));
+            let mut frame = utils::Frame::new((0, 0), (width, height), &self.css);
             utils::clear();
             frame.render(true, unsafe { &*self.element });
             utils::flush();
@@ -304,8 +305,10 @@ impl Writer {
         style: ui::StyleElement,
         absolute: (u16, u16),
         size: (u16, u16),
+        css: &ui::Css,
     ) -> Writer {
         Writer {
+            css,
             style,
             focused,
             size,
@@ -338,10 +341,12 @@ impl Writer {
         (
             self.style
                 .width
-                .as_size(self.size.0, self.size.0, self.style.outline),
+                .1
+                .as_size(self.size.0, self.size.0, self.style.outline.1),
             self.style
                 .height
-                .as_size(self.size.1, self.size.1, self.style.outline),
+                .1
+                .as_size(self.size.1, self.size.1, self.style.outline.1),
         )
     }
 
@@ -349,15 +354,17 @@ impl Writer {
         (
             self.style
                 .width
-                .as_size(self.written.0, self.size.0, self.style.outline),
+                .1
+                .as_size(self.written.0, self.size.0, self.style.outline.1),
             self.style
                 .height
-                .as_size(self.written.1, self.size.1, self.style.outline),
+                .1
+                .as_size(self.written.1, self.size.1, self.style.outline.1),
         )
     }
 
     pub fn new_frame(&self) -> crate::utils::Frame {
-        crate::utils::Frame::new(self.absolute, self.get_size())
+        crate::utils::Frame::new(self.absolute, self.get_size(), unsafe { &*self.css })
     }
 }
 

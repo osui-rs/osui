@@ -39,11 +39,6 @@ impl ElementWidget for Div<'_> {
     }
 
     fn event(&mut self, event: Event, document: &Document) {
-        if event == Event::FocusGained {
-            if let Some(styling) = self.styling.clone() {
-                self.set_styling(&styling);
-            }
-        }
         if let (Some((child, i)), l) = self.children.get_child_idx() {
             match event {
                 Event::Key(k) => match k.code {
@@ -78,6 +73,7 @@ impl ElementWidget for Div<'_> {
 #[derive(Default, Debug)]
 pub struct Button {
     pub on_click: Handler<Button<'a>>,
+    pub on_hover: Handler<Button<'a>>,
 }
 
 impl ElementWidget for Button<'_> {
@@ -96,6 +92,9 @@ impl ElementWidget for Button<'_> {
                     sleep(65);
                     self.style.set_state("");
                 }
+            }
+            Event::FocusGained => {
+                call!(self.on_hover(event, document));
             }
             _ => {}
         }

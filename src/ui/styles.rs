@@ -10,7 +10,7 @@ use dyn_clone::{clone_trait_object, DynClone};
 // Type aliases
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub type Css = HashMap<StyleName, Style>;
+pub type Css = HashMap<StyleName, StyleElement>;
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 // Traits
@@ -19,7 +19,6 @@ pub type Css = HashMap<StyleName, Style>;
 pub trait StyleCore: Debug + Send + Sync + DynClone {
     fn ansi(&self) -> String;
     fn ansi_bg(&self) -> String;
-    fn is_null(&self) -> bool;
 }
 clone_trait_object!(StyleCore);
 
@@ -65,6 +64,7 @@ pub enum StyleName {
     Class(String),
     Id(String),
     Component(String),
+    ClassState(String, String),
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -73,16 +73,16 @@ pub enum StyleName {
 
 #[derive(Debug, Clone)]
 pub struct StyleElement {
-    pub color: Color,
-    pub background: Color,
-    pub outline_color: Color,
-    pub font: Vec<Font>,
-    pub x: Number,
-    pub y: Number,
-    pub width: Number,
-    pub height: Number,
-    pub visible: bool,
-    pub outline: bool,
+    pub color: (bool, Color),
+    pub background: (bool, Color),
+    pub outline_color: (bool, Color),
+    pub font: (bool, Vec<Font>),
+    pub x: (bool, Number),
+    pub y: (bool, Number),
+    pub width: (bool, Number),
+    pub height: (bool, Number),
+    pub visible: (bool, bool),
+    pub outline: (bool, bool),
 }
 
 #[derive(Debug, Clone)]
@@ -103,17 +103,19 @@ impl Default for Style {
 }
 
 impl Style {
-    pub fn get(&self, hover: bool) -> StyleElement {
+    pub fn get(mut self, hover: bool) -> StyleElement {
         if let Some(style_element) = self.1.get(&self.2) {
-            self.0.clone().prioritize(style_element)
+            self.0.merge(style_element);
+            self.0
         } else if hover {
             if let Some(style_element) = self.1.get("hover") {
-                self.0.clone().prioritize(style_element)
+                self.0.merge(style_element);
+                self.0
             } else {
-                self.0.clone()
+                self.0
             }
         } else {
-            self.0.clone()
+            self.0
         }
     }
 
@@ -129,9 +131,9 @@ impl StyleElement {
             .map(|p| {
                 format!(
                     "{}{}{}{p}\x1b[0m",
-                    self.color.ansi(),
-                    self.background.ansi_bg(),
-                    self.font.ansi()
+                    self.color.1.ansi(),
+                    self.background.1.ansi_bg(),
+                    self.font.1.ansi()
                 )
             })
             .collect::<Vec<String>>()
@@ -142,44 +144,52 @@ impl StyleElement {
 impl Default for StyleElement {
     fn default() -> Self {
         StyleElement {
-            color: Color::NoColor,
-            background: Color::NoColor,
-            font: Vec::new(),
-            outline_color: Color::NoColor,
-            x: Number::Default,
-            y: Number::Px(0),
-            width: Number::Default,
-            height: Number::Default,
-            visible: true,
-            outline: false,
+            color: (false, Color::NoColor),
+            background: (false, Color::NoColor),
+            font: (false, Vec::new()),
+            outline_color: (false, Color::NoColor),
+            x: (false, Number::Default),
+            y: (false, Number::Px(0)),
+            width: (false, Number::Default),
+            height: (false, Number::Default),
+            visible: (false, true),
+            outline: (false, false),
         }
     }
 }
 
 impl StyleElement {
-    pub fn prioritize(mut self, other: &Self) -> StyleElement {
-        if !other.color.is_null() {
-            self.color = other.color.clone();
+    pub fn merge(&mut self, upper: &Self) {
+        if upper.color.0 {
+            self.color = upper.color.clone();
         }
-        if !other.background.is_null() {
-            self.background = other.background.clone();
+        if upper.background.0 {
+            self.background = upper.background.clone();
         }
-        if !other.font.is_null() {
-            self.font = other.font.clone();
+        if upper.font.0 {
+            self.font = upper.font.clone();
         }
-        if other.x != Number::Default {
-            self.x = other.x.clone();
+        if upper.outline_color.0 {
+            self.outline_color = upper.outline_color.clone();
         }
-        if other.y != Number::Default {
-            self.y = other.y.clone();
+        if upper.x.0 {
+            self.x = upper.x.clone();
         }
-        if other.width != Number::Default {
-            self.width = other.width.clone();
+        if upper.y.0 {
+            self.y = upper.y.clone();
         }
-        if other.height != Number::Default {
-            self.height = other.height.clone();
+        if upper.width.0 {
+            self.width = upper.width.clone();
         }
-        self
+        if upper.height.0 {
+            self.height = upper.height.clone();
+        }
+        if upper.visible.0 {
+            self.visible = upper.visible.clone();
+        }
+        if upper.outline.0 {
+            self.outline = upper.outline.clone();
+        }
     }
 }
 
@@ -224,9 +234,6 @@ impl StyleCore for Color {
             Color::Cyan => "\x1b[46m",
             Color::White => "\x1b[47m",
         })
-    }
-    fn is_null(&self) -> bool {
-        *self == Self::NoColor
     }
 }
 
@@ -275,9 +282,6 @@ impl StyleCore for Font {
     fn ansi_bg(&self) -> String {
         self.ansi()
     }
-    fn is_null(&self) -> bool {
-        false
-    }
 }
 
 impl StyleCore for Vec<Font> {
@@ -295,10 +299,6 @@ impl StyleCore for Vec<Font> {
             a += i.ansi_bg().as_str();
         }
         a
-    }
-
-    fn is_null(&self) -> bool {
-        self.len() == 0
     }
 }
 

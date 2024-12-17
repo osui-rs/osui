@@ -5,7 +5,7 @@ macro_rules! __css {
     (
         $_style:expr, $name:ident: $value:literal% $(, $($rest:tt)*)?
     ) => {{
-        $_style.$name = Number::Pe($value);
+        $_style.$name = (true, Number::Pe($value));
         $crate::__css!($_style, $($($rest)*)?);
     }};
 
@@ -13,7 +13,7 @@ macro_rules! __css {
     (
         $_style:expr, $name:ident: $value:literal px $(, $($rest:tt)*)?
     ) => {{
-        $_style.$name = Number::Px($value);
+        $_style.$name = (true, Number::Px($value));
         $crate::__css!($_style, $($($rest)*)?);
     }};
 
@@ -21,7 +21,7 @@ macro_rules! __css {
     (
         $_style:expr, $name:ident: [$($inner:tt),*] $(, $($rest:tt)*)?
     ) => {{
-        $_style.$name = vec![$($inner),*];
+        $_style.$name = (true, vec![$($inner),*]);
         $crate::__css!($_style, $($($rest)*)?);
     }};
 
@@ -29,7 +29,7 @@ macro_rules! __css {
     (
         $_style:expr, $name:ident: $value:expr $(, $($rest:tt)*)?
     ) => {{
-        $_style.$name = $value;
+        $_style.$name = (true, $value);
         $crate::__css!($_style, $($($rest)*)?);
     }};
 }
@@ -40,54 +40,38 @@ macro_rules! _css {
     (
         $hm:expr, $name:literal { $($inner:tt)* } $($rest:tt)*
     ) => {{
-        let name = $crate::ui::StyleName::Class(String::from($name));
-        if let Some(_style) = $hm.get_mut(&name) {
-            $crate::__css!(_style.0, $($inner)*);
-        } else {
-            let mut _style = $crate::ui::Style::default();
-
-            $crate::__css!(_style.0, $($inner)*);
-
-            $hm.insert(
-                name,
-                _style,
-            );
-        }
+        let mut _style = $crate::ui::StyleElement::default();
+        $crate::__css!(_style, $($inner)*);
+        $hm.insert(
+            $crate::ui::StyleName::Class(String::from($name)),
+            _style,
+        );
         $crate::_css!($hm, $($rest)*);
     }};
     (
-        $hm:expr, $name:literal: $kind:literal { $($inner:tt)* } $($rest:tt)*
+        $hm:expr, $name:literal: $state:literal { $($inner:tt)* } $($rest:tt)*
     ) => {{
-        let name = $crate::ui::StyleName::Class(String::from($name));
-        if let Some(_style) = $hm.get_mut(&name) {
-            let mut style_elem = $crate::ui::StyleElement::default();
-            $crate::__css!(style_elem, $($inner)*);
-            _style.1.insert($kind.to_string(), style_elem);
-        } else {
-            let mut _style = $crate::ui::Style::default();
-
-            let mut style_elem = $crate::ui::StyleElement::default();
-            $crate::__css!(style_elem, $($inner)*);
-            _style.1.insert($kind.to_string(), style_elem);
-
-            $hm.insert(
-                name,
-                _style,
-            );
-        }
+        let mut _style = $crate::ui::StyleElement::default();
+        $crate::__css!(_style, $($inner)*);
+        $hm.insert(
+            $crate::ui::StyleName::ClassState(String::from($name), String::from($state)),
+            _style,
+        );
         $crate::_css!($hm, $($rest)*);
     }};
 }
 
 /// Creates a styling map `Css`
 ///
-/// # Examples
+/// # Example
 /// ```
-/// "btn" {
-///     color: Red,
-/// }
-/// "btn": "clicked" {
-///     color: Blue,
+/// css! {
+///     "btn" {
+///         color: Red,
+///     }
+///     "btn": "clicked" {
+///         color: Blue,
+///     }
 /// }
 /// ```
 ///
