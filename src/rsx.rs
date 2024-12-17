@@ -12,6 +12,14 @@ macro_rules! check_expr {
 }
 #[macro_export]
 macro_rules! parse_rsx_param {
+    ($elem:expr, static $text:expr) => {
+        $elem.children.set_static_force(format!($text))
+    };
+
+    ($elem:expr, static $text:expr, $($inner:tt)*) => {
+        $elem.children.set_static_force(format!($text, $($inner)*))
+    };
+
     ($elem:expr, for ($($for:tt)*) $code:block $($rest:tt)*) => {
         if $elem.children.is_none() {$elem.children = $crate::Children::Children(Vec::new(), 0)}
         if let $crate::Children::Children(children, _) = &mut $elem.children {

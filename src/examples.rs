@@ -1,10 +1,10 @@
 use crate::prelude::*;
 
 pub fn todo_app() -> Element {
-    let todo = vec!["Foo", "Bar"];
+    let todo = vec!["Todo", "Hovering", "Completed", "Foo", "Bar"];
 
     rsx! {
-        text { class: "title", "Todo list app made with OSUI" }
+        text { class: "title", static "Todo list app made with OSUI" }
         text { class: "title", "{}", "-".repeat(crossterm::terminal::size().unwrap().0 as usize) }
         for (t in todo) {
             ersx!( button{ class: "todo", on_click: fn(btn: &mut Button, _, _) {
@@ -26,7 +26,7 @@ pub fn todo_styling() -> Css {
             color: Red,
         }
         "todo": "hover" {
-            color: Blue
+            color: Blue,
         }
         "complete" {
             x: 0 px,
