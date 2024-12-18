@@ -12,6 +12,11 @@ macro_rules! check_expr {
 }
 #[macro_export]
 macro_rules! parse_rsx_param {
+    ($elem:expr, @ $($i:ident)::+($($inner:tt)*) $($rest:tt)*) => {
+        $elem.instructions.push($($i)::+($($inner)*));
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
+
     ($elem:expr, static $text:expr) => {
         $elem.children.set_static_force(format!($text))
     };

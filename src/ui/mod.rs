@@ -20,11 +20,17 @@ impl ElementWidget for Text<'_> {
     }
 }
 
+#[derive(Debug)]
+pub enum Instruction {
+    SetStyle(Css),
+}
+
 #[element]
 #[elem_fn]
 #[derive(Default, Debug)]
 pub struct Div {
     pub styling: Option<std::collections::HashMap<StyleName, Style>>,
+    pub instructions: Vec<Instruction>,
 }
 
 impl ElementWidget for Div<'_> {
@@ -63,6 +69,16 @@ impl ElementWidget for Div<'_> {
                     _ => child.event(event, document),
                 },
                 _ => child.event(event, document),
+            }
+        }
+    }
+
+    fn initialize(&mut self, document: &mut Document) {
+        for inst in &self.instructions {
+            match inst {
+                Instruction::SetStyle(s) => {
+                    document.css.extend(s.clone().into_iter());
+                }
             }
         }
     }

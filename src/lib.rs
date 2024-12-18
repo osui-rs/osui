@@ -37,6 +37,7 @@ pub mod utils;
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::ui::Font::*;
+    pub use crate::ui::Instruction::*;
     pub use crate::ui::Number::{Auto, Center};
     pub use crate::{self as osui, css, ersx, launch, rsx, ui::*, Handler};
     pub use crate::{call, Children, Element, ElementCore, ElementWidget};
@@ -69,6 +70,9 @@ pub trait ElementWidget: ElementCore + std::fmt::Debug {
     fn event(&mut self, event: crossterm::event::Event, document: &Document) {
         _ = (event, document)
     }
+    fn initialize(&mut self, document: &mut Document) {
+        _ = document
+    }
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,7 +84,7 @@ pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, crossterm::event::Event, &
 pub struct Document {
     element: *mut Element,
     running: *mut Option<bool>,
-    css: ui::Css,
+    pub css: ui::Css,
 }
 
 #[derive(Debug)]
@@ -168,9 +172,10 @@ impl Document {
     pub fn draw(&mut self, element: &mut Element) {
         self.element = element;
     }
-    pub fn run(&self) -> bool {
+    pub fn run(&mut self) -> bool {
         unsafe { *self.running = None }
         let element = unsafe { &mut *self.element };
+        element.initialize(self);
 
         // Send initial event
         element.event(crossterm::event::Event::FocusGained, self);

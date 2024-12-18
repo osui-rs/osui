@@ -62,8 +62,6 @@ pub enum Number {
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
 pub enum StyleName {
     Class(String),
-    Id(String),
-    Component(String),
     ClassState(String, String),
 }
 

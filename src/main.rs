@@ -1,8 +1,5 @@
-use osui::{
-    examples::{todo_app, todo_styling},
-    launch,
-};
+use osui::{examples::todo_app, launch};
 
 fn main() {
-    launch!(todo_app(), todo_styling());
+    launch!(todo_app());
 }
