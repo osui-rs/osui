@@ -40,12 +40,15 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($($rest)*)?);
     };
 
-    ($elem:expr, $($k:ident).+: fn($($params:tt)*) @$($v:ident),* $code:block $(, $($rest:tt)*)?) => {
+    ($elem:expr, $($k:ident).+: fn($($params:tt)*) $(@$($v:ident),+)? $code:block $(, $($rest:tt)*)?) => {
         $elem.$($k).+ = $crate::Handler::new({
-            $(
-                let $v = $v.copy_state();
-            )*
-            move |$($params)*| $code
+            $($(
+                #[allow(unused_mut)]
+                let mut $v = $v.clone();
+            )+)?
+            move |$($params)*| {
+                $code
+            }
         });
         osui::parse_rsx_param!($elem, $($($rest)*)?);
     };

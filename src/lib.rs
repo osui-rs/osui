@@ -22,6 +22,7 @@
 use std::{
     collections::HashMap,
     fmt::Debug,
+    ops::{AddAssign, SubAssign},
     sync::{Arc, Mutex},
 };
 
@@ -96,6 +97,8 @@ pub struct Writer {
     absolute: (u16, u16),
     written: (u16, u16),
 }
+
+pub struct State<T>(Arc<Mutex<T>>);
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
 /// Enums
@@ -387,7 +390,6 @@ impl<T> std::fmt::Debug for Handler<T> {
     }
 }
 
-pub struct State<T>(Arc<Mutex<T>>);
 impl<T> State<T> {
     pub fn new<'a>(v: T) -> State<T> {
         State(Arc::new(Mutex::new(v)))
@@ -395,7 +397,7 @@ impl<T> State<T> {
     pub fn use_state<'a>(&'a self) -> std::sync::MutexGuard<'a, T> {
         self.0.lock().unwrap()
     }
-    pub fn copy_state<'a>(&'a self) -> State<T> {
+    pub fn clone<'a>(&'a self) -> State<T> {
         State(Arc::clone(&self.0))
     }
 }
@@ -407,5 +409,26 @@ impl<T: std::fmt::Display> std::fmt::Display for State<T> {
             Ok(guard) => write!(f, "{}", *guard),
             Err(poisoned) => write!(f, "<Poisoned: {}>", *poisoned.into_inner()),
         }
+    }
+}
+
+impl<T: AddAssign> AddAssign<T> for State<T> {
+    fn add_assign(&mut self, rhs: T) {
+        *self.0.lock().unwrap() += rhs;
+    }
+}
+
+impl<T: SubAssign> SubAssign<T> for State<T> {
+    fn sub_assign(&mut self, rhs: T) {
+        *self.0.lock().unwrap() -= rhs;
+    }
+}
+
+impl<T: PartialEq> PartialEq<T> for State<T> {
+    fn eq(&self, other: &T) -> bool {
+        self.use_state().eq(other)
+    }
+    fn ne(&self, other: &T) -> bool {
+        self.use_state().ne(other)
     }
 }
