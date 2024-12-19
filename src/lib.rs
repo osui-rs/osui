@@ -26,6 +26,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crossterm::event::Event;
 use ui::Style;
 
 pub mod css;
@@ -41,8 +42,8 @@ pub mod prelude {
     pub use crate::ui::Instruction::*;
     pub use crate::ui::Number::{Auto, Center};
     pub use crate::{self as osui, css, ersx, launch, rsx, ui::*, Handler};
-    pub use crate::{call, Children, Element, ElementCore, ElementWidget};
     pub use crate::{style, Document, State};
+    pub use crate::{Children, Element, ElementCore, ElementWidget};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
@@ -304,6 +305,15 @@ impl<T> Handler<T> {
         F: FnMut(&mut T, crossterm::event::Event, &Document) + 'static,
     {
         Handler(Arc::new(Mutex::new(handler_fn)))
+    }
+
+    pub fn call(&self, s: &mut T, event: Event, document: &Document) {
+        let mut o = self.0.lock().unwrap();
+        o(s, event, document);
+    }
+
+    pub fn clone(&self) -> Handler<T> {
+        Handler(Arc::clone(&self.0))
     }
 }
 

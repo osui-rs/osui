@@ -103,14 +103,14 @@ impl ElementWidget for Button<'_> {
                 if key.code == KeyCode::Enter {
                     document.render();
                     self.style.set_state("clicked");
-                    call!(self.on_click(event, document));
+                    self.on_click.clone().call(self, event, document);
                     document.render();
                     sleep(65);
                     self.style.set_state("");
                 }
             }
             Event::FocusGained => {
-                call!(self.on_hover(event, document));
+                self.on_hover.clone().call(self, event, document);
             }
             _ => {}
         }

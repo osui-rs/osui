@@ -35,10 +35,7 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-    ($elem:expr, $($k:ident).+: fn($($params:tt)*) $code:block $(, $($rest:tt)*)?) => {
-        $elem.$($k).+ = $crate::Handler::new(move |$($params)*| $code);
-        osui::parse_rsx_param!($elem, $($($rest)*)?);
-    };
+    //// FUNCTIONS
 
     ($elem:expr, $($k:ident).+: fn($($params:tt)*) $(@$($v:ident),+)? $code:block $(, $($rest:tt)*)?) => {
         $elem.$($k).+ = $crate::Handler::new({
@@ -52,6 +49,8 @@ macro_rules! parse_rsx_param {
         });
         osui::parse_rsx_param!($elem, $($($rest)*)?);
     };
+
+    //// FUNCTIONS END
 
     ($elem:expr, $($k:ident).+: $v:expr $(, $($rest:tt)*)?) => {
         $elem.$($k).+ = $crate::check_expr!($v);
