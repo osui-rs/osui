@@ -18,11 +18,11 @@ pub mod counter_example {
 
 pub mod todo_example {
     use crate::prelude::*;
-    pub fn todo_app() -> Element {
+    pub fn app() -> Element {
         let todo = vec!["Todo", "Hovering", "Completed", "Foo", "Bar"];
 
         rsx! {
-            @SetStyle(todo_styling())
+            @SetStyle(styling())
 
             text { class: "title", static "Todo list app made with OSUI" }
             text { class: "title", "{}", "-".repeat(crossterm::terminal::size().unwrap().0 as usize) }
@@ -38,7 +38,7 @@ pub mod todo_example {
         }
     }
 
-    pub fn todo_styling() -> Css {
+    pub fn styling() -> Css {
         css! {
             "todo" {
                 x: 0 px,

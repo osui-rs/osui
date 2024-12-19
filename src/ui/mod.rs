@@ -29,7 +29,6 @@ pub enum Instruction {
 #[elem_fn]
 #[derive(Default, Debug)]
 pub struct Div {
-    pub styling: Option<std::collections::HashMap<StyleName, Style>>,
     pub instructions: Vec<Instruction>,
 }
 

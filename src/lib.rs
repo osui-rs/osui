@@ -160,9 +160,6 @@ impl Document {
     }
     pub fn render(&self) {
         if !self.element.is_null() {
-            // unsafe {
-            //     (*self.element).set_styling(&self.css);
-            // }
             let (width, height) = crossterm::terminal::size().unwrap();
             let mut frame = utils::Frame::new((0, 0), (width, height), &self.css);
             utils::clear();
