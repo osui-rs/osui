@@ -1,20 +1,18 @@
 use std::io::{stdout, Write};
 
-use crossterm::terminal::disable_raw_mode;
-
 use crate::ui;
 
-pub struct Frame {
+pub struct Frame<'a> {
     used: Vec<u16>,
     width: u16,
     height: u16,
     x: u16,
     y: u16,
-    css: *const ui::Css,
+    css: &'a ui::Css,
 }
 
-impl Frame {
-    pub fn new((x, y): (u16, u16), (width, height): (u16, u16), css: &crate::ui::Css) -> Self {
+impl<'a> Frame<'a> {
+    pub fn new((x, y): (u16, u16), (width, height): (u16, u16), css: &'a crate::ui::Css) -> Self {
         Frame {
             used: vec![0; height as usize],
             width,
@@ -28,21 +26,18 @@ impl Frame {
         let style = element.get_style();
         let mut style_element = style.clone().get(focused);
 
-        if let Some(upper) = unsafe { (*self.css).get(&ui::StyleName::Class(element.get_class())) }
-        {
+        if let Some(upper) = self.css.get(&ui::StyleName::Class(element.get_class())) {
             style_element.merge(upper);
         }
 
-        if let Some(upper) = unsafe {
-            (*self.css).get(&ui::StyleName::ClassState(
-                element.get_class(),
-                if style.2 == "" && focused {
-                    "hover".to_string()
-                } else {
-                    style.2.clone()
-                },
-            ))
-        } {
+        if let Some(upper) = self.css.get(&ui::StyleName::ClassState(
+            element.get_class(),
+            if style.2 == "" && focused {
+                "hover".to_string()
+            } else {
+                style.2.clone()
+            },
+        )) {
             style_element.merge(upper);
         }
 
@@ -64,16 +59,10 @@ impl Frame {
                     style_element.clone(),
                     (x + self.x, y + self.y),
                     (self.width, self.height),
-                    unsafe { &*self.css },
+                    self.css,
                 );
                 element.render(&mut writer);
                 let (width, height) = writer.get_size_root();
-                if style_element.outline.1 {
-                    clear();
-                    show_cursor();
-                    disable_raw_mode().unwrap();
-                    panic!("the 'outline' option isn't available right now. please set 'outline' to 'false'")
-                }
                 for i in y..y + height {
                     if let Some(o) = self.used.get_mut(i as usize) {
                         *o += x + width;

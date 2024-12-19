@@ -34,11 +34,12 @@ pub struct Div {
 
 impl ElementWidget for Div<'_> {
     fn render(&self, writer: &mut crate::Writer) {
+        let focused = writer.get_focused();
         let mut frame = writer.new_frame();
 
         if let Children::Children(children, child) = &self.children {
             for (i, elem) in children.iter().enumerate() {
-                frame.render(writer.get_focused() && i == *child, elem);
+                frame.render(focused && i == *child, elem);
             }
         }
     }

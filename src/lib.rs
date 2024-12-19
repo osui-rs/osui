@@ -333,18 +333,49 @@ impl Writer {
     }
 
     pub fn write(&mut self, s: &str) {
+        let outline_ch = self.style.write_outline("|");
         for (i, line) in s.lines().enumerate() {
-            print!(
-                "\x1B[{};{}H{}",
-                self.absolute.1 + 1 + i as u16,
-                self.absolute.0 + 1,
-                self.style.write(line)
-            );
+            if self.style.outline.1 {
+                print!(
+                    "\x1B[{};{}H{outline_ch}{}{outline_ch}",
+                    self.absolute.1 + 2 + i as u16,
+                    self.absolute.0 + 1,
+                    self.style.write(line)
+                );
+            } else {
+                print!(
+                    "\x1B[{};{}H{}",
+                    self.absolute.1 + 1 + i as u16,
+                    self.absolute.0 + 1,
+                    self.style.write(line)
+                );
+            }
             let line_len = line.len() as u16;
             if line_len > self.written.0 {
                 self.written.0 = line_len;
             }
             self.written.1 += 1;
+        }
+
+        if self.style.outline.1 {
+            print!(
+                "\x1B[{};{}H{}",
+                self.absolute.1 + 1,
+                self.absolute.0 + 1,
+                self.style.write_outline(&format!(
+                    "╭{}╮",
+                    "─".repeat(self.get_size_root().0 as usize)
+                ))
+            );
+            print!(
+                "\x1B[{};{}H{}",
+                self.absolute.1 + self.written.1 + 2,
+                self.absolute.0 + 1,
+                self.style.write_outline(&format!(
+                    "╰{}╯",
+                    "─".repeat(self.get_size_root().0 as usize)
+                ))
+            );
         }
     }
 
@@ -378,7 +409,7 @@ impl Writer {
         )
     }
 
-    pub fn new_frame(&self) -> crate::utils::Frame {
+    pub fn new_frame(&mut self) -> crate::utils::Frame {
         crate::utils::Frame::new(self.absolute, self.get_size(), unsafe { &*self.css })
     }
 }

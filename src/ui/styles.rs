@@ -137,6 +137,9 @@ impl StyleElement {
             .collect::<Vec<String>>()
             .join("\n")
     }
+    pub fn write_outline(&self, outline: &str) -> String {
+        format!("{}{outline}\x1b[0m", self.outline_color.1.ansi(),)
+    }
 }
 
 impl Default for StyleElement {

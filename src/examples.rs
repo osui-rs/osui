@@ -5,12 +5,25 @@ pub mod counter_example {
         let count = State::new(0);
 
         rsx! {
+            @SetStyle(styling())
+
             button {
+                class: "outline",
+
                 on_click: fn(_, _, _) @count {
                     count += 1;
                 },
 
                 "The current count is: {count}"
+            }
+        }
+    }
+
+    pub fn styling() -> Css {
+        css! {
+            "outline" {
+                outline: true,
+                outline_color: Red
             }
         }
     }
