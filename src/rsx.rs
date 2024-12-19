@@ -110,14 +110,14 @@ macro_rules! ersx {
         #[allow(unused_mut)]
         let mut elem = $elem();
         $crate::parse_rsx_param!(elem, $($inner)*);
-        elem as $crate::Element
+        elem
     }};
 
     ($elem:path as $t:ty { $($inner:tt)* }) => {{
         #[allow(unused_mut)]
         let mut elem = paste::paste!{$elem::<$t>}();
         $crate::parse_rsx_param!(elem, $($inner)*);
-        elem as $crate::Element
+        elem
     }};
 }
 

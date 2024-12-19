@@ -116,3 +116,52 @@ impl ElementWidget for Button<'_> {
         }
     }
 }
+
+#[element]
+#[elem_fn]
+#[derive(Default, Debug)]
+pub struct Input {
+    pub on_click: Handler<Input<'a>>,
+    pub text: String,
+    pub placeholder: &'a str,
+}
+
+impl ElementWidget for Input<'_> {
+    fn render(&self, writer: &mut crate::Writer) {
+        if self.text.is_empty() {
+            writer.write(&format!(
+                "{}{}{}",
+                self.children.get_text(),
+                self.placeholder,
+                writer.caret()
+            ));
+        } else {
+            writer.write(&format!(
+                "{}{}{}",
+                self.children.get_text(),
+                self.text,
+                writer.caret()
+            ));
+        }
+    }
+
+    fn event(&mut self, event: crossterm::event::Event, document: &Document) {
+        match event {
+            Event::Key(k) => match k.code {
+                KeyCode::Backspace => {
+                    if self.text.len() > 0 {
+                        self.text.remove(self.text.len() - 1);
+                    }
+                }
+                KeyCode::Enter => {
+                    self.on_click.clone().call(self, event, document);
+                }
+                KeyCode::Char(c) => {
+                    self.text.push(c);
+                }
+                _ => {}
+            },
+            _ => {}
+        }
+    }
+}

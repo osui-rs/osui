@@ -62,7 +62,11 @@ impl<'a> Frame<'a> {
                     self.css,
                 );
                 element.render(&mut writer);
-                let (width, height) = writer.get_size_root();
+                let (mut width, mut height) = writer.get_size_root();
+                if style_element.outline.1 {
+                    width += 2;
+                    height += 2;
+                }
                 for i in y..y + height {
                     if let Some(o) = self.used.get_mut(i as usize) {
                         *o += x + width;

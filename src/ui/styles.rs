@@ -81,6 +81,8 @@ pub struct StyleElement {
     pub height: (bool, Number),
     pub visible: (bool, bool),
     pub outline: (bool, bool),
+    pub cursor: (bool, Color),
+    pub caret: (bool, String),
 }
 
 #[derive(Debug, Clone)]
@@ -147,6 +149,7 @@ impl Default for StyleElement {
         StyleElement {
             color: (false, Color::NoColor),
             background: (false, Color::NoColor),
+            cursor: (false, Color::NoColor),
             font: (false, Vec::new()),
             outline_color: (false, Color::NoColor),
             x: (false, Number::Default),
@@ -155,6 +158,7 @@ impl Default for StyleElement {
             height: (false, Number::Default),
             visible: (false, true),
             outline: (false, false),
+            caret: (false, String::from("█")),
         }
     }
 }
@@ -190,6 +194,12 @@ impl StyleElement {
         }
         if upper.outline.0 {
             self.outline = upper.outline.clone();
+        }
+        if upper.cursor.0 {
+            self.cursor = upper.cursor.clone();
+        }
+        if upper.caret.0 {
+            self.caret = upper.caret.clone();
         }
     }
 }

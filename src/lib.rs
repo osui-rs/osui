@@ -27,7 +27,7 @@ use std::{
 };
 
 use crossterm::event::Event;
-use ui::Style;
+use ui::{Style, StyleCore};
 
 pub mod css;
 pub mod examples;
@@ -138,6 +138,9 @@ impl Document {
             }
         }
     }
+    pub fn get_root<T>(&self) -> &mut Box<T> {
+        unsafe { &mut *(self.element as *mut Element as *mut Box<T>) }
+    }
     pub fn get_element_by_id<T>(&self, id: &str) -> Option<&mut Box<T>> {
         if let Some(e) = self.get_element_by_id_raw(id) {
             Some(unsafe { &mut *(e as *mut Element as *mut Box<T>) })
@@ -170,8 +173,10 @@ impl Document {
     pub fn set_css(&mut self, css: ui::Css) {
         self.css = css;
     }
-    pub fn draw(&mut self, element: &mut Element) {
-        self.element = element;
+    pub fn draw(&self, element: Element) {
+        unsafe {
+            *self.element = element;
+        }
     }
     pub fn run(&mut self) -> bool {
         unsafe { *self.running = None }
@@ -275,7 +280,7 @@ impl Children {
             (None, 0)
         }
     }
-    pub fn set_child(&mut self, index: usize) {
+    pub fn set_index(&mut self, index: usize) {
         if let Children::Children(_, child) = self {
             *child = index;
         }
@@ -337,10 +342,10 @@ impl Writer {
         for (i, line) in s.lines().enumerate() {
             if self.style.outline.1 {
                 print!(
-                    "\x1B[{};{}H{outline_ch}{}{outline_ch}",
+                    "\x1B[{};{}H{outline_ch}{}",
                     self.absolute.1 + 2 + i as u16,
                     self.absolute.0 + 1,
-                    self.style.write(line)
+                    self.style.write(line),
                 );
             } else {
                 print!(
@@ -376,6 +381,14 @@ impl Writer {
                     "─".repeat(self.get_size_root().0 as usize)
                 ))
             );
+
+            for i in 0..self.written.1 {
+                print!(
+                    "\x1B[{};{}H{outline_ch}",
+                    self.absolute.1 + i + 2,
+                    self.absolute.0 + self.get_size_root().0 + 2,
+                );
+            }
         }
     }
 
@@ -411,6 +424,14 @@ impl Writer {
 
     pub fn new_frame(&mut self) -> crate::utils::Frame {
         crate::utils::Frame::new(self.absolute, self.get_size(), unsafe { &*self.css })
+    }
+
+    pub fn caret(&self) -> String {
+        format!(
+            "{}{}\x1b[0m",
+            self.style.cursor.1.ansi(),
+            self.style.caret.1
+        )
     }
 }
 

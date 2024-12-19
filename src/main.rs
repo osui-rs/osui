@@ -1,5 +1,5 @@
-use osui::{examples::counter_example::app, launch};
+use osui::{examples::*, launch};
 
 fn main() {
-    launch!(app());
+    launch!(login_example::app());
 }
