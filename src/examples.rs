@@ -83,12 +83,6 @@ pub mod todo_example {
 pub mod login_example {
     use crate::prelude::*;
 
-    pub fn second_screen(usr: String, psw: String) -> Element {
-        rsx! {
-            text { "Username: {usr}\nPassword: {psw}" }
-        }
-    }
-
     pub fn app() -> Element {
         rsx! {
             @SetStyle(styling())
@@ -99,7 +93,9 @@ pub mod login_example {
             }, "username: " }
             input { class: "input", id: "psw", on_click: fn(psw: &mut Input, _, document) {
                 if let Some(usr) = document.get_element_by_id::<Input>("usr") {
-                    document.draw(second_screen(usr.text.clone(), psw.text.clone()));
+                    document.draw(rsx! {
+                        text { static "Username: {}\nPassword: {}", usr.text, psw.text }
+                    });
                 }
             }, "password: " }
         }
