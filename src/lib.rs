@@ -333,7 +333,7 @@ impl Writer {
     }
 
     pub fn write(&mut self, s: &str) {
-        let outline_ch = self.style.write_outline("|");
+        let outline_ch = self.style.write_outline("│");
         for (i, line) in s.lines().enumerate() {
             if self.style.outline.1 {
                 print!(
