@@ -7,10 +7,9 @@ pub mod styles;
 pub use styles::*;
 
 use crate::prelude::*;
-use osui_element::{elem_fn, element};
+use osui_element::element;
 
 #[element]
-#[elem_fn]
 #[derive(Default, Debug)]
 pub struct Text {}
 
@@ -20,13 +19,22 @@ impl ElementWidget for Text<'_> {
     }
 }
 
+#[component]
+pub fn text<'a>(class: &'a str, id: &'a str, children: Children, style: Style) -> Box<Text<'a>> {
+    Box::new(Text {
+        class: self.class,
+        id: self.id,
+        children: self.children,
+        style: self.style,
+    })
+}
+
 #[derive(Debug)]
 pub enum Instruction {
     SetStyle(Css),
 }
 
 #[element]
-#[elem_fn]
 #[derive(Default, Debug)]
 pub struct Div {
     pub instructions: Vec<Instruction>,
@@ -84,8 +92,24 @@ impl ElementWidget for Div<'_> {
     }
 }
 
+#[component]
+pub fn div<'a>(
+    class: &'a str,
+    id: &'a str,
+    children: Children,
+    style: Style,
+    instructions: Vec<Instruction>,
+) -> Box<Div<'a>> {
+    Box::new(Div {
+        children: self.children,
+        class: self.class,
+        id: self.id,
+        style: self.style,
+        instructions: self.instructions,
+    })
+}
+
 #[element]
-#[elem_fn]
 #[derive(Default, Debug)]
 pub struct Button {
     pub on_click: Handler<Button<'a>>,
@@ -117,8 +141,26 @@ impl ElementWidget for Button<'_> {
     }
 }
 
+#[component]
+pub fn button<'a>(
+    class: &'a str,
+    id: &'a str,
+    children: Children,
+    style: Style,
+    on_click: Handler<Button<'a>>,
+    on_hover: Handler<Button<'a>>,
+) -> Box<Button<'a>> {
+    Box::new(Button {
+        class: self.class,
+        id: self.id,
+        children: self.children,
+        on_click: self.on_click.clone(),
+        on_hover: self.on_hover.clone(),
+        style: self.style,
+    })
+}
+
 #[element]
-#[elem_fn]
 #[derive(Default, Debug)]
 pub struct Input {
     pub on_click: Handler<Input<'a>>,
@@ -164,4 +206,25 @@ impl ElementWidget for Input<'_> {
             _ => {}
         }
     }
+}
+
+#[component]
+pub fn input<'a>(
+    class: &'a str,
+    id: &'a str,
+    placeholder: &'a str,
+    text: String,
+    children: Children,
+    style: Style,
+    on_click: Handler<Input<'a>>,
+) -> Box<Input<'a>> {
+    Box::new(Input {
+        class: self.class,
+        id: self.id,
+        children: self.children,
+        style: self.style,
+        on_click: self.on_click,
+        placeholder: self.placeholder,
+        text: self.text,
+    })
 }

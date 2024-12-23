@@ -1,5 +1,4 @@
-use osui::{examples::*, launch};
-
+use osui::{examples::login_example::App, prelude::*};
 fn main() {
-    launch!(login_example::app());
+    launch!(App);
 }

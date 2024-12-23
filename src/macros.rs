@@ -1,18 +1,18 @@
 #[macro_export]
 macro_rules! launch {
-    ($expr:expr) => {
-        let mut element = $expr;
+    ($elem:path) => {
+        let mut element = <$elem>::default().create_element();
         let mut document = $crate::Document::with_elem(&mut element);
         while document.run() {
-            element = $expr;
+            element = <$elem>::default().create_element();
         }
     };
-    ($expr:expr, $css:expr) => {
-        let mut element = $expr;
+    ($elem:path, $css:expr) => {
+        let mut element = <$elem>::default().create_element();
         let mut document = $crate::Document::with_elem(&mut element);
         document.set_css($css);
         while document.run() {
-            element = $expr;
+            element = <$elem>::default().create_element();
         }
     };
 }

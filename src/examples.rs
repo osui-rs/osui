@@ -1,7 +1,8 @@
 pub mod counter_example {
     use crate::prelude::*;
 
-    pub fn app() -> Element {
+    #[component]
+    pub fn App() -> Element {
         let count = State::new(0);
 
         rsx! {
@@ -31,7 +32,9 @@ pub mod counter_example {
 
 pub mod todo_example {
     use crate::prelude::*;
-    pub fn app() -> Element {
+
+    #[component]
+    pub fn App() -> Element {
         let todo = vec!["Todo", "Hovering", "Completed", "Foo", "Bar"];
 
         rsx! {
@@ -83,7 +86,8 @@ pub mod todo_example {
 pub mod login_example {
     use crate::prelude::*;
 
-    pub fn app() -> Element {
+    #[component]
+    pub fn App() -> Element {
         rsx! {
             @SetStyle(styling())
 
@@ -91,13 +95,21 @@ pub mod login_example {
                 let root = document.get_root::<Div>();
                 root.children.set_index(1);
             }, "username: " }
-            input { class: "input", id: "psw", on_click: fn(psw: &mut Input, _, document) {
-                if let Some(usr) = document.get_element_by_id::<Input>("usr") {
-                    document.draw(rsx! {
-                        text { static "Username: {}\nPassword: {}", usr.text, psw.text }
-                    });
-                }
+
+            input { class: "input", id: "psw", on_click: fn(_, _, document) {
+                let root = document.get_root::<Div>();
+                root.children.set_index(2);
             }, "password: " }
+
+            button { class: "input", on_click: fn(_, _, document) {
+                if let Some(usr) = document.get_element_by_id::<Input>("usr") {
+                    if let Some(psw) = document.get_element_by_id::<Input>("psw") {
+                        document.draw(rsx! {
+                            text { static "Username: {}\nPassword: {}", usr.text, psw.text }
+                        });
+                    }
+                }
+            }, "Submit" }
         }
     }
 

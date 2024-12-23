@@ -9,10 +9,26 @@
 //!
 //! ```rust
 //! use osui::prelude::*;
+//! 
+//! #[component]
+//! pub fn App() -> Element {
+//!     let count = State::new(0);
 //!
-//! launch(rsx! {
-//!     text { "Hello, World!" }
-//! });
+//!     rsx! {
+//!         button {
+//!             class: "btn",
+//! 
+//!             on_click: fn(_, _, _) @count {
+//!                 count += 1;
+//!             },
+//! 
+//!             "The current count is: {count}"
+//!         }
+//!     }
+//! }
+//! fn main() {
+//!     launch!(App);
+//! }
 //! ```
 //!
 //! ## Modules
@@ -42,9 +58,10 @@ pub mod prelude {
     pub use crate::ui::Instruction::*;
     pub use crate::ui::Number::{Auto, Center};
     pub use crate::{self as osui, css, ersx, launch, rsx, ui::*, Handler};
-    pub use crate::{style, Document, State};
+    pub use crate::{style, Component, Document, State};
     pub use crate::{Children, Element, ElementCore, ElementWidget};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
+    pub use osui_element::component;
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
     }
@@ -75,6 +92,11 @@ pub trait ElementWidget: ElementCore + std::fmt::Debug {
     fn initialize(&mut self, document: &mut Document) {
         _ = document
     }
+}
+
+pub trait Component: std::fmt::Debug {
+    type Element;
+    fn create_element(self) -> Self::Element;
 }
 
 //////////////////////////////////////////////////////////////////////////////////////////////////
