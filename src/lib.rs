@@ -319,6 +319,11 @@ impl Children {
             0
         }
     }
+    pub fn insert(&mut self, index: usize, element: Element) {
+        if let Children::Children(children, _) = self {
+            children.insert(index, element);
+        }
+    }
 }
 
 impl<T> Handler<T> {
