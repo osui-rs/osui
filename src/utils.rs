@@ -26,19 +26,21 @@ impl<'a> Frame<'a> {
         let style = element.get_style();
         let mut style_element = style.clone().get(focused);
 
-        if let Some(upper) = self.css.get(&ui::StyleName::Class(element.get_class())) {
-            style_element.merge(upper);
-        }
+        for class in element.get_class().split(" ") {
+            if let Some(upper) = self.css.get(&ui::StyleName::Class(class.to_string())) {
+                style_element.merge(upper);
+            }
 
-        if let Some(upper) = self.css.get(&ui::StyleName::ClassState(
-            element.get_class(),
-            if style.2 == "" && focused {
-                "hover".to_string()
-            } else {
-                style.2.clone()
-            },
-        )) {
-            style_element.merge(upper);
+            if let Some(upper) = self.css.get(&ui::StyleName::ClassState(
+                class.to_string(),
+                if style.2 == "" && focused {
+                    "hover".to_string()
+                } else {
+                    style.2.clone()
+                },
+            )) {
+                style_element.merge(upper);
+            }
         }
 
         if style_element.visible.1 {

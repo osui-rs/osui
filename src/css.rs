@@ -38,25 +38,55 @@ macro_rules! __css {
 macro_rules! _css {
     ($_style:expr,) => {};
     (
-        $hm:expr, $name:literal { $($inner:tt)* } $($rest:tt)*
+        $hm:expr, $($($name:ident)-+),* { $($inner:tt)* } $($rest:tt)*
     ) => {{
         let mut _style = $crate::ui::StyleElement::default();
         $crate::__css!(_style, $($inner)*);
-        $hm.insert(
-            $crate::ui::StyleName::Class(String::from($name)),
-            _style,
-        );
+        $(
+            $hm.insert(
+                $crate::ui::StyleName::Class(String::from(stringify!($($name)-+).replace(' ', ""))),
+                _style.clone(),
+            );
+        )*
         $crate::_css!($hm, $($rest)*);
     }};
     (
-        $hm:expr, $name:literal: $state:literal { $($inner:tt)* } $($rest:tt)*
+        $hm:expr, $($($name:ident)-+),*: $state:literal { $($inner:tt)* } $($rest:tt)*
     ) => {{
         let mut _style = $crate::ui::StyleElement::default();
         $crate::__css!(_style, $($inner)*);
-        $hm.insert(
-            $crate::ui::StyleName::ClassState(String::from($name), String::from($state)),
-            _style,
-        );
+        $(
+            $hm.insert(
+                $crate::ui::StyleName::ClassState(String::from(stringify!($($name)-+).replace(' ', "")), String::from($state)),
+                _style.clone(),
+            );
+        )*
+        $crate::_css!($hm, $($rest)*);
+    }};
+    (
+        $hm:expr, $($name:literal),+ { $($inner:tt)* } $($rest:tt)*
+    ) => {{
+        let mut _style = $crate::ui::StyleElement::default();
+        $crate::__css!(_style, $($inner)*);
+        $(
+            $hm.insert(
+                $crate::ui::StyleName::Class(String::from($name)),
+                _style,
+            );
+        )+
+        $crate::_css!($hm, $($rest)*);
+    }};
+    (
+        $hm:expr, $($name:literal),+: $state:literal { $($inner:tt)* } $($rest:tt)*
+    ) => {{
+        let mut _style = $crate::ui::StyleElement::default();
+        $crate::__css!(_style, $($inner)*);
+        $(
+            $hm.insert(
+                $crate::ui::StyleName::ClassState(String::from($name), String::from($state)),
+                _style,
+            );
+        )+
         $crate::_css!($hm, $($rest)*);
     }};
 }

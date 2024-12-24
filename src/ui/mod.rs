@@ -32,12 +32,15 @@ pub fn text<'a>(class: &'a str, id: &'a str, children: Children, style: Style) -
 #[derive(Debug)]
 pub enum Instruction {
     SetStyle(Css),
+    SetChild(usize),
+    Ghost(usize),
 }
 
 #[element]
 #[derive(Default, Debug)]
 pub struct Div {
     pub instructions: Vec<Instruction>,
+    pub ghosts: Vec<usize>,
 }
 
 impl ElementWidget for Div<'_> {
@@ -63,6 +66,13 @@ impl ElementWidget for Div<'_> {
                         } else {
                             *i = 0;
                         }
+                        while self.ghosts.get(*i).is_some() {
+                            if *i < l - 1 {
+                                *i += 1;
+                            } else {
+                                *i = 0;
+                            }
+                        }
                         child.event(Event::FocusGained, document);
                     }
                     KeyCode::BackTab => {
@@ -71,6 +81,13 @@ impl ElementWidget for Div<'_> {
                             *i -= 1;
                         } else {
                             *i = l - 1;
+                        }
+                        while self.ghosts.get(*i).is_some() {
+                            if *i > 0 {
+                                *i -= 1;
+                            } else {
+                                *i = l - 1;
+                            }
                         }
                         child.event(Event::FocusGained, document);
                     }
@@ -87,6 +104,12 @@ impl ElementWidget for Div<'_> {
                 Instruction::SetStyle(s) => {
                     document.css.extend(s.clone().into_iter());
                 }
+                Instruction::SetChild(c) => {
+                    self.children.set_index(*c);
+                }
+                Instruction::Ghost(idx) => {
+                    self.ghosts.push(*idx);
+                }
             }
         }
     }
@@ -99,6 +122,7 @@ pub fn div<'a>(
     children: Children,
     style: Style,
     instructions: Vec<Instruction>,
+    ghosts: Vec<usize>,
 ) -> Box<Div<'a>> {
     Box::new(Div {
         children: self.children,
@@ -106,6 +130,7 @@ pub fn div<'a>(
         id: self.id,
         style: self.style,
         instructions: self.instructions,
+        ghosts: self.ghosts,
     })
 }
 

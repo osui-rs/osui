@@ -6,9 +6,20 @@ fn main() {
 #[component]
 pub fn App() {
     rsx! {
-        @SetStyle(app_style())
+        @SetChild(1)
+        @SetStyle(css! {
+            example {
+                outline: true,
+                y: Auto,
+                x: 0 px,
+            }
+            example: "hover" {
+                color: Blue,
+                outline_color: Red,
+            }
+        })
 
-        text { static "Select an example" }
+        %text { class: "red-bg", static "Select an example" }
 
         button { class: "example", on_click: fn(_, _, document) {
             document.clear_css();
@@ -24,19 +35,5 @@ pub fn App() {
             document.clear_css();
             document.draw(examples::login_example::App::default().create_element());
         }, static "Login" }
-    }
-}
-
-pub fn app_style() -> Css {
-    css! {
-        "example" {
-            outline: true,
-            y: Auto,
-            x: 0 px,
-        }
-        "example": "hover" {
-            color: Blue,
-            outline_color: Red,
-        }
     }
 }

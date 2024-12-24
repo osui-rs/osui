@@ -12,6 +12,16 @@ macro_rules! check_expr {
 }
 #[macro_export]
 macro_rules! parse_rsx_param {
+    ($elem:expr, %$elem_path:path { $($inner:tt)* } $($rest:tt)*) => {
+        $elem.ghosts.push($elem.ghosts.len());
+        if let $crate::Children::Children(children, _) = &mut $elem.children {
+            children.push($crate::ersx!($elem_path { $($inner)* }));
+        } else {
+            $elem.children = $crate::Children::Children(vec![$crate::ersx!($elem_path { $($inner)* })], 0)
+        }
+        osui::parse_rsx_param!($elem, $($rest)*)
+    };
+
     ($elem:expr, @ $($i:ident)::+($($inner:tt)*) $($rest:tt)*) => {
         $elem.instructions.push($($i)::+($($inner)*));
         osui::parse_rsx_param!($elem, $($rest)*);

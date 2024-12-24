@@ -22,7 +22,7 @@ pub mod counter_example {
 
     pub fn styling() -> Css {
         css! {
-            "btn" {
+            btn {
                 outline: true,
                 outline_color: Red
             }
@@ -39,6 +39,7 @@ pub mod todo_example {
 
         rsx! {
             @SetStyle(styling())
+            @SetChild(2)
 
             text { class: "title", static "Todo list app made with OSUI" }
             text { class: "title", "{}", "-".repeat(crossterm::terminal::size().unwrap().0 as usize) }
@@ -56,27 +57,27 @@ pub mod todo_example {
 
     pub fn styling() -> Css {
         css! {
-            "todo" {
+            todo {
                 x: 0 px,
                 y: Auto,
                 color: Red,
             }
-            "todo": "hover" {
+            todo: "hover" {
                 color: Blue,
             }
-            "complete" {
+            complete {
                 x: 0 px,
                 y: Auto,
                 color: Green,
             }
-            "complete": "hover" {
+            complete: "hover" {
                 color: Cyan
             }
-            "title" {
+            title {
                 x: 0 px,
                 y: Auto,
             }
-            "title": "hover" {
+            title: "hover" {
                 color: Blue
             }
         }
@@ -115,14 +116,14 @@ pub mod login_example {
 
     pub fn styling() -> Css {
         css! {
-            "input" {
+            input {
                 width: 50 px,
                 outline: true,
                 y: Auto,
                 x: 0 px,
                 caret: String::new(),
             }
-            "input": "hover" {
+            input: "hover" {
                 outline_color: Red,
                 caret: String::from("█"),
             }
