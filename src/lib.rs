@@ -9,7 +9,7 @@
 //!
 //! ```rust
 //! use osui::prelude::*;
-//! 
+//!
 //! #[component]
 //! pub fn App() -> Element {
 //!     let count = State::new(0);
@@ -17,11 +17,11 @@
 //!     rsx! {
 //!         button {
 //!             class: "btn",
-//! 
+//!
 //!             on_click: fn(_, _, _) @count {
 //!                 count += 1;
 //!             },
-//! 
+//!
 //!             "The current count is: {count}"
 //!         }
 //!     }
@@ -86,7 +86,7 @@ pub trait ElementCore {
 
 pub trait ElementWidget: ElementCore + std::fmt::Debug {
     fn render(&self, writer: &mut Writer);
-    fn event(&mut self, event: crossterm::event::Event, document: &Document) {
+    fn event(&mut self, event: crossterm::event::Event, document: &mut Document) {
         _ = (event, document)
     }
     fn initialize(&mut self, document: &mut Document) {
@@ -103,11 +103,11 @@ pub trait Component: std::fmt::Debug {
 /// Structs
 //////////////////////////////////////////////////////////////////////////////////////////////////
 
-pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, crossterm::event::Event, &Document)>>);
+pub struct Handler<T>(pub Arc<Mutex<dyn FnMut(&mut T, crossterm::event::Event, &mut Document)>>);
 
 pub struct Document {
     element: *mut Element,
-    running: *mut Option<bool>,
+    running: Option<bool>,
     pub css: ui::Css,
 }
 
@@ -142,23 +142,15 @@ impl Document {
     pub fn with_elem(element: &mut Element) -> Document {
         Document {
             element,
-            running: &mut None,
+            running: None,
             css: HashMap::new(),
         }
     }
-    pub fn exit(&self) {
-        if !self.running.is_null() {
-            unsafe {
-                *self.running = Some(false);
-            }
-        }
+    pub fn exit(&mut self) {
+        self.running = Some(false);
     }
-    pub fn restart(&self) {
-        if !self.running.is_null() {
-            unsafe {
-                *self.running = Some(true);
-            }
-        }
+    pub fn restart(&mut self) {
+        self.running = Some(true);
     }
     pub fn get_root<T>(&self) -> &mut Box<T> {
         unsafe { &mut *(self.element as *mut Element as *mut Box<T>) }
@@ -195,13 +187,17 @@ impl Document {
     pub fn set_css(&mut self, css: ui::Css) {
         self.css = css;
     }
-    pub fn draw(&self, element: Element) {
+    pub fn clear_css(&mut self) {
+        self.css.clear();
+    }
+    pub fn draw(&mut self, element: Element) {
         unsafe {
             *self.element = element;
+            (*self.element).initialize(self);
         }
     }
     pub fn run(&mut self) -> bool {
-        unsafe { *self.running = None }
+        self.running = None;
         let element = unsafe { &mut *self.element };
         element.initialize(self);
 
@@ -212,7 +208,7 @@ impl Document {
         crossterm::terminal::enable_raw_mode().unwrap();
         utils::clear();
 
-        while unsafe { *self.running } == None {
+        while self.running == None {
             self.render();
             element.event(crossterm::event::read().unwrap(), self);
         }
@@ -221,7 +217,7 @@ impl Document {
         crossterm::terminal::disable_raw_mode().unwrap();
         utils::clear();
 
-        unsafe { (*self.running).unwrap() }
+        self.running.unwrap()
     }
 }
 
@@ -326,12 +322,12 @@ impl Children {
 impl<T> Handler<T> {
     pub fn new<F>(handler_fn: F) -> Handler<T>
     where
-        F: FnMut(&mut T, crossterm::event::Event, &Document) + 'static,
+        F: FnMut(&mut T, crossterm::event::Event, &mut Document) + 'static,
     {
         Handler(Arc::new(Mutex::new(handler_fn)))
     }
 
-    pub fn call(&self, s: &mut T, event: Event, document: &Document) {
+    pub fn call(&self, s: &mut T, event: Event, document: &mut Document) {
         let mut o = self.0.lock().unwrap();
         o(s, event, document);
     }
@@ -460,7 +456,7 @@ impl Writer {
 impl<T> Default for Handler<T> {
     fn default() -> Self {
         Handler(Arc::new(Mutex::new(
-            |_: &mut T, _: crossterm::event::Event, _: &Document| {},
+            |_: &mut T, _: crossterm::event::Event, _: &mut Document| {},
         )))
     }
 }

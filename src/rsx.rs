@@ -16,6 +16,10 @@ macro_rules! parse_rsx_param {
         $elem.instructions.push($($i)::+($($inner)*));
         osui::parse_rsx_param!($elem, $($rest)*);
     };
+    ($elem:expr, @ $($i:ident)::+ $($rest:tt)*) => {
+        $elem.instructions.push($($i)::+);
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
 
     ($elem:expr, static $text:literal $($other:tt)*) => {
         $elem.children = $crate::Children::StaticText(format!($text $($other)*));

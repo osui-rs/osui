@@ -52,7 +52,7 @@ impl ElementWidget for Div<'_> {
         }
     }
 
-    fn event(&mut self, event: Event, document: &Document) {
+    fn event(&mut self, event: Event, document: &mut Document) {
         if let (Some((child, i)), l) = self.children.get_child_idx() {
             match event {
                 Event::Key(k) => match k.code {
@@ -121,7 +121,7 @@ impl ElementWidget for Button<'_> {
         writer.write(&self.children.get_text());
     }
 
-    fn event(&mut self, event: Event, document: &Document) {
+    fn event(&mut self, event: Event, document: &mut Document) {
         match event {
             Event::Key(key) => {
                 if key.code == KeyCode::Enter {
@@ -187,7 +187,7 @@ impl ElementWidget for Input<'_> {
         }
     }
 
-    fn event(&mut self, event: crossterm::event::Event, document: &Document) {
+    fn event(&mut self, event: crossterm::event::Event, document: &mut Document) {
         match event {
             Event::Key(k) => match k.code {
                 KeyCode::Backspace => {
