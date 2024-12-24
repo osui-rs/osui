@@ -12,6 +12,15 @@ macro_rules! check_expr {
 }
 #[macro_export]
 macro_rules! parse_rsx_param {
+    ($elem:expr, async $code:block $($rest:tt)*) => {
+        $elem.instructions.push($crate::Instruction::Load(Handler::new(
+            |d: &mut Div, _, _| {
+                d.children.add_child($code);
+            }
+        )));
+        osui::parse_rsx_param!($elem, $($rest)*);
+    };
+
     ($elem:expr, %$elem_path:path { $($inner:tt)* } $($rest:tt)*) => {
         $elem.ghosts.push($elem.ghosts.len());
         if let $crate::Children::Children(children, _) = &mut $elem.children {

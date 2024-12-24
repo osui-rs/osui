@@ -55,10 +55,10 @@ pub mod utils;
 pub mod prelude {
     pub use crate::ui::Color::*;
     pub use crate::ui::Font::*;
-    pub use crate::ui::Instruction::*;
     pub use crate::ui::Number::{Auto, Center};
+    pub use crate::Instruction::*;
     pub use crate::{self as osui, css, ersx, launch, rsx, ui::*, Handler};
-    pub use crate::{style, Component, Document, State};
+    pub use crate::{style, Component, Document, Instruction, State};
     pub use crate::{Children, Element, ElementCore, ElementWidget};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub use osui_element::component;
@@ -197,16 +197,18 @@ impl Document {
         }
     }
     pub fn run(&mut self) -> bool {
+        // Set up the screen
+        utils::hide_cursor();
+        crossterm::terminal::enable_raw_mode().unwrap();
+        utils::clear();
+
         self.running = None;
         let element = unsafe { &mut *self.element };
+        self.render();
         element.initialize(self);
 
         // Send initial event
         element.event(crossterm::event::Event::FocusGained, self);
-
-        utils::hide_cursor();
-        crossterm::terminal::enable_raw_mode().unwrap();
-        utils::clear();
 
         while self.running == None {
             self.render();
@@ -508,4 +510,12 @@ impl<T: PartialEq> PartialEq<T> for State<T> {
     fn ne(&self, other: &T) -> bool {
         self.use_state().ne(other)
     }
+}
+
+#[derive(Debug)]
+pub enum Instruction<'a> {
+    SetStyle(ui::Css),
+    SetChild(usize),
+    Ghost(usize),
+    Load(Handler<ui::Div<'a>>),
 }

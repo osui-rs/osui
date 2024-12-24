@@ -56,7 +56,6 @@ pub enum Number {
     Pe(u16),
     Center,
     Auto,
-    Default,
 }
 
 #[derive(PartialEq, Eq, Hash, Debug, Clone)]
@@ -152,10 +151,10 @@ impl Default for StyleElement {
             cursor: (false, Color::NoColor),
             font: (false, Vec::new()),
             outline_color: (false, Color::NoColor),
-            x: (false, Number::Default),
-            y: (false, Number::Px(0)),
-            width: (false, Number::Default),
-            height: (false, Number::Default),
+            x: (false, Number::Px(0)),
+            y: (false, Number::Auto),
+            width: (false, Number::Auto),
+            height: (false, Number::Auto),
             visible: (false, true),
             outline: (false, false),
             caret: (false, String::from("█")),
@@ -322,7 +321,7 @@ impl Number {
         }
     }
     pub fn as_size(&self, written: u16, frame_size: u16, outline: bool) -> u16 {
-        if *self == Number::Auto || *self == Number::Default {
+        if *self == Number::Auto {
             written
         } else if outline {
             self.as_size_raw(frame_size) - 2
@@ -335,7 +334,7 @@ impl Number {
             crate::ui::Number::Px(px) => *px,
             crate::ui::Number::Pe(pe) => (frame_size * pe) / 100,
             crate::ui::Number::Center => (frame_size) / 2,
-            crate::ui::Number::Auto | crate::ui::Number::Default => *used,
+            crate::ui::Number::Auto => *used,
         }
     }
 }

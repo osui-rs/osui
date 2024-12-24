@@ -29,17 +29,10 @@ pub fn text<'a>(class: &'a str, id: &'a str, children: Children, style: Style) -
     })
 }
 
-#[derive(Debug)]
-pub enum Instruction {
-    SetStyle(Css),
-    SetChild(usize),
-    Ghost(usize),
-}
-
 #[element]
 #[derive(Default, Debug)]
 pub struct Div {
-    pub instructions: Vec<Instruction>,
+    pub instructions: Vec<Instruction<'a>>,
     pub ghosts: Vec<usize>,
 }
 
@@ -99,6 +92,7 @@ impl ElementWidget for Div<'_> {
     }
 
     fn initialize(&mut self, document: &mut Document) {
+        let mut load_funcs = Vec::new();
         for inst in &self.instructions {
             match inst {
                 Instruction::SetStyle(s) => {
@@ -110,7 +104,14 @@ impl ElementWidget for Div<'_> {
                 Instruction::Ghost(idx) => {
                     self.ghosts.push(*idx);
                 }
+                Instruction::Load(f) => {
+                    load_funcs.push(f.clone());
+                }
             }
+        }
+        self.instructions.clear();
+        for l in load_funcs {
+            l.call(self, Event::FocusGained, document)
         }
     }
 }
@@ -121,7 +122,7 @@ pub fn div<'a>(
     id: &'a str,
     children: Children,
     style: Style,
-    instructions: Vec<Instruction>,
+    instructions: Vec<Instruction<'a>>,
     ghosts: Vec<usize>,
 ) -> Box<Div<'a>> {
     Box::new(Div {
