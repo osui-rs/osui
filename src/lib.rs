@@ -117,7 +117,7 @@ pub struct Writer {
     style: ui::StyleElement,
     focused: bool,
     size: (u16, u16),
-    absolute: (u16, u16),
+    pos: (u16, u16),
     written: (u16, u16),
 }
 
@@ -178,7 +178,14 @@ impl Document {
     pub fn render(&self) {
         if !self.element.is_null() {
             let (width, height) = crossterm::terminal::size().unwrap();
-            let mut frame = utils::Frame::new((0, 0), (width, height), &self.css);
+            let mut writer = Writer::new(
+                true,
+                ui::StyleElement::default(),
+                (0, 0),
+                (width, height),
+                &self.css,
+            );
+            let mut frame = writer.new_frame();
             utils::clear();
             frame.render(true, unsafe { &*self.element });
             utils::flush();
@@ -348,7 +355,7 @@ impl Writer {
     pub fn new(
         focused: bool,
         style: ui::StyleElement,
-        absolute: (u16, u16),
+        pos: (u16, u16),
         size: (u16, u16),
         css: &ui::Css,
     ) -> Writer {
@@ -357,7 +364,7 @@ impl Writer {
             style,
             focused,
             size,
-            absolute,
+            pos,
             written: (0, 0),
         }
     }
@@ -368,15 +375,15 @@ impl Writer {
             if self.style.outline.1 {
                 print!(
                     "\x1B[{};{}H{outline_ch}{}",
-                    self.absolute.1 + 2 + i as u16,
-                    self.absolute.0 + 1,
+                    self.pos.1 + 2 + i as u16,
+                    self.pos.0 + 1,
                     self.style.write(line),
                 );
             } else {
                 print!(
                     "\x1B[{};{}H{}",
-                    self.absolute.1 + 1 + i as u16,
-                    self.absolute.0 + 1,
+                    self.pos.1 + 1 + i as u16,
+                    self.pos.0 + 1,
                     self.style.write(line)
                 );
             }
@@ -390,8 +397,8 @@ impl Writer {
         if self.style.outline.1 {
             print!(
                 "\x1B[{};{}H{}",
-                self.absolute.1 + 1,
-                self.absolute.0 + 1,
+                self.pos.1 + 1,
+                self.pos.0 + 1,
                 self.style.write_outline(&format!(
                     "╭{}╮",
                     "─".repeat(self.get_size_root().0 as usize)
@@ -399,8 +406,8 @@ impl Writer {
             );
             print!(
                 "\x1B[{};{}H{}",
-                self.absolute.1 + self.written.1 + 2,
-                self.absolute.0 + 1,
+                self.pos.1 + self.written.1 + 2,
+                self.pos.0 + 1,
                 self.style.write_outline(&format!(
                     "╰{}╯",
                     "─".repeat(self.get_size_root().0 as usize)
@@ -410,8 +417,8 @@ impl Writer {
             for i in 0..self.written.1 {
                 print!(
                     "\x1B[{};{}H{outline_ch}",
-                    self.absolute.1 + i + 2,
-                    self.absolute.0 + self.get_size_root().0 + 2,
+                    self.pos.1 + i + 2,
+                    self.pos.0 + self.get_size_root().0 + 2,
                 );
             }
         }
@@ -448,7 +455,7 @@ impl Writer {
     }
 
     pub fn new_frame(&mut self) -> crate::utils::Frame {
-        crate::utils::Frame::new(self.absolute, self.get_size(), unsafe { &*self.css })
+        crate::utils::Frame::new(self, unsafe { &*self.css })
     }
 
     pub fn caret(&self) -> String {

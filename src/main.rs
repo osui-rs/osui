@@ -6,13 +6,10 @@ fn main() {
 
 #[component]
 pub fn App() {
-    rsx! {
-        async {
-            sleep(3000);
-            ersx!(text {
-                "OK"
-            })
-        }
-        text { "Hello world!" }
+    ersx! {
+        text { style: style! {
+            x: 30 px,
+            y: 4 px
+        }, "hello, world" }
     }
 }

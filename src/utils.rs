@@ -1,25 +1,17 @@
 use std::io::{stdout, Write};
 
-use crate::ui;
-
 pub struct Frame<'a> {
     used: Vec<u16>,
-    width: u16,
-    height: u16,
-    x: u16,
-    y: u16,
-    css: &'a ui::Css,
+    css: &'a crate::ui::Css,
+    writer: &'a mut crate::Writer,
 }
 
 impl<'a> Frame<'a> {
-    pub fn new((x, y): (u16, u16), (width, height): (u16, u16), css: &'a crate::ui::Css) -> Self {
+    pub fn new(writer: &'a mut crate::Writer, css: &'a crate::ui::Css) -> Self {
         Frame {
-            used: vec![0; height as usize],
-            width,
-            height,
-            x,
-            y,
+            used: vec![0; writer.size.1 as usize],
             css,
+            writer,
         }
     }
     pub fn render(&mut self, focused: bool, element: &crate::Element) {
@@ -27,11 +19,14 @@ impl<'a> Frame<'a> {
         let mut style_element = style.clone().get(focused);
 
         for class in element.get_class().split(" ") {
-            if let Some(upper) = self.css.get(&ui::StyleName::Class(class.to_string())) {
+            if let Some(upper) = self
+                .css
+                .get(&crate::ui::StyleName::Class(class.to_string()))
+            {
                 style_element.merge(upper);
             }
 
-            if let Some(upper) = self.css.get(&ui::StyleName::ClassState(
+            if let Some(upper) = self.css.get(&crate::ui::StyleName::ClassState(
                 class.to_string(),
                 if style.2 == "" && focused {
                     "hover".to_string()
@@ -45,6 +40,7 @@ impl<'a> Frame<'a> {
 
         if style_element.visible.1 {
             let y = style_element.y.1.as_position(
+                style_element.outline.1,
                 &{
                     let mut y = 0;
                     while y < self.used.len() && self.used[y] != 0 {
@@ -52,15 +48,19 @@ impl<'a> Frame<'a> {
                     }
                     y as u16
                 },
-                self.height,
+                self.writer.size.1,
             );
             if let Some(y_) = self.used.get(y as usize) {
-                let x = style_element.x.1.as_position(y_, self.width);
+                let x =
+                    style_element
+                        .x
+                        .1
+                        .as_position(style_element.outline.1, y_, self.writer.size.0);
                 let mut writer = crate::Writer::new(
                     focused,
                     style_element.clone(),
-                    (x + self.x, y + self.y),
-                    (self.width, self.height),
+                    (x, y),
+                    self.writer.size,
                     self.css,
                 );
                 element.render(&mut writer);
