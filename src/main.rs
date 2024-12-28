@@ -6,10 +6,14 @@ fn main() {
 
 #[component]
 pub fn App() {
-    ersx! {
-        text { style: style! {
-            x: 30 px,
-            y: 4 px
-        }, "hello, world" }
+    rsx! {
+        text { style: style!{
+            outline: true,
+        }, "Hello, World!\nabc" }
+
+        text { style: style!{
+            outline: true,
+            width: 3 px
+        }, "Hello, World!\nabc testing" }
     }
 }

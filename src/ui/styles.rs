@@ -322,7 +322,11 @@ impl Number {
     }
     pub fn as_size(&self, written: u16, frame_size: u16, outline: bool) -> u16 {
         if *self == Number::Auto {
-            written
+            if written > 0 {
+                written - 1
+            } else {
+                written
+            }
         } else if outline {
             self.as_size_raw(frame_size) - 2
         } else {
