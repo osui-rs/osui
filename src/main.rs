@@ -7,12 +7,13 @@ fn main() {
 #[component]
 pub fn App() {
     rsx! {
-        async {
-            sleep(3000);
-            ersx!(text {
-                "OK"
-            })
-        }
-        text { "Hello world!" }
+        text { style: style!{
+            outline: true,
+        }, "Hello, World!\nabc" }
+
+        text { style: style!{
+            outline: true,
+            width: 3 px
+        }, "Hello, World!\nabc testing" }
     }
 }

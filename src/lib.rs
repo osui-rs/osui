@@ -117,8 +117,9 @@ pub struct Writer {
     style: ui::StyleElement,
     focused: bool,
     size: (u16, u16),
-    absolute: (u16, u16),
+    pos: (u16, u16),
     written: (u16, u16),
+    parent: Option<*mut Writer>,
 }
 
 pub struct State<T>(Arc<Mutex<T>>);
@@ -178,9 +179,22 @@ impl Document {
     pub fn render(&self) {
         if !self.element.is_null() {
             let (width, height) = crossterm::terminal::size().unwrap();
-            let mut frame = utils::Frame::new((0, 0), (width, height), &self.css);
+            let mut writer = Writer {
+                css: &self.css,
+                focused: true,
+                style: ui::StyleElement {
+                    // outline: (true, true),
+                    ..Default::default()
+                },
+                size: (width, height),
+                pos: (1, 1),
+                written: (0, 0),
+                parent: None,
+            };
+            let mut frame = writer.new_frame();
             utils::clear();
             frame.render(true, unsafe { &*self.element });
+            writer.after_render(width, height);
             utils::flush();
         }
     }
@@ -345,73 +359,83 @@ impl<T> Handler<T> {
 }
 
 impl Writer {
-    pub fn new(
-        focused: bool,
-        style: ui::StyleElement,
-        absolute: (u16, u16),
-        size: (u16, u16),
-        css: &ui::Css,
-    ) -> Writer {
-        Writer {
-            css,
-            style,
-            focused,
-            size,
-            absolute,
-            written: (0, 0),
+    pub fn after_render(&self, width: u16, height: u16) {
+        if self.style.outline.1 {
+            let ol = self.style.write_outline("│");
+            let hl = "─".repeat(width as usize - 2);
+            self.write_abs_outline(&self.style.write_outline(&format!("╭{}╮", hl)), (0, 0));
+            for i in 1..height {
+                self.write_abs_outline(&ol, (0, i));
+                self.write_abs_outline(&ol, (width - 1, i));
+            }
+            self.write_abs_outline(&self.style.write_outline(&format!("╰{}╯", hl)), (0, height));
         }
     }
 
     pub fn write(&mut self, s: &str) {
-        let outline_ch = self.style.write_outline("│");
-        for (i, line) in s.lines().enumerate() {
-            if self.style.outline.1 {
-                print!(
-                    "\x1B[{};{}H{outline_ch}{}",
-                    self.absolute.1 + 2 + i as u16,
-                    self.absolute.0 + 1,
-                    self.style.write(line),
-                );
-            } else {
-                print!(
-                    "\x1B[{};{}H{}",
-                    self.absolute.1 + 1 + i as u16,
-                    self.absolute.0 + 1,
-                    self.style.write(line)
-                );
-            }
-            let line_len = line.len() as u16;
-            if line_len > self.written.0 {
-                self.written.0 = line_len;
-            }
-            self.written.1 += 1;
+        // let width = self.get_size().0 as usize;
+        // let s = s
+        //     .lines()
+        //     .map(|l| {
+        //         if l.len() > width {
+        //             l.chars().take(width).collect::<String>()
+        //         } else {
+        //             l.to_string()
+        //         }
+        //     })
+        //     .collect::<Vec<String>>()
+        //     .join("\n");
+        self.write_abs(&self.style.write(&s), (0, 0));
+    }
+
+    pub fn write_abs_outline(&self, s: &str, pos: (u16, u16)) {
+        if let Some(parent) = self.parent {
+            let parent = unsafe { &mut *parent };
+            parent.write_abs_outline(s, (self.pos.0 + pos.0, self.pos.1 + pos.1));
+        } else {
+            print!(
+                "\x1b[{};{}H{}",
+                self.pos.1 + pos.1 - 1,
+                self.pos.0 + pos.0 - 1,
+                self.style.write_outline(s)
+            );
         }
+    }
 
-        if self.style.outline.1 {
-            print!(
-                "\x1B[{};{}H{}",
-                self.absolute.1 + 1,
-                self.absolute.0 + 1,
-                self.style.write_outline(&format!(
-                    "╭{}╮",
-                    "─".repeat(self.get_size_root().0 as usize)
-                ))
-            );
-            print!(
-                "\x1B[{};{}H{}",
-                self.absolute.1 + self.written.1 + 2,
-                self.absolute.0 + 1,
-                self.style.write_outline(&format!(
-                    "╰{}╯",
-                    "─".repeat(self.get_size_root().0 as usize)
-                ))
-            );
+    pub fn write_abs(&mut self, s: &str, pos: (u16, u16)) {
+        let width = self.get_size().0 as usize;
+        let mut max_written = self.written.0;
+        let mut lines_written = 0;
 
-            for i in 0..self.written.1 {
+        let truncated_lines: Vec<_> = s
+            .lines()
+            .map(|l| {
+                let truncated = if l.len() > width {
+                    l.chars().take(width).collect::<String>()
+                } else {
+                    l.to_string()
+                };
+                max_written = max_written.max(truncated.len() as u16);
+                lines_written += 1;
+                truncated
+            })
+            .collect();
+
+        self.written.0 = max_written;
+        self.written.1 += lines_written;
+
+        if let Some(parent) = self.parent {
+            let parent = unsafe { &mut *parent };
+            let combined_pos = (self.pos.0 + pos.0, self.pos.1 + pos.1);
+            let s_combined = truncated_lines.join("\n");
+            parent.write_abs(&s_combined, combined_pos);
+        } else {
+            for (i, line) in truncated_lines.iter().enumerate() {
                 print!(
-                    "\x1B[{};{}H{outline_ch}",
-                    self.absolute.1 + i + 2,
-                    self.absolute.0 + self.get_size_root().0 + 2,
+                    "\x1b[{};{}H{}",
+                    self.pos.1 + pos.1 + i as u16,
+                    self.pos.0 + pos.0,
+                    line
                 );
             }
         }
@@ -448,7 +472,7 @@ impl Writer {
     }
 
     pub fn new_frame(&mut self) -> crate::utils::Frame {
-        crate::utils::Frame::new(self.absolute, self.get_size(), unsafe { &*self.css })
+        crate::utils::Frame::new(self)
     }
 
     pub fn caret(&self) -> String {

@@ -322,19 +322,30 @@ impl Number {
     }
     pub fn as_size(&self, written: u16, frame_size: u16, outline: bool) -> u16 {
         if *self == Number::Auto {
-            written
+            if written > 0 {
+                written - 1
+            } else {
+                written
+            }
         } else if outline {
             self.as_size_raw(frame_size) - 2
         } else {
             self.as_size_raw(frame_size)
         }
     }
-    pub fn as_position(&self, used: &u16, frame_size: u16) -> u16 {
+    pub fn as_position_raw(&self, used: &u16, frame_size: u16) -> u16 {
         match self {
             crate::ui::Number::Px(px) => *px,
             crate::ui::Number::Pe(pe) => (frame_size * pe) / 100,
             crate::ui::Number::Center => (frame_size) / 2,
             crate::ui::Number::Auto => *used,
+        }
+    }
+    pub fn as_position(&self, outline: bool, used: &u16, frame_size: u16) -> u16 {
+        if outline {
+            self.as_position_raw(used, frame_size) + 1
+        } else {
+            self.as_position_raw(used, frame_size)
         }
     }
 }
