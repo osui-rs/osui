@@ -7,13 +7,17 @@ fn main() {
 #[component]
 pub fn App() {
     rsx! {
-        text { style: style!{
-            outline: true,
-        }, "Hello, World!\nabc" }
+        @SetStyle(css! {
+            div {
+                outline: true,
+                width: 33%,
+                x: Auto,
+                y: 0 px,
+            }
+        })
 
-        text { style: style!{
-            outline: true,
-            width: 3 px
-        }, "Hello, World!\nabc testing" }
+        div { class: "div" }
+        div { class: "div" }
+        div { class: "div" }
     }
 }

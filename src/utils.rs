@@ -81,7 +81,10 @@ impl<'a> Frame<'a> {
 
                     for i in y..y + height {
                         if let Some(o) = self.used.get_mut(i as usize) {
-                            *o += x + width + 1;
+                            if style_element.x.1 != crate::ui::Number::Auto {
+                                *o += x;
+                            }
+                            *o += width + 1;
                         }
                     }
                 }
