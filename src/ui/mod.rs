@@ -218,7 +218,7 @@ impl ElementWidget for Input<'_> {
             Event::Key(k) => match k.code {
                 KeyCode::Backspace => {
                     if self.text.len() > 0 {
-                        self.text.remove(self.text.len() - 1);
+                        self.text.pop();
                     }
                 }
                 KeyCode::Enter => {
