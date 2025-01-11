@@ -1,6 +1,6 @@
 [package]
 name = "osui"
-version = "0.0.8"
+version = "0.0.8-alpha.1"
 edition = "2021"
 license = "Apache-2.0"
 description = "A rsx TUI library"
