@@ -3,7 +3,7 @@ pub mod counter_example {
 
     #[component]
     pub fn App() -> Element {
-        let count = State::new(0);
+        let count = use_state(0);
 
         rsx! {
             @SetStyle(styling())

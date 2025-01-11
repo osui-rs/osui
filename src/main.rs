@@ -5,19 +5,13 @@ fn main() {
 }
 
 #[component]
-pub fn App() {
-    rsx! {
-        @SetStyle(css! {
-            div {
-                outline: true,
-                width: 33%,
-                x: Auto,
-                y: 0 px,
-            }
-        })
+fn App() {
+    let count = use_state(20);
 
-        div { class: "div" }
-        div { class: "div" }
-        div { class: "div" }
+    rsx! {
+        %text { "Hello" }
+        button { on_click: fn (_, _, _) @count {
+            count += 1
+        }, "World: {count}" }
     }
 }

@@ -32,7 +32,7 @@ pub fn text<'a>(class: &'a str, id: &'a str, children: Children, style: Style) -
 #[element]
 #[derive(Default, Debug)]
 pub struct Div {
-    pub instructions: Vec<Instruction<'a>>,
+    pub instructions: Vec<crate::Instruction<'a>>,
     pub ghosts: Vec<usize>,
 }
 
@@ -92,26 +92,37 @@ impl ElementWidget for Div<'_> {
     }
 
     fn initialize(&mut self, document: &mut Document) {
+        let l = self.children.len();
+        if let Some(i) = self.children.index_mut() {
+            while self.ghosts.get(*i).is_some() {
+                if *i < l - 1 {
+                    *i += 1;
+                } else {
+                    *i = 0;
+                    break;
+                }
+            }
+        }
         let mut load_funcs = Vec::new();
         for inst in &self.instructions {
             match inst {
-                Instruction::SetStyle(s) => {
+                crate::Instruction::SetStyle(s) => {
                     document.css.extend(s.clone().into_iter());
                 }
-                Instruction::SetChild(c) => {
+                crate::Instruction::SetChild(c) => {
                     self.children.set_index(*c);
                 }
-                Instruction::Ghost(idx) => {
+                crate::Instruction::Ghost(idx) => {
                     self.ghosts.push(*idx);
                 }
-                Instruction::Load(f) => {
+                crate::Instruction::Load(f) => {
                     load_funcs.push(f.clone());
                 }
             }
         }
         self.instructions.clear();
-        for l in load_funcs {
-            l.call(self, Event::FocusGained, document)
+        for i in load_funcs {
+            i.call(self, Event::FocusGained, document)
         }
     }
 }
@@ -122,7 +133,7 @@ pub fn div<'a>(
     id: &'a str,
     children: Children,
     style: Style,
-    instructions: Vec<Instruction<'a>>,
+    instructions: Vec<crate::Instruction<'a>>,
     ghosts: Vec<usize>,
 ) -> Box<Div<'a>> {
     Box::new(Div {

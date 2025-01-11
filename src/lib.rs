@@ -44,6 +44,7 @@ use std::{
 
 use crossterm::event::Event;
 use ui::{Style, StyleCore};
+use utils::VisibleLength;
 
 pub mod css;
 pub mod examples;
@@ -58,12 +59,15 @@ pub mod prelude {
     pub use crate::ui::Number::{Auto, Center};
     pub use crate::Instruction::*;
     pub use crate::{self as osui, css, ersx, launch, rsx, ui::*, Handler};
-    pub use crate::{style, Component, Document, Instruction, State};
+    pub use crate::{style, Component, Document};
     pub use crate::{Children, Element, ElementCore, ElementWidget};
     pub use crossterm::event::{Event, KeyCode, KeyEvent, KeyEventKind};
     pub use osui_element::component;
     pub fn sleep(ms: u64) {
         std::thread::sleep(std::time::Duration::from_millis(ms));
+    }
+    pub fn use_state<'a, T>(v: T) -> crate::State<T> {
+        crate::State::new(v)
     }
 }
 
@@ -261,6 +265,7 @@ impl Children {
             _ => false,
         }
     }
+
     pub fn get_text(&self) -> String {
         match self {
             Children::Text(text) => text(),
@@ -268,6 +273,7 @@ impl Children {
             _ => String::new(),
         }
     }
+
     pub fn set_text(&mut self, text: Arc<dyn Fn() -> String>) {
         match self {
             Children::Text(t) => {
@@ -276,19 +282,11 @@ impl Children {
             _ => {}
         }
     }
-    pub fn set_text_force(&mut self, text: Arc<dyn Fn() -> String>) {
-        match self {
-            Children::Text(t) => {
-                *t = text;
-            }
-            _ => {
-                *self = Children::Text(text);
-            }
-        }
-    }
-    pub fn set_static_force(&mut self, text: String) {
+
+    pub fn set_static(&mut self, text: String) {
         *self = Children::StaticText(text);
     }
+
     pub fn add_child(&mut self, element: Element) {
         if let Children::Children(children, _) = self {
             children.push(element);
@@ -333,6 +331,13 @@ impl Children {
             0
         }
     }
+    pub fn index_mut(&mut self) -> Option<&mut usize> {
+        if let Children::Children(_, c) = self {
+            Some(c)
+        } else {
+            None
+        }
+    }
     pub fn insert(&mut self, index: usize, element: Element) {
         if let Children::Children(children, _) = self {
             children.insert(index, element);
@@ -362,7 +367,7 @@ impl Writer {
     pub fn after_render(&self, width: u16, height: u16) {
         if self.style.outline.1 {
             let ol = self.style.write_outline("│");
-            let hl = "─".repeat(width as usize - 2);
+            let hl = "─".repeat(width as usize);
             self.write_abs_outline(&self.style.write_outline(&format!("╭{}╮", hl)), (0, 0));
             for i in 1..height {
                 self.write_abs_outline(&ol, (0, i));
@@ -373,18 +378,6 @@ impl Writer {
     }
 
     pub fn write(&mut self, s: &str) {
-        // let width = self.get_size().0 as usize;
-        // let s = s
-        //     .lines()
-        //     .map(|l| {
-        //         if l.len() > width {
-        //             l.chars().take(width).collect::<String>()
-        //         } else {
-        //             l.to_string()
-        //         }
-        //     })
-        //     .collect::<Vec<String>>()
-        //     .join("\n");
         self.write_abs(&self.style.write(&s), (0, 0));
     }
 
@@ -415,7 +408,7 @@ impl Writer {
                 } else {
                     l.to_string()
                 };
-                max_written = max_written.max(truncated.len() as u16);
+                max_written = max_written.max(truncated.visible_len() as u16);
                 lines_written += 1;
                 truncated
             })
