@@ -12,6 +12,35 @@ macro_rules! check_expr {
 }
 #[macro_export]
 macro_rules! parse_rsx_param {
+    //// FUNCTIONS
+
+    ($elem:expr, $($k:ident).+: fn($($params:tt)*) $(@$($v:ident),+)? $body:expr $(, $($rest:tt)*)?) => {
+        $elem.$($k).+ = $crate::Handler::new({
+            $($(
+                #[allow(unused_mut)]
+                let mut $v = $v.clone();
+            )+)?
+            move |$($params)*| {
+                $body
+            }
+        });
+        osui::parse_rsx_param!($elem, $($($rest)*)?);
+    };
+
+    ($elem:expr, $($k:ident).+: |$($args:tt $(: $aty:ty)?),*| $(@$($v:ident),+)? $body:expr $(, $($rest:tt)*)?) => {
+        $elem.$($k).+ = $crate::Handler::new({
+            $($(
+                #[allow(unused_mut)]
+                let mut $v = $v.clone();
+            )+)?
+            move |$($args $(: $aty)?),*| $body
+        });
+        osui::parse_rsx_param!($elem, $($($rest)*)?);
+    };
+
+    //// FUNCTIONS END
+
+
     ($elem:expr, async $code:block $($rest:tt)*) => {
         let elem_len = $elem.children.len();
         $elem.instructions.push($crate::Instruction::Load(Handler::new(
@@ -55,45 +84,18 @@ macro_rules! parse_rsx_param {
         osui::parse_rsx_param!($elem, $($rest)*);
     };
 
-    //// FUNCTIONS
-
-    ($elem:expr, $($k:ident).+: fn($($params:tt)*) $(@$($v:ident),+)? $code:block $(, $($rest:tt)*)?) => {
-        $elem.$($k).+ = $crate::Handler::new({
-            $($(
-                #[allow(unused_mut)]
-                let mut $v = $v.clone();
-            )+)?
-            move |$($params)*| {
-                $code
-            }
-        });
-        osui::parse_rsx_param!($elem, $($($rest)*)?);
-    };
-
-    //// FUNCTIONS END
-
     ($elem:expr, $($k:ident).+: $v:expr $(, $($rest:tt)*)?) => {
         $elem.$($k).+ = $crate::check_expr!($v);
         osui::parse_rsx_param!($elem, $($($rest)*)?);
     };
+
     ($elem:expr, $p:path) => {
         $p;
     };
-    ($elem:expr, $($k:ident).+, $($rest:tt)*) => {
-        $elem.$($k).+ = true;
-        osui::parse_rsx_param!($elem, $($rest)*);
-    };
-    ($elem:expr, $($k:ident).+., $($rest:tt)*) => {
-        $elem.$($k).+.;
-        osui::parse_rsx_param!($elem, $($rest)*);
-    };
 
-    ($elem:expr, $($k:ident).+.: $v:expr) => {
-        $elem.$($k).+. = $crate::check_expr!($v);
-    };
-    ($elem:expr, $($k:ident).+.: $v:expr, $(, $($rest:tt)*)?) => {
-        $elem.$($k).+. = $crate::check_expr!($v);
-        osui::parse_rsx_param!($elem, $($($rest)*)?);
+    ($elem:expr, $($k:ident).+, $($rest:tt)*) => {
+        $elem.$($k).+ = !$elem.$($k).+;
+        osui::parse_rsx_param!($elem, $($rest)*);
     };
 
     ($elem:expr, $code:block $($rest:tt)*) => {

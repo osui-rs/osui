@@ -10,7 +10,7 @@ fn App() {
 
     rsx! {
         %text { "Hello" }
-        button { on_click: fn (_, _, _) @count {
+        button { on_click: |_, _, _| @count {
             count += 1
         }, "World: {count}" }
     }
