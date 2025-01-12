@@ -68,15 +68,10 @@ impl<'a> Frame<'a> {
             element.render(&mut writer);
             let (width, height) = writer.get_size_root();
             {
-                let (mut x, mut y) = (x, y);
-                if style_element.outline.1 {
-                    x -= 1;
-                    y -= 1;
-                }
-                let height = if style_element.outline.1 {
-                    height + 1
+                let (x, y, width, height) = if style_element.outline.1 {
+                    (x - 1, y - 1, width + 2, height + 2)
                 } else {
-                    height
+                    (x, y, width, height)
                 };
 
                 for i in y..y + height {

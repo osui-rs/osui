@@ -369,11 +369,11 @@ impl Writer {
             let ol = self.style.write_outline("│");
             let hl = "─".repeat(width as usize);
             self.write_abs_outline(&self.style.write_outline(&format!("╭{}╮", hl)), (0, 0));
-            for i in 1..height {
+            for i in 1..height+1 {
                 self.write_abs_outline(&ol, (0, i));
-                self.write_abs_outline(&ol, (width - 1, i));
+                self.write_abs_outline(&ol, (width + 1, i));
             }
-            self.write_abs_outline(&self.style.write_outline(&format!("╰{}╯", hl)), (0, height));
+            self.write_abs_outline(&self.style.write_outline(&format!("╰{}╯", hl)), (0, height + 1));
         }
     }
 
