@@ -1,9 +1,9 @@
 [package]
 name = "osui"
-version = "0.0.8-alpha.1"
+version = "0.0.8-alpha.2"
 edition = "2021"
 license = "Apache-2.0"
-description = "A rsx TUI library"
+description = "A TUI library for advanced uis"
 repository = "https://github.com/osui-rs/osui"
 homepage = "https://osui.netlify.app"
 documentation = "https://osui.netlify.app/docs/" 
@@ -21,14 +21,9 @@ cc = "1.0"
 
 [dependencies]
 crossterm = "0.28.1"
-regex = "1.11.1"
-lazy_static = "1.4"
-paste = "1.0.15"
 dyn-clone = "1.0.17"
-flume = "=0.10.12"
 osui-element = "0.1.23"
 
-# Basic profiles for dev and release
 [profile.dev]
 opt-level = 1
 debug = true
