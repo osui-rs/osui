@@ -1,27 +1,12 @@
-use osui::{examples, prelude::*};
+use osui::*;
 
 fn main() {
-    launch!(App);
+    let mut term = init().unwrap();
+    loop {
+        term.draw(app).unwrap();
+    }
 }
 
-#[component]
-fn App() {
-    rsx! {
-        @SetStyle(css! {
-            example: "hover" {
-                color: Blue,
-            }
-        })
-
-        %text { "Choose an example to run" }
-        button { class: "example", on_click: |_, _, doc| {
-            doc.draw(examples::counter_example::App::default().create_element());
-        }, "Counter" }
-        button { class: "example", on_click: |_, _, doc| {
-            doc.draw(examples::login_example::App::default().create_element());
-        }, "Login" }
-        button { class: "example", on_click: |_, _, doc| {
-            doc.draw(examples::todo_example::App::default().create_element());
-        }, "Todo" }
-    }
+fn app(frame: &mut Frame) {
+    frame.render("hi");
 }

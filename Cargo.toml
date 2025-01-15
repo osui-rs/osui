@@ -1,6 +1,6 @@
 [package]
 name = "osui"
-version = "0.0.8-alpha.2"
+version = "0.0.9-alpha.0"
 edition = "2021"
 license = "Apache-2.0"
 description = "A TUI library for advanced uis"
@@ -21,8 +21,6 @@ cc = "1.0"
 
 [dependencies]
 crossterm = "0.28.1"
-dyn-clone = "1.0.17"
-osui-element = "0.1.23"
 
 [profile.dev]
 opt-level = 1
