@@ -1,86 +1,129 @@
 pub mod utils;
+pub mod widgets;
 
-type Result<T> = std::io::Result<T>;
+pub use std::io::Result;
 
 pub trait Widget {
-    fn draw(&self, w: &mut Writer);
+    fn render(&self) -> String;
 }
 
-pub struct Writer(String);
-
-impl Writer {
-    pub fn write(&mut self, s: &str) {
-        self.0 += s;
-    }
+#[derive(Debug, Clone, Copy)]
+pub struct Area {
+    width: u16,
+    height: u16,
+    x: u16,
+    y: u16,
+    center_x: bool,
+    center_y: bool,
+    width_auto: bool,
+    height_auto: bool,
 }
 
-pub type Element = Box<dyn Widget>;
-
-/////////////////////////////////////////
-
+#[derive(Debug, Default, Clone, Copy)]
 pub struct Frame {
-    pub area: (u16, u16),
-    pub x: u16,
-    pub y: u16,
-    parent: Option<*const Frame>,
+    pub area: Area,
 }
 
 impl Frame {
-    pub fn new(area: (u16, u16), parent: &Frame) -> Frame {
-        Frame {
-            area,
-            x: 0,
-            y: 0,
-            parent: Some(parent),
-        }
-    }
-
-    pub fn new_root(area: (u16, u16)) -> Frame {
-        Frame {
-            area,
-            x: 0,
-            y: 0,
-            parent: None,
-        }
-    }
-
-    pub fn render<E>(&self, elem: E)
+    pub fn draw<W>(&self, w: &W, mut props: Area) -> Result<()>
     where
-        E: Widget,
+        W: Widget,
     {
-        let mut w = Writer(String::new());
-        elem.draw(&mut w);
-        if let Some(_f) = self.parent {
-        } else {
-            println!("{}", w.0);
+        let written = w.render();
+
+        let (ww, wh) = utils::str_size(&written);
+
+        if props.width_auto {
+            props.width = ww;
         }
-    }
-}
+        if props.height_auto {
+            props.height = wh;
+        }
 
-pub struct Terminal(Frame);
+        if props.width > self.area.width {
+            props.width -= props.width - self.area.width;
+        }
 
-impl Terminal {
-    pub fn new() -> Result<Terminal> {
-        Ok(Terminal(Frame::new_root(crossterm::terminal::size()?)))
-    }
+        if props.width > self.area.width {
+            props.width -= props.width - self.area.width;
+        }
 
-    pub fn draw<F>(&mut self, f: F) -> Result<()>
-    where
-        F: Fn(&mut Frame),
-    {
-        f(&mut self.0);
+        if props.center_x {
+            props.x = (self.area.width - ww) / 2;
+        }
+        if props.center_y {
+            props.y = (self.area.height - wh) / 2;
+        }
+
+        for (i, line) in written.lines().enumerate() {
+            if i as u16 > props.height {
+                break;
+            }
+
+            println!(
+                "\x1b[{};{}H{}",
+                props.x + (i as u16) + 1,
+                props.y + 1,
+                line.chars().take(props.width as usize).collect::<String>()
+            );
+        }
+
         Ok(())
     }
-}
 
-impl Widget for &str {
-    fn draw(&self, w: &mut Writer) {
-        w.write(self);
+    pub fn new(width: u16, height: u16) -> Self {
+        let mut f = Self::default();
+        f.area.width(width);
+        f.area.height(height);
+        f
     }
 }
 
-pub fn init() -> Result<Terminal> {
-    utils::clear()?;
-    utils::hide_cursor()?;
-    Terminal::new()
+impl Area {
+    pub fn new() -> Self {
+        Self::default()
+    }
+
+    pub fn center_x(&mut self) -> Self {
+        self.center_x = true;
+        *self
+    }
+
+    pub fn center_y(&mut self) -> Self {
+        self.center_y = true;
+        *self
+    }
+
+    pub fn center(&mut self) -> Self {
+        self.center_x = true;
+        self.center_y = true;
+        *self
+    }
+
+    pub fn width(&mut self, w: u16) -> Self {
+        self.width = w;
+        self.width_auto = false;
+        *self
+    }
+
+    pub fn height(&mut self, h: u16) -> Self {
+        self.height = h;
+        self.height_auto = false;
+        *self
+    }
+}
+
+impl Default for Area {
+    fn default() -> Self {
+        Self {
+            width: 0,
+            height: 0,
+            x: 0,
+            y: 0,
+            center_x: false,
+            center_y: false,
+            width_auto: true,
+            height_auto: true,
+        }
+    }
 }

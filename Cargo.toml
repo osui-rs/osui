@@ -8,6 +8,9 @@ repository = "https://github.com/osui-rs/osui"
 homepage = "https://osui.netlify.app"
 documentation = "https://osui.netlify.app/docs/" 
 
+[features]
+rsx = []
+
 [lib]
 name = "osui"
 path = "src/lib.rs"
