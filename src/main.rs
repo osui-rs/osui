@@ -1,4 +1,4 @@
-use osui::*;
+use osui::prelude::*;
 
 fn main() -> osui::Result<()> {
     let con = console::init()?;
@@ -10,14 +10,18 @@ fn main() -> osui::Result<()> {
         let mut count1 = count.copy_state();
         con.draw(std::sync::Arc::clone(&ui))?;
 
-        console::read()?;
+        if let Event::Key(KeyEvent { code, .. }) = console::read()? {
+            if code == KeyCode::Char('q') {
+                break;
+            }
+        }
         count1 += 1;
     }
 
     console::end()
 }
 
-pub fn app() -> (Element, State<i32>) {
+pub fn app() -> (Element, state::State<i32>) {
     let count = use_state(0);
     let count1 = count.copy_state();
 
