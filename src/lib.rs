@@ -1,3 +1,4 @@
+pub mod console;
 pub mod utils;
 pub mod widgets;
 
@@ -62,8 +63,8 @@ impl Frame {
 
             println!(
                 "\x1b[{};{}H{}",
-                props.x + (i as u16) + 1,
-                props.y + 1,
+                props.y + (i as u16) + 1,
+                props.x + 1,
                 line.chars().take(props.width as usize).collect::<String>()
             );
         }
@@ -71,7 +72,7 @@ impl Frame {
         Ok(())
     }
 
-    pub fn new(width: u16, height: u16) -> Self {
+    pub fn new((width, height): (u16, u16)) -> Self {
         let mut f = Self::default();
         f.area.width(width);
         f.area.height(height);
@@ -84,20 +85,23 @@ impl Area {
         Self::default()
     }
 
-    pub fn center_x(&mut self) -> Self {
-        self.center_x = true;
-        *self
+    pub fn center_x() -> Self {
+        let mut s = Self::default();
+        s.center_x = true;
+        s
     }
 
-    pub fn center_y(&mut self) -> Self {
-        self.center_y = true;
-        *self
+    pub fn center_y() -> Self {
+        let mut s = Self::default();
+        s.center_y = true;
+        s
     }
 
-    pub fn center(&mut self) -> Self {
-        self.center_x = true;
-        self.center_y = true;
-        *self
+    pub fn center() -> Self {
+        let mut s = Self::default();
+        s.center_x = true;
+        s.center_y = true;
+        s
     }
 
     pub fn width(&mut self, w: u16) -> Self {
@@ -109,6 +113,16 @@ impl Area {
     pub fn height(&mut self, h: u16) -> Self {
         self.height = h;
         self.height_auto = false;
+        *self
+    }
+
+    pub fn x(&mut self, x: u16) -> Self {
+        self.x = x;
+        *self
+    }
+
+    pub fn y(&mut self, y: u16) -> Self {
+        self.y = y;
         *self
     }
 }

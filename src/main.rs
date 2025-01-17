@@ -1,15 +1,16 @@
 use osui::*;
 
 fn main() -> osui::Result<()> {
-    utils::init()?;
+    let con = console::init()?;
 
-    let (width, height) = crossterm::terminal::size()?;
+    loop {
+        con.draw(|frame| -> Result<()> {
+            frame.draw(&"testing", Area::center())?;
+            frame.draw(&"\x1b[32mX\x1b[0m", Area::center_x())?;
+            frame.draw(&"\x1b[31mY\x1b[0m", Area::center_y())?;
+            Ok(())
+        })?;
+    }
 
-    let frame = Frame::new(width, height);
-
-    frame.draw(&"Hello?", Area::new())?;
-
-    utils::read()?;
-
-    utils::end()
+    console::end()
 }

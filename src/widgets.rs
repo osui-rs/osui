@@ -5,3 +5,9 @@ impl Widget for &str {
         self.to_string()
     }
 }
+
+impl Widget for String {
+    fn render(&self) -> String {
+        self.clone()
+    }
+}
