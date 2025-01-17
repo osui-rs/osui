@@ -1,4 +1,4 @@
-use crate::Frame;
+use crate::{Element, Frame};
 
 pub struct Console(Frame);
 
@@ -25,10 +25,7 @@ pub fn end() -> crate::Result<()> {
 }
 
 impl Console {
-    pub fn draw<F>(&self, mut f: F) -> crate::Result<()>
-    where
-        F: FnMut(&Frame) -> crate::Result<()>,
-    {
+    pub fn draw(&self, f: Element) -> crate::Result<()> {
         crate::utils::clear()?;
         f(&self.0)
     }
