@@ -16,6 +16,9 @@ pub type Element = std::sync::Arc<dyn Fn(&Frame) -> crate::Result<()>>;
 
 pub trait Widget {
     fn render(&self) -> String;
+    fn event(&mut self, event: console::Event) {
+        _ = event;
+    }
 }
 
 #[derive(Debug, Clone, Copy)]

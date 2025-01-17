@@ -15,6 +15,7 @@ pub fn init() -> crate::Result<Console> {
     crossterm::terminal::enable_raw_mode()?;
     crate::utils::clear()?;
     crate::utils::hide_cursor()?;
+    crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)?;
     Ok(Console(Frame::new(crossterm::terminal::size()?)))
 }
 
@@ -28,6 +29,18 @@ impl Console {
     pub fn draw(&self, f: Element) -> crate::Result<()> {
         crate::utils::clear()?;
         f(&self.0)
+    }
+
+    pub fn run(&mut self, ui: Element) -> crate::Result<()> {
+        loop {
+            self.draw(ui.clone())?;
+            let event = read()?;
+            if let Event::Resize(w, h) = event {
+                self.0.area.width = w;
+                self.0.area.height = h;
+            }
+            
+        }
     }
 }
 
