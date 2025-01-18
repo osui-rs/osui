@@ -25,9 +25,23 @@ macro_rules! rsx_inner {
 
     // If statement
     ($frame:expr, $event:expr;
-        if $(%$s:ident),* ($e:expr) {$($inner:tt)*}
+        if ($e:expr) {$($inner:tt)*}
+        $(else if ($ee:expr) {$($elif_inner:tt)*})*
+        else {$($else_inner:tt)*}
     $($rest:tt)*) => {
-        $(let $s = $s.copy_state();)*
+        if $e {
+            $crate::rsx_inner!($frame, $event; $($inner)*);
+        } $(else if $ee {
+            $crate::rsx_inner!($frame, $event; $($elif_inner)*);
+        })* else {
+            $crate::rsx_inner!($frame, $event; $($else_inner)*);
+        }
+        $crate::rsx_inner!($frame, $event; $($rest)*);
+    };
+
+    ($frame:expr, $event:expr;
+        if ($e:expr) {$($inner:tt)*}
+    $($rest:tt)*) => {
         if $e {
             $crate::rsx_inner!($frame, $event; $($inner)*);
         }
@@ -59,13 +73,6 @@ macro_rules! rsx_inner {
         let mut area = $crate::Area::new();
         $crate::tw_area!(area, $($inner)*);
         $elem()($frame, $event)?;
-        $crate::rsx_inner!($frame, $event; $($rest)*);
-    };
-
-    ($frame:expr, $event:expr;
-        $elem:literal
-    $($rest:tt)*) => {
-        $frame.draw(&format!($elem), Area::new())?;
         $crate::rsx_inner!($frame, $event; $($rest)*);
     };
 

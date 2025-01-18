@@ -12,10 +12,6 @@ pub fn app() -> Element {
     let count = use_state(0);
 
     rsx! {
-        if (count == 0) {
-            "ok"
-        }
-
         "{count}"
     }
 }
