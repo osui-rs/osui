@@ -12,6 +12,7 @@ macro_rules! rsx {
 
 #[macro_export]
 macro_rules! rsx_inner {
+    // Literal
     ($frame:expr, $event:expr;
         $elem:literal ($($inner:tt)*)
     $($rest:tt)*) => {
@@ -20,7 +21,24 @@ macro_rules! rsx_inner {
         $frame.draw(&format!($elem), area)?;
         $crate::rsx_inner!($frame, $event; $($rest)*);
     };
+    ($frame:expr, $event:expr;
+        $elem:literal
+    $($rest:tt)*) => {
+        $frame.draw(&format!($elem), Area::new())?;
+        $crate::rsx_inner!($frame, $event; $($rest)*);
+    };
 
+    // name { rsx }
+    ($frame:expr, $event:expr;
+        $elem:path {
+            $($einner:tt)*
+        } ($($inner:tt)*)
+    $($rest:tt)*) => {
+        let mut area = $crate::Area::new();
+        $crate::tw_area!(area, $($inner)*);
+        $elem()($frame, $event)?;
+        $crate::rsx_inner!($frame, $event; $($rest)*);
+    };
     ($frame:expr, $event:expr;
         $elem:literal
     $($rest:tt)*) => {
@@ -38,47 +56,47 @@ macro_rules! tw_area {
     };
 
     // X
-    ($a:expr, x-$v:ident $(, $($rest:tt)*)?) => {
+    ($a:expr, x-$v:ident $($rest:tt)*) => {
         $a.x = $crate::Pos::$v;
-        $crate::tw_area!($a, $($($rest)*)?);
+        $crate::tw_area!($a, $($rest)*);
     };
 
-    ($a:expr, x-$v:literal $(, $($rest:tt)*)?) => {
+    ($a:expr, x-$v:literal $($rest:tt)*) => {
         $a.x = $crate::Pos::Num($v);
-        $crate::tw_area!($a, $($($rest)*)?);
+        $crate::tw_area!($a, $($rest)*);
     };
 
     // Y
-    ($a:expr, y-$v:ident $(, $($rest:tt)*)?) => {
+    ($a:expr, y-$v:ident $($rest:tt)*) => {
         $a.y = $crate::Pos::$v;
-        $crate::tw_area!($a, $($($rest)*)?);
+        $crate::tw_area!($a, $($rest)*);
     };
 
-    ($a:expr, y-$v:literal $(, $($rest:tt)*)?) => {
+    ($a:expr, y-$v:literal $($rest:tt)*) => {
         $a.y = $crate::Pos::Num($v);
-        $crate::tw_area!($a, $($($rest)*)?);
+        $crate::tw_area!($a, $($rest)*);
     };
 
     // Width
-    ($a:expr, width-$v:ident $(, $($rest:tt)*)?) => {
+    ($a:expr, width-$v:ident $($rest:tt)*) => {
         $a.width = $crate::Size::$v;
-        $crate::tw_area!($a, $($($rest)*)?);
+        $crate::tw_area!($a, $($rest)*);
     };
 
-    ($a:expr, width-$v:literal $(, $($rest:tt)*)?) => {
+    ($a:expr, width-$v:literal $($rest:tt)*) => {
         $a.width = $crate::Size::Num($v);
-        $crate::tw_area!($a, $($($rest)*)?);
+        $crate::tw_area!($a, $($rest)*);
     };
 
     // Height
-    ($a:expr, height-$v:ident $(, $($rest:tt)*)?) => {
+    ($a:expr, height-$v:ident $($rest:tt)*) => {
         $a.height = $crate::Size::$v;
-        $crate::tw_area!($a, $($($rest)*)?);
+        $crate::tw_area!($a, $($rest)*);
     };
 
-    ($a:expr, height-$v:literal $(, $($rest:tt)*)?) => {
+    ($a:expr, height-$v:literal $($rest:tt)*) => {
         $a.height = $crate::Size::Num($v);
-        $crate::tw_area!($a, $($($rest)*)?);
+        $crate::tw_area!($a, $($rest)*);
     };
 
     ($a:expr,) => {};

@@ -11,11 +11,13 @@ pub enum Event {
     FocusLost,
 }
 
-pub fn init() -> crate::Result<Console> {
+pub fn init(mouse: bool) -> crate::Result<Console> {
     crossterm::terminal::enable_raw_mode()?;
     crate::utils::clear()?;
     crate::utils::hide_cursor()?;
-    crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)?;
+    if mouse {
+        crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)?;
+    }
     Ok(Console(Frame::new(crossterm::terminal::size()?)))
 }
 

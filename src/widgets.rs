@@ -11,3 +11,9 @@ impl Widget for String {
         self.clone()
     }
 }
+
+impl Widget for crate::Element {
+    fn render(&self) -> String {
+        format!("")
+    }
+}

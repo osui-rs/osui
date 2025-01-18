@@ -1,7 +1,7 @@
 use osui::prelude::*;
 
 fn main() -> osui::Result<()> {
-    let mut con = console::init()?;
+    let mut con = console::init(false)?;
 
     con.run(app())?;
 
@@ -10,9 +10,12 @@ fn main() -> osui::Result<()> {
 
 pub fn app() -> Element {
     rsx! {
-        "X" (x-Center)
-        "Y" (y-Center)
+        test {} ()
+    }
+}
 
-        "Hello, World" (x-Center, y-Center)
+pub fn test() -> Element {
+    rsx! {
+        "ABC" (x-center y-center)
     }
 }

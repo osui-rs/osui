@@ -23,16 +23,18 @@ pub trait Widget {
 
 #[derive(Debug, Clone, Copy)]
 pub enum Pos {
-    Auto,
-    Center,
+    #[allow(non_camel_case_types)]
+    auto,
+    #[allow(non_camel_case_types)]
+    center,
     Num(u16),
 }
 
 impl Pos {
     pub fn get(self, auto: u16, width: u16, frame: u16) -> u16 {
         match self {
-            Self::Auto => auto,
-            Self::Center => (frame - width) / 2,
+            Self::auto => auto,
+            Self::center => (frame - width) / 2,
             Self::Num(n) => n,
         }
     }
@@ -195,7 +197,7 @@ impl Default for Area {
             width: Size::Auto,
             height: Size::Auto,
             x: Pos::Num(0),
-            y: Pos::Auto,
+            y: Pos::auto,
         }
     }
 }
