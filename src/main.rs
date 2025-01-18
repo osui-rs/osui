@@ -1,21 +1,21 @@
 use osui::prelude::*;
 
 fn main() -> osui::Result<()> {
-    let mut con = console::init(false)?;
+    let mut con = console::init(true)?;
 
     con.run(app())?;
 
-    console::end()
+    con.end()
 }
 
 pub fn app() -> Element {
-    rsx! {
-        test {} ()
-    }
-}
+    let count = use_state(0);
 
-pub fn test() -> Element {
     rsx! {
-        "ABC" (x-center y-center)
+        if (count == 0) {
+            "ok"
+        }
+
+        "{count}"
     }
 }

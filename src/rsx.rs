@@ -12,6 +12,28 @@ macro_rules! rsx {
 
 #[macro_export]
 macro_rules! rsx_inner {
+    // For loop
+    ($frame:expr, $event:expr;
+        for $i:pat in ($e:expr) $(%$s:ident),* {$($inner:tt)*}
+    $($rest:tt)*) => {
+        for $i in $e {
+            $(let $s = $s.copy_state();)*
+            $crate::rsx_inner!($frame, $event; $($inner)*);
+        }
+        $crate::rsx_inner!($frame, $event; $($rest)*);
+    };
+
+    // If statement
+    ($frame:expr, $event:expr;
+        if $(%$s:ident),* ($e:expr) {$($inner:tt)*}
+    $($rest:tt)*) => {
+        $(let $s = $s.copy_state();)*
+        if $e {
+            $crate::rsx_inner!($frame, $event; $($inner)*);
+        }
+        $crate::rsx_inner!($frame, $event; $($rest)*);
+    };
+
     // Literal
     ($frame:expr, $event:expr;
         $elem:literal ($($inner:tt)*)
@@ -39,6 +61,7 @@ macro_rules! rsx_inner {
         $elem()($frame, $event)?;
         $crate::rsx_inner!($frame, $event; $($rest)*);
     };
+
     ($frame:expr, $event:expr;
         $elem:literal
     $($rest:tt)*) => {

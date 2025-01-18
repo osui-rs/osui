@@ -1,6 +1,6 @@
 use crate::{Element, Frame};
 
-pub struct Console(Frame);
+pub struct Console(Frame, bool);
 
 pub enum Event {
     Key(crossterm::event::KeyEvent),
@@ -18,13 +18,7 @@ pub fn init(mouse: bool) -> crate::Result<Console> {
     if mouse {
         crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)?;
     }
-    Ok(Console(Frame::new(crossterm::terminal::size()?)))
-}
-
-pub fn end() -> crate::Result<()> {
-    crossterm::terminal::disable_raw_mode()?;
-    crate::utils::clear()?;
-    crate::utils::show_cursor()
+    Ok(Console(Frame::new(crossterm::terminal::size()?), mouse))
 }
 
 impl Console {
@@ -43,6 +37,15 @@ impl Console {
             }
             self.draw(ui.clone(), Some(event))?;
         }
+    }
+
+    pub fn end(&self) -> crate::Result<()> {
+        if self.1 {
+            crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)?;
+        }
+        crossterm::terminal::disable_raw_mode()?;
+        crate::utils::clear()?;
+        crate::utils::show_cursor()
     }
 }
 
