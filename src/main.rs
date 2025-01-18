@@ -3,20 +3,16 @@ use osui::prelude::*;
 fn main() -> osui::Result<()> {
     let mut con = console::init()?;
 
-    let (ui, _count) = app();
-    con.run(ui).unwrap();
+    con.run(app())?;
 
     console::end()
 }
 
-pub fn app() -> (Element, state::State<i32>) {
-    let count = use_state(0);
-    let count1 = count.copy_state();
+pub fn app() -> Element {
+    rsx! {
+        "X" (x-Center)
+        "Y" (y-Center)
 
-    (
-        rsx! {
-            "{count}"
-        },
-        count1,
-    )
+        "Hello, World" (x-Center, y-Center)
+    }
 }

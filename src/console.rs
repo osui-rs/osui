@@ -26,20 +26,20 @@ pub fn end() -> crate::Result<()> {
 }
 
 impl Console {
-    pub fn draw(&self, f: Element) -> crate::Result<()> {
-        crate::utils::clear()?;
-        f(&self.0)
+    pub fn draw(&mut self, ui: Element, event: Option<Event>) -> crate::Result<()> {
+        self.0.clear()?;
+        ui(&mut self.0, event)
     }
 
     pub fn run(&mut self, ui: Element) -> crate::Result<()> {
+        self.draw(ui.clone(), None)?;
         loop {
-            self.draw(ui.clone())?;
             let event = read()?;
             if let Event::Resize(w, h) = event {
-                self.0.area.width = w;
-                self.0.area.height = h;
+                self.0.width = w;
+                self.0.height = h;
             }
-            
+            self.draw(ui.clone(), Some(event))?;
         }
     }
 }

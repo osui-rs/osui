@@ -1,13 +1,85 @@
 #[macro_export]
 macro_rules! rsx {
-    ($($e:literal)*) => {
+    ($($inner:tt)*) => {
         std::sync::Arc::new(
-            move |frame: &$crate::Frame| -> $crate::Result<()> {
-                $(
-                    frame.draw(&format!($e), Area::center())?;
-                )*
+            move |frame: &mut $crate::Frame, event: Option<$crate::console::Event>| -> $crate::Result<()> {
+                $crate::rsx_inner!(frame, event; $($inner)*);
                 Ok(())
             }
         )
     };
+}
+
+#[macro_export]
+macro_rules! rsx_inner {
+    ($frame:expr, $event:expr;
+        $elem:literal ($($inner:tt)*)
+    $($rest:tt)*) => {
+        let mut area = $crate::Area::new();
+        $crate::tw_area!(area, $($inner)*);
+        $frame.draw(&format!($elem), area)?;
+        $crate::rsx_inner!($frame, $event; $($rest)*);
+    };
+
+    ($frame:expr, $event:expr;
+        $elem:literal
+    $($rest:tt)*) => {
+        $frame.draw(&format!($elem), Area::new())?;
+        $crate::rsx_inner!($frame, $event; $($rest)*);
+    };
+
+    ($frame:expr, $event:expr;) => {};
+}
+
+#[macro_export]
+macro_rules! tw_area {
+    ($a:expr, $n:ident) => {
+        $a.$n;
+    };
+
+    // X
+    ($a:expr, x-$v:ident $(, $($rest:tt)*)?) => {
+        $a.x = $crate::Pos::$v;
+        $crate::tw_area!($a, $($($rest)*)?);
+    };
+
+    ($a:expr, x-$v:literal $(, $($rest:tt)*)?) => {
+        $a.x = $crate::Pos::Num($v);
+        $crate::tw_area!($a, $($($rest)*)?);
+    };
+
+    // Y
+    ($a:expr, y-$v:ident $(, $($rest:tt)*)?) => {
+        $a.y = $crate::Pos::$v;
+        $crate::tw_area!($a, $($($rest)*)?);
+    };
+
+    ($a:expr, y-$v:literal $(, $($rest:tt)*)?) => {
+        $a.y = $crate::Pos::Num($v);
+        $crate::tw_area!($a, $($($rest)*)?);
+    };
+
+    // Width
+    ($a:expr, width-$v:ident $(, $($rest:tt)*)?) => {
+        $a.width = $crate::Size::$v;
+        $crate::tw_area!($a, $($($rest)*)?);
+    };
+
+    ($a:expr, width-$v:literal $(, $($rest:tt)*)?) => {
+        $a.width = $crate::Size::Num($v);
+        $crate::tw_area!($a, $($($rest)*)?);
+    };
+
+    // Height
+    ($a:expr, height-$v:ident $(, $($rest:tt)*)?) => {
+        $a.height = $crate::Size::$v;
+        $crate::tw_area!($a, $($($rest)*)?);
+    };
+
+    ($a:expr, height-$v:literal $(, $($rest:tt)*)?) => {
+        $a.height = $crate::Size::Num($v);
+        $crate::tw_area!($a, $($($rest)*)?);
+    };
+
+    ($a:expr,) => {};
 }

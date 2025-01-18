@@ -12,7 +12,7 @@ pub mod prelude {
 
 pub use std::io::Result;
 
-pub type Element = std::sync::Arc<dyn Fn(&Frame) -> crate::Result<()>>;
+pub type Element = std::sync::Arc<dyn Fn(&mut Frame, Option<console::Event>) -> crate::Result<()>>;
 
 pub trait Widget {
     fn render(&self) -> String;
@@ -22,24 +22,58 @@ pub trait Widget {
 }
 
 #[derive(Debug, Clone, Copy)]
+pub enum Pos {
+    Auto,
+    Center,
+    Num(u16),
+}
+
+impl Pos {
+    pub fn get(self, auto: u16, width: u16, frame: u16) -> u16 {
+        match self {
+            Self::Auto => auto,
+            Self::Center => (frame - width) / 2,
+            Self::Num(n) => n,
+        }
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum Size {
+    Auto,
+    Num(u16),
+}
+
+impl Size {
+    fn get_(self, written: u16) -> u16 {
+        match self {
+            Self::Auto => written,
+            Self::Num(n) => n,
+        }
+    }
+
+    pub fn get(self, written: u16, _frame: u16) -> u16 {
+        self.get_(written)
+    }
+}
+
+#[derive(Debug, Clone, Copy)]
 pub struct Area {
-    width: u16,
-    height: u16,
-    x: u16,
-    y: u16,
-    center_x: bool,
-    center_y: bool,
-    width_auto: bool,
-    height_auto: bool,
+    pub width: Size,
+    pub height: Size,
+    pub x: Pos,
+    pub y: Pos,
 }
 
 #[derive(Debug, Default, Clone, Copy)]
 pub struct Frame {
-    pub area: Area,
+    pub width: u16,
+    pub height: u16,
+    last_elem: (u16, u16),
 }
 
 impl Frame {
-    pub fn draw<W>(&self, w: &W, mut props: Area) -> Result<()>
+    pub fn draw<W>(&mut self, w: &W, props: Area) -> Result<()>
     where
         W: Widget,
     {
@@ -47,49 +81,47 @@ impl Frame {
 
         let (ww, wh) = utils::str_size(&written);
 
-        if props.width_auto {
-            props.width = ww;
-        }
-        if props.height_auto {
-            props.height = wh;
-        }
+        let (width, height) = (
+            props.width.get(ww, self.width),
+            props.height.get(wh, self.height),
+        );
 
-        if props.width > self.area.width {
-            props.width -= props.width - self.area.width;
-        }
-
-        if props.width > self.area.width {
-            props.width -= props.width - self.area.width;
-        }
-
-        if props.center_x {
-            props.x = (self.area.width - ww) / 2;
-        }
-        if props.center_y {
-            props.y = (self.area.height - wh) / 2;
-        }
+        let (x, y) = (
+            props.x.get(self.last_elem.0, width, self.width),
+            props.y.get(self.last_elem.1, height, self.height),
+        );
 
         for (i, line) in written.lines().enumerate() {
-            if i as u16 > props.height {
+            if i as u16 > height {
                 break;
             }
 
             println!(
                 "\x1b[{};{}H{}",
-                props.y + (i as u16) + 1,
-                props.x + 1,
-                line.chars().take(props.width as usize).collect::<String>()
+                y + (i as u16) + 1,
+                x + 1,
+                line.chars().take(width as usize).collect::<String>()
             );
         }
+
+        self.last_elem.0 = x + width;
+        self.last_elem.1 = y + height;
 
         Ok(())
     }
 
+    pub fn clear(&mut self) -> Result<()> {
+        self.last_elem.0 = 0;
+        self.last_elem.1 = 0;
+        utils::clear()
+    }
+
     pub fn new((width, height): (u16, u16)) -> Self {
-        let mut f = Self::default();
-        f.area.width(width);
-        f.area.height(height);
-        f
+        Self {
+            width,
+            height,
+            last_elem: (0, 0),
+        }
     }
 }
 
@@ -98,44 +130,61 @@ impl Area {
         Self::default()
     }
 
+    #[cfg(feature = "portable")]
     pub fn center_x() -> Self {
         let mut s = Self::default();
-        s.center_x = true;
+        s.x = Pos::Center;
         s
     }
 
+    #[cfg(feature = "portable")]
     pub fn center_y() -> Self {
         let mut s = Self::default();
-        s.center_y = true;
+        s.y = Pos::Center;
         s
     }
 
+    #[cfg(feature = "portable")]
     pub fn center() -> Self {
         let mut s = Self::default();
-        s.center_x = true;
-        s.center_y = true;
+        s.x = Pos::Center;
+        s.y = Pos::Center;
         s
     }
 
-    pub fn width(&mut self, w: u16) -> Self {
+    #[cfg(feature = "portable")]
+    pub fn set_width(&mut self, w: Size) -> Self {
         self.width = w;
-        self.width_auto = false;
         *self
     }
 
-    pub fn height(&mut self, h: u16) -> Self {
+    #[cfg(feature = "portable")]
+    pub fn set_height(&mut self, h: Size) -> Self {
         self.height = h;
-        self.height_auto = false;
         *self
     }
 
-    pub fn x(&mut self, x: u16) -> Self {
+    #[cfg(feature = "portable")]
+    pub fn set_x(&mut self, x: Pos) -> Self {
         self.x = x;
         *self
     }
 
-    pub fn y(&mut self, y: u16) -> Self {
+    #[cfg(feature = "portable")]
+    pub fn set_y(&mut self, y: Pos) -> Self {
         self.y = y;
+        *self
+    }
+
+    #[cfg(feature = "portable")]
+    pub fn x_auto(&mut self) -> Self {
+        self.x = Pos::Auto;
+        *self
+    }
+
+    #[cfg(feature = "portable")]
+    pub fn y_zero(&mut self) -> Self {
+        self.y = Pos::Num(0);
         *self
     }
 }
@@ -143,14 +192,10 @@ impl Area {
 impl Default for Area {
     fn default() -> Self {
         Self {
-            width: 0,
-            height: 0,
-            x: 0,
-            y: 0,
-            center_x: false,
-            center_y: false,
-            width_auto: true,
-            height_auto: true,
+            width: Size::Auto,
+            height: Size::Auto,
+            x: Pos::Num(0),
+            y: Pos::Auto,
         }
     }
 }

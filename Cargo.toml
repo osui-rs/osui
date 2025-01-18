@@ -10,6 +10,8 @@ documentation = "https://osui.netlify.app/docs/"
 
 [features]
 rsx = []
+frontend = ["rsx"]
+portable = []
 
 [lib]
 name = "osui"

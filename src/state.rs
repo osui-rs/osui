@@ -1,3 +1,4 @@
+#[derive(Clone, Copy)]
 pub struct State<T>(pub(crate) *mut T);
 
 impl<T: std::fmt::Display> std::fmt::Display for State<T> {
