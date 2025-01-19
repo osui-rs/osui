@@ -9,9 +9,10 @@ homepage = "https://osui.netlify.app"
 documentation = "https://osui.netlify.app/docs/" 
 
 [features]
-rsx = []
-frontend = ["rsx"]
+no_rsx = []
 portable = []
+engine = []
+no_elem = []
 
 [lib]
 name = "osui"

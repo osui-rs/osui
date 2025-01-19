@@ -28,6 +28,7 @@ impl Console {
         ui(&mut self.0, event)
     }
 
+    #[cfg(not(feature = "engine"))]
     pub fn run(&mut self, ui: Element) -> crate::Result<()> {
         self.draw(ui.clone(), None)?;
         loop {
@@ -42,11 +43,15 @@ impl Console {
 
     pub fn end(&self) -> crate::Result<()> {
         if self.1 {
-            crossterm::execute!(std::io::stdout(), crossterm::event::EnableMouseCapture)?;
+            crossterm::execute!(std::io::stdout(), crossterm::event::DisableMouseCapture)?;
         }
         crossterm::terminal::disable_raw_mode()?;
         crate::utils::clear()?;
         crate::utils::show_cursor()
+    }
+
+    pub fn size(&self) -> (u16, u16) {
+        (self.0.width, self.0.height)
     }
 }
 
