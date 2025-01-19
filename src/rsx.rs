@@ -1,3 +1,23 @@
+/// A brief summary of what the macro does.
+///
+/// A detailed explanation about the macro's purpose,
+/// how it expands, and when to use it.
+///
+/// # Examples
+///
+/// Simple
+/// ```rust
+/// rsx! {
+///     "Hello, World!"
+/// }
+/// ```
+/// 
+/// Button example
+/// ```rust
+/// rsx! {
+///     button { "{count}" }
+/// }
+/// ```
 #[macro_export]
 macro_rules! rsx {
     ($($inner:tt)*) => {
@@ -10,6 +30,9 @@ macro_rules! rsx {
     };
 }
 
+/// # Warning
+///
+/// **Don't use this macro manually** use `rsx!` instead
 #[macro_export]
 macro_rules! rsx_inner {
     // For loop
@@ -81,6 +104,9 @@ macro_rules! rsx_inner {
     ($frame:expr, $event:expr;) => {};
 }
 
+/// # Warning
+///
+/// **Don't use this macro manually** use `rsx!` instead
 #[macro_export]
 macro_rules! tw_area {
     ($a:expr, $n:ident) => {

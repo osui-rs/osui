@@ -1,17 +1,37 @@
+//! Console module
+//!
+//! This module provides utilities for managing terminal interactions, including event handling,
+//! rendering, and terminal state management.
+
 use crate::{Element, Frame};
 
+/// Represents the console state, containing a frame for rendering and a mouse capture flag.
 pub struct Console(Frame, bool);
 
+/// Enum representing various events that can occur in the console.
 #[derive(Debug, Clone)]
 pub enum Event {
+    /// A keyboard event.
     Key(crossterm::event::KeyEvent),
+    /// A terminal resize event with new dimensions (width, height).
     Resize(u16, u16),
+    /// A mouse event.
     Mouse(crossterm::event::MouseEvent),
+    /// A paste event with the pasted content.
     Paste(String),
+    /// An event indicating the terminal gained focus.
     FocusGained,
+    /// An event indicating the terminal lost focus.
     FocusLost,
 }
 
+/// Initializes the console with raw mode enabled and optionally mouse capture.
+///
+/// # Arguments
+/// * `mouse` - A boolean flag indicating whether to enable mouse capture.
+///
+/// # Returns
+/// A `Console` instance wrapped in a `Result`.
 pub fn init(mouse: bool) -> crate::Result<Console> {
     crossterm::terminal::enable_raw_mode()?;
     crate::utils::clear()?;
@@ -23,11 +43,28 @@ pub fn init(mouse: bool) -> crate::Result<Console> {
 }
 
 impl Console {
+    /// Renders a user interface element with an optional event.
+    ///
+    /// # Arguments
+    /// * `ui` - The UI element to render.
+    /// * `event` - An optional event to pass to the UI element.
+    ///
+    /// # Returns
+    /// A `Result` indicating success or failure.
     pub fn draw(&mut self, ui: Element, event: Option<Event>) -> crate::Result<()> {
         self.0.clear()?;
         ui(&mut self.0, event)
     }
 
+    /// Runs the console loop, rendering the UI and handling events.
+    ///
+    /// This method is disabled when the `engine` feature is enabled.
+    ///
+    /// # Arguments
+    /// * `ui` - The UI element to render.
+    ///
+    /// # Returns
+    /// A `Result` indicating success or failure.
     #[cfg(not(feature = "engine"))]
     pub fn run(&mut self, ui: Element) -> crate::Result<()> {
         self.draw(ui.clone(), None)?;
@@ -41,6 +78,10 @@ impl Console {
         }
     }
 
+    /// Ends the console session, restoring the terminal state.
+    ///
+    /// # Returns
+    /// A `Result` indicating success or failure.
     pub fn end(&self) -> crate::Result<()> {
         if self.1 {
             crossterm::execute!(std::io::stdout(), crossterm::event::DisableMouseCapture)?;
@@ -50,11 +91,19 @@ impl Console {
         crate::utils::show_cursor()
     }
 
+    /// Retrieves the current terminal size.
+    ///
+    /// # Returns
+    /// A tuple containing the width and height of the terminal.
     pub fn size(&self) -> (u16, u16) {
         (self.0.width, self.0.height)
     }
 }
 
+/// Reads an event from the terminal.
+///
+/// # Returns
+/// An `Event` wrapped in a `Result`.
 pub fn read() -> crate::Result<Event> {
     let event = crossterm::event::read()?;
 
@@ -68,6 +117,10 @@ pub fn read() -> crate::Result<Event> {
     })
 }
 
+/// Attempts to read an event from the terminal without blocking.
+///
+/// # Returns
+/// An `Option` containing an `Event` if one is available.
 pub fn try_read() -> Option<Event> {
     if crossterm::event::poll(std::time::Duration::ZERO).unwrap_or(false) {
         read().ok()
