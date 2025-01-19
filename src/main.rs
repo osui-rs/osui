@@ -9,9 +9,7 @@ fn main() -> osui::Result<()> {
 }
 
 pub fn app() -> Element {
-    let count = use_state(0);
-
     rsx! {
-        "{count}"
+        ""
     }
 }

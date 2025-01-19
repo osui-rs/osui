@@ -2,6 +2,7 @@ use crate::{Element, Frame};
 
 pub struct Console(Frame, bool);
 
+#[derive(Debug, Clone)]
 pub enum Event {
     Key(crossterm::event::KeyEvent),
     Resize(u16, u16),
