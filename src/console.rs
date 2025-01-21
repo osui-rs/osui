@@ -71,8 +71,19 @@ impl Console {
             if let Event::Resize(w, h) = event {
                 self.0.width = w;
                 self.0.height = h;
+            } else if let Event::Mouse(crossterm::event::MouseEvent {
+                kind: crossterm::event::MouseEventKind::Moved,
+                row,
+                column,
+                ..
+            }) = event
+            {
+                self.0.mouse_pos = Some((column, row));
+
+                self.draw(ui.clone(), None)?;
+            } else {
+                self.draw(ui.clone(), Some(event))?;
             }
-            self.draw(ui.clone(), Some(event))?;
         }
     }
 

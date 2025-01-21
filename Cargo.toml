@@ -10,7 +10,6 @@ documentation = "https://osui.netlify.app/docs/"
 
 [features]
 no_rsx = []
-portable = []
 no_elem = []
 
 [lib]

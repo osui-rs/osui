@@ -35,6 +35,14 @@ macro_rules! rsx {
 /// **Don't use this macro manually** use `rsx!` instead
 #[macro_export]
 macro_rules! rsx_inner {
+    // Field
+    ($frame:expr, $event:expr;
+        $n:ident: $v:expr
+    $(, $($rest:tt)*)?) => {
+        $frame.$n = $v;
+        $crate::rsx_inner!($frame, $event; $($($rest)*)?);
+    };
+
     // For loop
     ($frame:expr, $event:expr;
         for ($i:pat in $e:expr) $(%$s:ident),* {$($inner:tt)*}
@@ -77,59 +85,44 @@ macro_rules! rsx_inner {
     ($frame:expr, $event:expr;
         $elem:literal ($($inner:tt)*)
     $($rest:tt)*) => {
-        let mut area = $crate::Area::new();
-        $crate::tw_area!(area, $($inner)*);
-        $frame.draw(&format!($elem), area)?;
+        let mut props = $crate::Props::new();
+        $crate::tw_props!(props, $($inner)*);
+        $frame.draw(&format!($elem), props)?;
         $crate::rsx_inner!($frame, $event; $($rest)*);
     };
     ($frame:expr, $event:expr;
         $elem:literal
     $($rest:tt)*) => {
-        $frame.draw(&format!($elem), Area::new())?;
+        $frame.draw(&format!($elem), Props::new())?;
         $crate::rsx_inner!($frame, $event; $($rest)*);
     };
 
-    // Name { rsx } ( area )
+    // Name { rsx } ( props )
     ($frame:expr, $event:expr;
         $elem:path {
-            $($n:ident: $v:expr),+
-            $(,
-                $($inner:tt)*
-            )?
-        } ($($area_inner:tt)*)
+            $($inner:tt)*
+        } ($($props_inner:tt)*)
     $($rest:tt)*) => {
-        let mut area = $crate::Area::new();
-        $crate::tw_area!(area, $($area_inner)*);
-        let mut e = $elem();
-        $(
-            e.$n = $v;
-        )*
-        $(
-            $crate::rsx_inner!(e, $event; $($inner)*);
-        )?
+        let mut props = $crate::Props::new();
+        $crate::tw_props!(props, $($props_inner)*);
 
-        $frame.draw(&e, area)?;
+        let mut e = $elem();
+        $crate::rsx_inner!(e, $event; $($inner)*);
+
+        $frame.draw(&e, props)?;
         $crate::rsx_inner!($frame, $event; $($rest)*);
     };
 
     // Name { rsx }
     ($frame:expr, $event:expr;
         $elem:path {
-            $($n:ident: $v:expr),+
-            $(,
-                $($inner:tt)*
-            )?
+            $($inner:tt)*
         }
     $($rest:tt)*) => {
         let mut e = $elem();
-        $(
-            e.$n = $v;
-        )*
-        $(
-            $crate::rsx_inner!(e, $event; $($inner)*);
-        )?
+        $crate::rsx_inner!(e, $event; $($inner)*);
 
-        $frame.draw(&e, $crate::Area::new())?;
+        $frame.draw(&e, $crate::Props::new())?;
         $crate::rsx_inner!($frame, $event; $($rest)*);
     };
 
@@ -140,7 +133,7 @@ macro_rules! rsx_inner {
 ///
 /// **Don't use this macro manually** use `rsx!` instead
 #[macro_export]
-macro_rules! tw_area {
+macro_rules! tw_props {
     ($a:expr, $n:ident) => {
         $a.$n;
     };
@@ -148,45 +141,45 @@ macro_rules! tw_area {
     // X
     ($a:expr, x-$v:ident $($rest:tt)*) => {
         $a.x = $crate::Pos::$v;
-        $crate::tw_area!($a, $($rest)*);
+        $crate::tw_props!($a, $($rest)*);
     };
 
     ($a:expr, x-$v:literal $($rest:tt)*) => {
         $a.x = $crate::Pos::Num($v);
-        $crate::tw_area!($a, $($rest)*);
+        $crate::tw_props!($a, $($rest)*);
     };
 
     // Y
     ($a:expr, y-$v:ident $($rest:tt)*) => {
         $a.y = $crate::Pos::$v;
-        $crate::tw_area!($a, $($rest)*);
+        $crate::tw_props!($a, $($rest)*);
     };
 
     ($a:expr, y-$v:literal $($rest:tt)*) => {
         $a.y = $crate::Pos::Num($v);
-        $crate::tw_area!($a, $($rest)*);
+        $crate::tw_props!($a, $($rest)*);
     };
 
     // Width
     ($a:expr, width-$v:ident $($rest:tt)*) => {
         $a.width = $crate::Size::$v;
-        $crate::tw_area!($a, $($rest)*);
+        $crate::tw_props!($a, $($rest)*);
     };
 
     ($a:expr, width-$v:literal $($rest:tt)*) => {
         $a.width = $crate::Size::Num($v);
-        $crate::tw_area!($a, $($rest)*);
+        $crate::tw_props!($a, $($rest)*);
     };
 
     // Height
     ($a:expr, height-$v:ident $($rest:tt)*) => {
         $a.height = $crate::Size::$v;
-        $crate::tw_area!($a, $($rest)*);
+        $crate::tw_props!($a, $($rest)*);
     };
 
     ($a:expr, height-$v:literal $($rest:tt)*) => {
         $a.height = $crate::Size::Num($v);
-        $crate::tw_area!($a, $($rest)*);
+        $crate::tw_props!($a, $($rest)*);
     };
 
     ($a:expr,) => {};

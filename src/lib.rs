@@ -20,9 +20,11 @@ pub mod utils;
 
 /// Commonly used imports for convenience.
 pub mod prelude {
+    pub use crate::console::*;
     pub use crate::elements::*;
-    pub use crate::*;
-    pub use console::Event;
+    pub use crate::rsx;
+    pub use crate::utils;
+    pub use crate::{Element, Frame, Pos, Props, Result, Size, Widget};
     pub use crossterm::event::{KeyCode, KeyEvent};
 }
 
@@ -46,9 +48,9 @@ pub trait Widget {
     }
 }
 
-/// Struct representing a rectangular area in the terminal.
+/// Struct representing a rectangular props in the terminal.
 #[derive(Debug, Clone, Copy)]
-pub struct Area {
+pub struct Props {
     pub width: Size,
     pub height: Size,
     pub x: Pos,
@@ -60,6 +62,7 @@ pub struct Area {
 pub struct Frame {
     pub width: u16,
     pub height: u16,
+    mouse_pos: Option<(u16, u16)>,
     last_elem: (u16, u16),
 }
 
@@ -111,61 +114,14 @@ impl Size {
     }
 }
 
-impl Area {
-    /// Creates a new `Area` with default values.
+impl Props {
+    /// Creates a new `Props` with default values.
     pub fn new() -> Self {
         Self::default()
     }
-
-    /// Center the `Area` horizontally. Only available with the `portable` feature.
-    #[cfg(feature = "portable")]
-    pub fn center_x() -> Self {
-        let mut s = Self::default();
-        s.x = Pos::center;
-        s
-    }
-
-    /// Center the `Area` vertically. Only available with the `portable` feature.
-    #[cfg(feature = "portable")]
-    pub fn center_y() -> Self {
-        let mut s = Self::default();
-        s.y = Pos::center;
-        s
-    }
-
-    /// Center the `Area` both horizontally and vertically. Only available with the `portable` feature.
-    #[cfg(feature = "portable")]
-    pub fn center() -> Self {
-        let mut s = Self::default();
-        s.x = Pos::center;
-        s.y = Pos::center;
-        s
-    }
-
-    // Additional utility methods for setting properties are available with the `portable` feature.
-    #[cfg(feature = "portable")]
-    pub fn set_width(&mut self, w: Size) -> Self {
-        self.width = w;
-        *self
-    }
-    #[cfg(feature = "portable")]
-    pub fn set_height(&mut self, h: Size) -> Self {
-        self.height = h;
-        *self
-    }
-    #[cfg(feature = "portable")]
-    pub fn set_x(&mut self, x: Pos) -> Self {
-        self.x = x;
-        *self
-    }
-    #[cfg(feature = "portable")]
-    pub fn set_y(&mut self, y: Pos) -> Self {
-        self.y = y;
-        *self
-    }
 }
 
-impl Default for Area {
+impl Default for Props {
     fn default() -> Self {
         Self {
             width: Size::Auto,
@@ -178,7 +134,7 @@ impl Default for Area {
 
 impl Frame {
     /// Draws a widget on the frame.
-    pub fn draw<W>(&mut self, w: &W, props: Area) -> Result<()>
+    pub fn draw<W>(&mut self, w: &W, props: Props) -> Result<()>
     where
         W: Widget,
     {
@@ -196,13 +152,23 @@ impl Frame {
             props.y.get(self.last_elem.1, height, self.height),
         );
 
+        let ansi = if let Some((mouse_x, mouse_y)) = &self.mouse_pos {
+            if (x..x + width).contains(mouse_x) && (y..y + height).contains(mouse_y) {
+                "\x1b[32m"
+            } else {
+                ""
+            }
+        } else {
+            ""
+        };
+
         for (i, line) in written.lines().enumerate() {
             if i as u16 > height {
                 break;
             }
 
             println!(
-                "\x1b[{};{}H{}",
+                "\x1b[{};{}H{ansi}{}\x1b[0m",
                 y + (i as u16) + 1,
                 x + 1,
                 line.chars().take(width as usize).collect::<String>()
@@ -228,6 +194,7 @@ impl Frame {
             width,
             height,
             last_elem: (0, 0),
+            mouse_pos: None,
         }
     }
 }

@@ -40,7 +40,7 @@ impl Widget for Button {
 }
 
 impl Button {
-    pub fn draw<W>(&mut self, w: &W, props: crate::Area) -> crate::Result<()>
+    pub fn draw<W>(&mut self, w: &W, props: crate::Props) -> crate::Result<()>
     where
         W: Widget,
     {
