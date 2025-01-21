@@ -11,7 +11,7 @@
 ///     "Hello, World!"
 /// }
 /// ```
-/// 
+///
 /// Button example
 /// ```rust
 /// rsx! {
@@ -89,15 +89,47 @@ macro_rules! rsx_inner {
         $crate::rsx_inner!($frame, $event; $($rest)*);
     };
 
-    // name { rsx }
+    // Name { rsx } ( area )
     ($frame:expr, $event:expr;
         $elem:path {
-            $($einner:tt)*
-        } ($($inner:tt)*)
+            $($n:ident: $v:expr),+
+            $(,
+                $($inner:tt)*
+            )?
+        } ($($area_inner:tt)*)
     $($rest:tt)*) => {
         let mut area = $crate::Area::new();
-        $crate::tw_area!(area, $($inner)*);
-        $elem()($frame, $event)?;
+        $crate::tw_area!(area, $($area_inner)*);
+        let mut e = $elem();
+        $(
+            e.$n = $v;
+        )*
+        $(
+            $crate::rsx_inner!(e, $event; $($inner)*);
+        )?
+
+        $frame.draw(&e, area)?;
+        $crate::rsx_inner!($frame, $event; $($rest)*);
+    };
+
+    // Name { rsx }
+    ($frame:expr, $event:expr;
+        $elem:path {
+            $($n:ident: $v:expr),+
+            $(,
+                $($inner:tt)*
+            )?
+        }
+    $($rest:tt)*) => {
+        let mut e = $elem();
+        $(
+            e.$n = $v;
+        )*
+        $(
+            $crate::rsx_inner!(e, $event; $($inner)*);
+        )?
+
+        $frame.draw(&e, $crate::Area::new())?;
         $crate::rsx_inner!($frame, $event; $($rest)*);
     };
 

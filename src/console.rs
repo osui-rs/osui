@@ -58,14 +58,12 @@ impl Console {
 
     /// Runs the console loop, rendering the UI and handling events.
     ///
-    /// This method is disabled when the `engine` feature is enabled.
     ///
     /// # Arguments
     /// * `ui` - The UI element to render.
     ///
     /// # Returns
     /// A `Result` indicating success or failure.
-    #[cfg(not(feature = "engine"))]
     pub fn run(&mut self, ui: Element) -> crate::Result<()> {
         self.draw(ui.clone(), None)?;
         loop {

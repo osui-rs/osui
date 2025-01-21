@@ -20,6 +20,7 @@ pub mod utils;
 
 /// Commonly used imports for convenience.
 pub mod prelude {
+    pub use crate::elements::*;
     pub use crate::*;
     pub use console::Event;
     pub use crossterm::event::{KeyCode, KeyEvent};

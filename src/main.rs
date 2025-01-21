@@ -1,7 +1,7 @@
 use osui::prelude::*;
 
 fn main() -> osui::Result<()> {
-    let mut con = console::init(true)?;
+    let mut con = console::init(false)?;
 
     con.run(app())?;
 
@@ -10,6 +10,8 @@ fn main() -> osui::Result<()> {
 
 pub fn app() -> Element {
     rsx! {
-        ""
+        btn { on_click: Box::new(|| {
+            panic!("Testing");
+        }), "Click me" }
     }
 }
