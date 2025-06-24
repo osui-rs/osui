@@ -1,17 +1,21 @@
+use std::{
+    any::{Any, TypeId},
+    collections::HashMap,
+};
+
 pub mod text;
-pub mod macros;
 
-use std::fmt::Debug;
+pub trait Event: Any {}
 
-use downcast_rs::{impl_downcast, DowncastSync};
-pub trait Component: DowncastSync + Debug {}
-impl_downcast!(sync Component);
-
-pub trait Element {
-    fn get_component<T: Component + 'static>(&mut self) -> Option<&mut T>;
-    fn add_component<T: Component + 'static>(&mut self, component: T);
+pub struct Screen {
+    element: Box<dyn Element>,
+    event_handlers: HashMap<TypeId, Box<dyn FnMut(Box<dyn Event>)>>,
 }
 
-pub trait Extension {
-    fn tick(&mut self);
+impl Screen {
+    
+}
+
+pub trait Element {
+    fn init(&mut self, screen: &mut Screen);
 }
