@@ -1,15 +1,31 @@
-use osui::prelude::*;
+use osui::{
+    output::{OutputExtension, RenderAble},
+    run, Args, BaseElement,
+};
 
-fn main() -> Result<()> {
-    let mut con = init(true)?;
+pub struct MyElem(*mut Vec<Box<dyn osui::ElementComponent>>);
+impl BaseElement for MyElem {
+    fn init(&mut self) {
+        unsafe {
+            (*self.0).push(RenderAble::new(|| String::from("value")));
+        }
+    }
 
-    con.run(app())?;
-
-    con.end()
+    fn get_components<'a>(&'a mut self) -> &'a mut Vec<Box<dyn osui::ElementComponent>> {
+        unsafe { &mut *self.0 }
+    }
 }
 
-pub fn app() -> Element {
-    rsx! {
-        btn { "Click me" } (x-center y-center)
+impl MyElem {
+    pub fn new(mut v: Vec<Box<dyn osui::ElementComponent>>) -> Box<MyElem> {
+        Box::new(MyElem(&mut v))
     }
+}
+
+fn main() {
+    let args = Args {
+        tick_rate: 40,
+        base_elements: vec![],
+    };
+    run(args, vec![Box::new(OutputExtension)]);
 }

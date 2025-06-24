@@ -25,6 +25,7 @@ cc = "1.0"
 
 [dependencies]
 crossterm = "0.28.1"
+downcast-rs = "2.0.1"
 
 [profile.dev]
 opt-level = 1
