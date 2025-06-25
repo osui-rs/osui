@@ -5,7 +5,7 @@ use std::{
 
 pub mod text;
 
-pub trait Event: Any {}
+pub trait Event {}
 
 pub struct Screen {
     element: Box<dyn Element>,
@@ -13,7 +13,9 @@ pub struct Screen {
 }
 
 impl Screen {
-    
+    pub fn on_event<E: Event, F: FnMut(E)>(&mut self, f: F) {
+        
+    }
 }
 
 pub trait Element {
