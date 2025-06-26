@@ -13,7 +13,7 @@ fn main() {
 
     screen
         .draw("Hello, World".to_string())
-        .component(Transform::new());
+        .component(Transform::center());
 
     screen.run(&mut events, &mut extensions).unwrap();
 }

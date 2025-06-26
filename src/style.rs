@@ -58,6 +58,11 @@ impl Transform {
         self.width.use_dimension(&mut raw.width);
         self.height.use_dimension(&mut raw.height);
     }
+
+    pub fn use_position(&self, parent_width: u16, parent_height: u16, raw: &mut RawTransform) {
+        self.x.use_position(raw.width, parent_width, &mut raw.x);
+        self.y.use_position(raw.height, parent_height, &mut raw.y);
+    }
 }
 
 impl RawTransform {
@@ -74,8 +79,17 @@ impl RawTransform {
 impl Dimension {
     pub fn use_dimension(&self, r: &mut u16) {
         match self {
-            Dimension::Auto => {}
-            Dimension::Const(n) => *r = *n,
+            Self::Auto => {}
+            Self::Const(n) => *r = *n,
+        }
+    }
+}
+
+impl Position {
+    pub fn use_position(&self, size: u16, parent: u16, r: &mut u16) {
+        match self {
+            Self::Center => *r = (parent - size) / 2,
+            Self::Const(n) => *r = *n,
         }
     }
 }
