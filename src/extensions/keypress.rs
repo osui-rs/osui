@@ -1,14 +1,13 @@
 use crossterm::event::{KeyCode, KeyModifiers};
 
-use crate::{event_manager::EventManager, Close, Event, Extension, Screen};
+use crate::{
+    event,
+    events::{Close, EventManager},
+    extensions::Extension,
+    Screen,
+};
 
-#[derive(Clone)]
-pub struct KeyPress(pub crossterm::event::KeyEvent);
-impl Event for KeyPress {
-    fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
-        self
-    }
-}
+event!(KeyPress(pub crossterm::event::KeyEvent));
 
 pub trait KeyPressEventHandler {
     fn on_keypress(&mut self, event: KeyPress);

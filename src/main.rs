@@ -1,5 +1,7 @@
 use osui::{
-    event_manager::EventManager, extensions::keypress::KeyPressExtension, ExtensionManager, Screen,
+    events::EventManager,
+    extensions::{keypress::KeyPressExtension, ExtensionManager},
+    Screen,
 };
 
 fn main() {

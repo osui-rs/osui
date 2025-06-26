@@ -3,7 +3,9 @@ use std::{
     collections::HashMap,
 };
 
-use crate::Close;
+use crate::event;
+
+event!(Close);
 
 pub trait Event {
     fn as_any(self: Box<Self>) -> Box<dyn Any>;
