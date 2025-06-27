@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::KeyEvent;
 
 use crate::{
     events::{Close, Event, EventManager},
@@ -34,15 +34,13 @@ impl Extension for KeyPressExtension {
     fn tick_start(&mut self, _: &mut Screen, _: &mut EventManager) {}
 
     fn tick_end(&mut self, _: &mut Screen, events: &mut EventManager) {
-        match crossterm::event::read().unwrap() {
-            crossterm::event::Event::Key(e) => {
-                if e.modifiers.contains(KeyModifiers::CONTROL) && e.code == KeyCode::Char('c') {
-                    events.dispatch(Close);
-                } else {
+        if crossterm::event::poll(std::time::Duration::from_millis(13)).unwrap() {
+            match crossterm::event::read().unwrap() {
+                crossterm::event::Event::Key(e) => {
                     events.dispatch(e);
                 }
+                _ => {}
             }
-            _ => {}
         }
     }
 }

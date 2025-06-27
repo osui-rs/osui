@@ -106,3 +106,17 @@ pub fn hex_ansi_bg(hex: u32) -> String {
     let b = (hex & 0xFF) as u8;
     format!("\x1b[48;2;{r};{g};{b}m")
 }
+
+pub(crate) fn print(x: u16, y: u16, text: &str) {
+    for (i, line) in text.lines().enumerate() {
+        print!("\x1b[{};{}H{line}\x1b[0m", y + i as u16 + 1, x + 1);
+        flush().unwrap();
+    }
+}
+
+pub(crate) fn print_liner(x: u16, y: u16, liner: &str, text: &str) {
+    for (i, line) in text.lines().enumerate() {
+        print!("\x1b[{};{}H{liner}{line}\x1b[0m", y + i as u16 + 1, x + 1);
+        flush().unwrap();
+    }
+}

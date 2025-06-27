@@ -1,4 +1,5 @@
 pub mod keypress;
+pub mod tick_rate;
 
 use crate::{events::EventManager, Screen};
 

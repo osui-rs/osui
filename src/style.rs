@@ -9,8 +9,9 @@ pub struct RawTransform {
 
 #[derive(Debug, Clone)]
 pub enum Position {
-    Center,
     Const(u16),
+    Center,
+    End,
 }
 
 #[derive(Debug, Clone)]
@@ -45,19 +46,15 @@ impl Transform {
         }
     }
 
-    pub fn position(x: Position, y: Position) -> Transform {
-        Transform {
-            x,
-            y,
-            width: Dimension::Auto,
-            height: Dimension::Auto,
-        }
+    pub fn bottom(mut self) -> Self {
+        self.y = Position::End;
+        self
     }
 
-    pub fn dimensions(&mut self, width: u16, height: u16) -> Self {
+    pub fn dimensions(mut self, width: u16, height: u16) -> Self {
         self.width = Dimension::Const(width);
         self.height = Dimension::Const(height);
-        self.clone()
+        self
     }
 
     pub fn use_dimensions(&self, raw: &mut RawTransform) {
@@ -96,6 +93,7 @@ impl Position {
         match self {
             Self::Center => *r = (parent - size) / 2,
             Self::Const(n) => *r = *n,
+            Self::End => *r = parent - size,
         }
     }
 }

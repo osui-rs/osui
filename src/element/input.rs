@@ -65,9 +65,12 @@ impl KeyPressEventHandler for Input {
                     events.dispatch(InputUpdateEvent(self.0.clone()));
                 }
             }
-            _ => {}
+            _ => {
+                events.dispatch(InputKeyPress(self.0.clone(), *event));
+            }
         }
     }
 }
 
 event!(InputUpdateEvent(pub String));
+event!(InputKeyPress(pub String, pub KeyEvent));

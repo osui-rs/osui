@@ -49,18 +49,18 @@ impl RenderScope {
         for m in &self.render_stack {
             match m {
                 RenderMethod::Text(t) => {
-                    println!("\x1b[{};{}H{t}", self.transform.y + 1, self.transform.x + 1)
+                    utils::print(self.transform.x, self.transform.y, t);
                 }
                 RenderMethod::Rectangle(width, height, color) => {
-                    for i in 0..(*height) {
-                        println!(
-                            "\x1b[{};{}H{}{}\x1b[0m",
-                            self.transform.y + 1 + i,
-                            self.transform.x + 1,
-                            hex_ansi_bg(*color),
-                            " ".repeat(*width as usize)
-                        )
-                    }
+                    utils::print_liner(
+                        self.transform.x,
+                        self.transform.y,
+                        &hex_ansi_bg(*color),
+                        &std::iter::repeat(" ".repeat(*width as usize))
+                            .take(*height as usize)
+                            .collect::<Vec<_>>()
+                            .join("\n"),
+                    );
                 }
             }
         }
