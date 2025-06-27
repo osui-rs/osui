@@ -1,28 +1,82 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    any::Any,
+    collections::HashMap,
+    marker::PhantomData,
+    sync::{Arc, Mutex},
+};
 
-pub struct StateManager(fn(Arc<StateManager>));
+/// ---------- public API ----------
 
-pub struct State<S>(Arc<StateManager>, Arc<Mutex<S>>);
+pub struct StateManager {
+    recall: fn(Arc<StateManager>),
+    store: Mutex<HashMap<usize, Box<dyn Any + Send + Sync>>>,
+    cursor: Mutex<usize>,
+}
+
+pub struct State<S> {
+    manager: Arc<StateManager>,
+    id: usize,
+    _pd: PhantomData<S>,
+}
 
 impl StateManager {
-    pub fn new(recall: fn(Arc<StateManager>)) -> Arc<StateManager> {
-        Arc::new(StateManager(recall))
+    pub fn new(recall: fn(Arc<StateManager>)) -> Arc<Self> {
+        Arc::new(Self {
+            recall,
+            store: Mutex::new(HashMap::new()),
+            cursor: Mutex::new(0),
+        })
     }
 
-    pub fn use_state<S>(self: Arc<Self>, state: S) -> State<S> {
-        State(self.clone(), Arc::new(Mutex::new(state)))
+    /// Call this at the very top of every “render” before doing any `use_state` calls
+    pub fn begin(&self) {
+        *self.cursor.lock().unwrap() = 0;
+    }
+
+    pub fn use_state<S: 'static + Send + Sync>(self: &Arc<Self>, initial: S) -> State<S> {
+        // `slot` == position of this call in the render
+        let mut cur = self.cursor.lock().unwrap();
+        let slot = *cur;
+        *cur += 1;
+
+        // Insert the initial value only the first time we see this slot
+        let mut store = self.store.lock().unwrap();
+        store
+            .entry(slot)
+            .or_insert_with(|| Box::new(Mutex::new(initial)));
+
+        State {
+            manager: Arc::clone(self),
+            id: slot,
+            _pd: PhantomData,
+        }
     }
 }
 
-impl<S> State<S> {
-    pub fn set(&self, to: S) {
-        *self.1.lock().unwrap() = to;
-        (self.0 .0)(self.0.clone())
+impl<S: 'static + Clone + Send + Sync> State<S> {
+    pub fn get(&self) -> S {
+        let store = self.manager.store.lock().unwrap();
+        let x = store[&self.id]
+            .downcast_ref::<Mutex<S>>()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .clone();
+        x
     }
-}
 
-impl State<i32> {
-    pub fn get(&self) -> i32 {
-        *self.1.lock().unwrap()
+    pub fn set(&self, val: S) {
+        {
+            let store = self.manager.store.lock().unwrap();
+            *store[&self.id]
+                .downcast_ref::<Mutex<S>>()
+                .unwrap()
+                .lock()
+                .unwrap() = val;
+        }
+    }
+
+    pub fn update(&self) {
+        (self.manager.recall)(Arc::clone(&self.manager));
     }
 }
