@@ -119,6 +119,6 @@ macro_rules! component {
 macro_rules! event_handler {
     ($self_ty:ty, $self:ident, $events:ident, $method:ident) => {{
         let self_ref = $self as *mut $self_ty;
-        $events.on(move |e| unsafe { (*self_ref).$method(e) });
+        $events.on(move |es, e| unsafe { (*self_ref).$method(es, e) });
     }};
 }

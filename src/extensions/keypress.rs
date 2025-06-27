@@ -13,7 +13,7 @@ impl Event for KeyEvent {
 }
 
 pub trait KeyPressEventHandler {
-    fn on_keypress(&mut self, event: Box<KeyEvent>);
+    fn on_keypress(&mut self, events: &mut EventManager, event: Box<KeyEvent>);
 }
 
 pub struct KeyPressExtension;
@@ -24,7 +24,7 @@ impl Extension for KeyPressExtension {
         crate::utils::clear().unwrap();
         crate::utils::hide_cursor().unwrap();
 
-        events.on(|_: Box<Close>| {
+        events.on(|_, _: Box<Close>| {
             crossterm::terminal::disable_raw_mode().unwrap();
             crate::utils::show_cursor().unwrap();
             crate::utils::clear().unwrap();

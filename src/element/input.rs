@@ -1,20 +1,14 @@
-use std::sync::{Arc, Mutex};
-
 use crossterm::event::KeyEvent;
 
 use crate::{
     event, event_handler, events::EventManager, extensions::keypress::KeyPressEventHandler, Element,
 };
 
-pub struct Input(String, usize, Arc<Mutex<EventManager>>);
+pub struct Input(String, usize);
 
 impl Input {
     pub fn new() -> Input {
-        Input(String::new(), 0, Arc::new(Mutex::new(EventManager::new())))
-    }
-
-    pub fn get_event(&self) -> Arc<Mutex<EventManager>> {
-        self.2.clone()
+        Input(String::new(), 0)
     }
 }
 
@@ -45,42 +39,30 @@ impl Element for Input {
 }
 
 impl KeyPressEventHandler for Input {
-    fn on_keypress(&mut self, event: Box<KeyEvent>) {
+    fn on_keypress(&mut self, events: &mut EventManager, event: Box<KeyEvent>) {
         match event.code {
             crossterm::event::KeyCode::Char(c) => {
                 self.0.insert(self.1, c);
                 self.1 += 1;
-                self.2
-                    .lock()
-                    .unwrap()
-                    .dispatch(InputUpdateEvent(self.0.clone()));
+                events.dispatch(InputUpdateEvent(self.0.clone()));
             }
             crossterm::event::KeyCode::Backspace => {
                 if self.1 > 0 {
                     self.0.remove(self.1 - 1);
                     self.1 -= 1;
-                    self.2
-                        .lock()
-                        .unwrap()
-                        .dispatch(InputUpdateEvent(self.0.clone()));
+                    events.dispatch(InputUpdateEvent(self.0.clone()));
                 }
             }
             crossterm::event::KeyCode::Left => {
                 if self.1 > 0 {
                     self.1 -= 1;
-                    self.2
-                        .lock()
-                        .unwrap()
-                        .dispatch(InputUpdateEvent(self.0.clone()));
+                    events.dispatch(InputUpdateEvent(self.0.clone()));
                 }
             }
             crossterm::event::KeyCode::Right => {
                 if self.1 < self.0.len() {
                     self.1 += 1;
-                    self.2
-                        .lock()
-                        .unwrap()
-                        .dispatch(InputUpdateEvent(self.0.clone()));
+                    events.dispatch(InputUpdateEvent(self.0.clone()));
                 }
             }
             _ => {}
