@@ -1,10 +1,8 @@
 use std::sync::Arc;
 
+use crossterm::event::KeyEvent;
 use osui::{
-    element::{
-        input::{Input, InputKeyPress},
-        rect::Rect,
-    },
+    element::rect::Rect,
     events::{Close, EventManager},
     extensions::{keypress::KeyPressExtension, tick_rate::TickRate, ExtensionManager},
     state::StateManager,
@@ -18,42 +16,33 @@ fn main() {
 }
 
 fn app(states: Arc<StateManager>) {
-    states.begin();
     let mut screen = Screen::new();
     let mut extensions = ExtensionManager::new();
     let mut events = EventManager::new();
-    extensions.add(KeyPressExtension);
-    extensions.add(TickRate(255));
 
-    let my_state = states.use_state(String::new());
+    extensions.add(TickRate(50));
+    extensions.add(KeyPressExtension);
+
+    events.set_state_manager(states.clone());
+
+    let count = states.use_state(0);
 
     screen
         .draw(Rect(0xffffff))
         .component(Transform::center().dimensions(30, 3));
 
     screen
-        .draw(format!(
-            "Type exit to exit\nMy-State: {}",
-            my_state.get().trim()
-        ))
-        .component(Transform::new().bottom().margin(0, -1));
+        .draw(format!("Count: {}", count.get()))
+        .component(Transform::center());
 
-    screen
-        .draw(Input::new())
-        .component(Transform::new().bottom());
-
-    events.on(
-        move |events, event: Box<InputKeyPress>| match event.1.code {
-            crossterm::event::KeyCode::Enter => {
-                my_state.set(my_state.get() + &format!("{}\n", event.0));
-                if event.0 == "exit" {
-                    events.dispatch(Close);
-                }
-                my_state.update();
-            }
-            _ => {}
-        },
-    );
+    events.on(move |events, event: Box<KeyEvent>| match event.code {
+        crossterm::event::KeyCode::Enter => {
+            count.set(count.get() + 1);
+        }
+        _ => {
+            events.dispatch(Close);
+        }
+    });
 
     screen.run(&mut events, &mut extensions).unwrap();
 }

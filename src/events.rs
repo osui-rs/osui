@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::event;
+use crate::{event, state::StateManager};
 
 event!(Close);
 
@@ -21,15 +21,16 @@ impl std::fmt::Debug for EventHandlerFn {
     }
 }
 
-#[derive(Debug)]
 pub struct EventManager {
     handlers: HashMap<TypeId, Vec<EventHandlerFn>>,
+    states: Option<Arc<StateManager>>,
 }
 
 impl EventManager {
     pub fn new() -> EventManager {
         EventManager {
             handlers: HashMap::new(),
+            states: None,
         }
     }
 
@@ -37,10 +38,14 @@ impl EventManager {
         &mut self,
         mut f: F,
     ) {
+        let states = self.states.clone();
         let wrapper = Arc::new(Mutex::new(
             move |e: &mut EventManager, evt: Box<dyn Event>| {
                 if let Ok(concrete) = evt.as_any().downcast::<E>() {
                     f(e, concrete);
+                    if let Some(states) = &states {
+                        states.clone().flush();
+                    }
                 }
             },
         )) as Arc<Mutex<dyn FnMut(&mut EventManager, Box<dyn Event>)>>;
@@ -67,5 +72,9 @@ impl EventManager {
         if tid == TypeId::of::<Close>() {
             std::process::exit(0);
         }
+    }
+
+    pub fn set_state_manager(&mut self, states: Arc<StateManager>) {
+        self.states = Some(states);
     }
 }

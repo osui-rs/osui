@@ -11,6 +11,7 @@ pub struct StateManager {
     recall: fn(Arc<StateManager>),
     store: Mutex<HashMap<usize, Box<dyn Any + Send + Sync>>>,
     cursor: Mutex<usize>,
+    dirty: Mutex<bool>,
 }
 
 pub struct State<S> {
@@ -25,12 +26,8 @@ impl StateManager {
             recall,
             store: Mutex::new(HashMap::new()),
             cursor: Mutex::new(0),
+            dirty: Mutex::new(false),
         })
-    }
-
-    /// Call this at the very top of every “render” before doing any `use_state` calls
-    pub fn begin(&self) {
-        *self.cursor.lock().unwrap() = 0;
     }
 
     pub fn use_state<S: 'static + Send + Sync>(self: &Arc<Self>, initial: S) -> State<S> {
@@ -51,9 +48,24 @@ impl StateManager {
             _pd: PhantomData,
         }
     }
+
+    pub fn flush(self: Arc<Self>) {
+        let mut d = self.dirty.lock().unwrap();
+        if *d {
+            *d = false;
+            drop(d);
+
+            *self.cursor.lock().unwrap() = 0;
+            (self.recall)(self)
+        }
+    }
 }
 
 impl<S: 'static + Clone + Send + Sync> State<S> {
+    pub fn dirty(&self) {
+        *self.manager.dirty.lock().unwrap() = true;
+    }
+
     pub fn get(&self) -> S {
         let store = self.manager.store.lock().unwrap();
         let x = store[&self.id]
@@ -74,9 +86,6 @@ impl<S: 'static + Clone + Send + Sync> State<S> {
                 .lock()
                 .unwrap() = val;
         }
-    }
-
-    pub fn update(&self) {
-        (self.manager.recall)(Arc::clone(&self.manager));
+        self.dirty();
     }
 }
