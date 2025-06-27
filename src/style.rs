@@ -23,6 +23,8 @@ pub enum Dimension {
 component!(Transform {
     pub x: Position,
     pub y: Position,
+    pub mx: i32,
+    pub my: i32,
     pub width: Dimension,
     pub height: Dimension,
 });
@@ -32,6 +34,8 @@ impl Transform {
         Transform {
             x: Position::Const(0),
             y: Position::Const(0),
+            mx: 0,
+            my: 0,
             width: Dimension::Auto,
             height: Dimension::Auto,
         }
@@ -41,6 +45,8 @@ impl Transform {
         Transform {
             x: Position::Center,
             y: Position::Center,
+            mx: 0,
+            my: 0,
             width: Dimension::Auto,
             height: Dimension::Auto,
         }
@@ -48,6 +54,12 @@ impl Transform {
 
     pub fn bottom(mut self) -> Self {
         self.y = Position::End;
+        self
+    }
+
+    pub fn margin(mut self, x: i32, y: i32) -> Self {
+        self.mx = x;
+        self.my = y;
         self
     }
 
@@ -63,8 +75,10 @@ impl Transform {
     }
 
     pub fn use_position(&self, parent_width: u16, parent_height: u16, raw: &mut RawTransform) {
-        self.x.use_position(raw.width, parent_width, &mut raw.x);
-        self.y.use_position(raw.height, parent_height, &mut raw.y);
+        self.x
+            .use_position(raw.width, parent_width, self.mx, &mut raw.x);
+        self.y
+            .use_position(raw.height, parent_height, self.my, &mut raw.y);
     }
 }
 
@@ -89,11 +103,17 @@ impl Dimension {
 }
 
 impl Position {
-    pub fn use_position(&self, size: u16, parent: u16, r: &mut u16) {
+    pub fn use_position(&self, size: u16, parent: u16, m: i32, r: &mut u16) {
         match self {
             Self::Center => *r = (parent - size) / 2,
             Self::Const(n) => *r = *n,
             Self::End => *r = parent - size,
+        }
+
+        if m > 0 {
+            *r += m as u16;
+        } else {
+            *r -= -m as u16;
         }
     }
 }

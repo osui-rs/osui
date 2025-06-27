@@ -22,7 +22,7 @@ fn main() {
 
     screen
         .draw(format!("Type quit to quit"))
-        .component(Transform::new().bottom());
+        .component(Transform::new().bottom().margin(0, -1));
 
     screen
         .draw(Input::new())
