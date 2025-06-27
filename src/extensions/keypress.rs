@@ -1,16 +1,19 @@
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{
-    event,
-    events::{Close, EventManager},
+    events::{Close, Event, EventManager},
     extensions::Extension,
     Screen,
 };
 
-event!(KeyPress(pub crossterm::event::KeyEvent));
+impl Event for KeyEvent {
+    fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+        self
+    }
+}
 
 pub trait KeyPressEventHandler {
-    fn on_keypress(&mut self, event: KeyPress);
+    fn on_keypress(&mut self, event: Box<KeyEvent>);
 }
 
 pub struct KeyPressExtension;
@@ -36,7 +39,7 @@ impl Extension for KeyPressExtension {
                 if e.modifiers.contains(KeyModifiers::CONTROL) && e.code == KeyCode::Char('c') {
                     events.dispatch(Close);
                 } else {
-                    events.dispatch(KeyPress(e));
+                    events.dispatch(e);
                 }
             }
             _ => {}

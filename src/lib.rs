@@ -10,12 +10,12 @@ use crate::{
     style::Transform,
 };
 
+pub mod element;
 pub mod events;
 pub mod extensions;
 pub mod macros;
 pub mod render_scope;
 pub mod style;
-pub mod text;
 pub mod utils;
 
 pub trait Element {
@@ -23,7 +23,8 @@ pub trait Element {
     fn render(&mut self, scope: &mut RenderScope) {}
     #[allow(unused)]
     fn init(&mut self, events: &mut EventManager) {}
-    fn as_any(self: Box<Self>) -> Box<dyn Any>;
+    fn as_any(&self) -> &dyn Any;
+    fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 pub trait Component {
@@ -94,7 +95,12 @@ impl Screen {
             utils::clear().unwrap();
             for elem in &mut self.elements {
                 scope.clear();
+                if let Some(t) = elem.get() {
+                    scope.set_transform(t);
+                }
+
                 elem.0.render(&mut scope);
+
                 if let Some(t) = elem.get() {
                     scope.set_transform(t);
                 }

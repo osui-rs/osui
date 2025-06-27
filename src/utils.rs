@@ -92,3 +92,17 @@ pub fn str_size(s: &str) -> (u16, u16) {
 
     (max_width, height)
 }
+
+pub fn hex_ansi(hex: u32) -> String {
+    let r = ((hex >> 16) & 0xFF) as u8;
+    let g = ((hex >> 8) & 0xFF) as u8;
+    let b = (hex & 0xFF) as u8;
+    format!("\x1b[38;2;{r};{g};{b}m")
+}
+
+pub fn hex_ansi_bg(hex: u32) -> String {
+    let r = ((hex >> 16) & 0xFF) as u8;
+    let g = ((hex >> 8) & 0xFF) as u8;
+    let b = (hex & 0xFF) as u8;
+    format!("\x1b[48;2;{r};{g};{b}m")
+}

@@ -54,6 +54,12 @@ impl Transform {
         }
     }
 
+    pub fn dimensions(&mut self, width: u16, height: u16) -> Self {
+        self.width = Dimension::Const(width);
+        self.height = Dimension::Const(height);
+        self.clone()
+    }
+
     pub fn use_dimensions(&self, raw: &mut RawTransform) {
         self.width.use_dimension(&mut raw.width);
         self.height.use_dimension(&mut raw.height);

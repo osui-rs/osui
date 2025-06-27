@@ -1,10 +1,11 @@
 use crate::{
     style::{RawTransform, Transform},
-    utils,
+    utils::{self, hex_ansi_bg},
 };
 
 enum RenderMethod {
     Text(String),
+    Rectangle(u16, u16, u32),
 }
 
 pub struct RenderScope {
@@ -37,11 +38,29 @@ impl RenderScope {
         self.transform.height = self.transform.height.max(h);
     }
 
+    pub fn draw_rect(&mut self, width: u16, height: u16, color: u32) {
+        self.render_stack
+            .push(RenderMethod::Rectangle(width, height, color));
+        self.transform.width = self.transform.width.max(width);
+        self.transform.height = self.transform.height.max(height);
+    }
+
     pub fn draw(&self) {
         for m in &self.render_stack {
             match m {
                 RenderMethod::Text(t) => {
                     println!("\x1b[{};{}H{t}", self.transform.y + 1, self.transform.x + 1)
+                }
+                RenderMethod::Rectangle(width, height, color) => {
+                    for i in 0..(*height) {
+                        println!(
+                            "\x1b[{};{}H{}{}\x1b[0m",
+                            self.transform.y + 1 + i,
+                            self.transform.x + 1,
+                            hex_ansi_bg(*color),
+                            " ".repeat(*width as usize)
+                        )
+                    }
                 }
             }
         }
@@ -49,5 +68,15 @@ impl RenderScope {
 
     pub fn clear(&mut self) {
         self.render_stack.clear();
+        self.transform.width = 0;
+        self.transform.height = 0;
+    }
+
+    pub fn get_size(&self) -> (u16, u16) {
+        (self.transform.width, self.transform.height)
+    }
+
+    pub fn get_parent_size(&self) -> (u16, u16) {
+        (self.parent_width, self.parent_height)
     }
 }
