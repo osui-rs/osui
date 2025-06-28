@@ -29,20 +29,20 @@ fn init(states: &Arc<StateManager>) {
 fn app(states: &Arc<StateManager>, screen: &mut Screen) {
     screen.events.set_state_manager(states.clone());
 
-    let count = states.use_state(0);
+    let mut count = states.use_state(0);
 
     screen
         .draw(Rect(0xffffff))
         .component(Transform::center().dimensions(30, 3));
 
     screen
-        .draw(format!("Count: {}", count.get()))
+        .draw(format!("Count: {count}"))
         .component(Transform::center());
 
     screen.events.on(
         move |events: &Arc<EventManager>, event: &KeyEvent| match event.code {
             crossterm::event::KeyCode::Enter => {
-                count.set(count.get() + 1);
+                count += 1;
             }
             _ => {
                 events.close();
