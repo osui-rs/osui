@@ -8,7 +8,7 @@ use std::{
 /// ---------- public API ----------
 
 pub struct StateManager {
-    recall: fn(Arc<StateManager>),
+    recall: Box<dyn Fn(&Arc<Self>)>,
     store: Mutex<HashMap<usize, Box<dyn Any + Send + Sync>>>,
     cursor: Mutex<usize>,
     dirty: Mutex<bool>,
@@ -21,9 +21,9 @@ pub struct State<S> {
 }
 
 impl StateManager {
-    pub fn new(recall: fn(Arc<StateManager>)) -> Arc<Self> {
+    pub fn new<F: Fn(&Arc<Self>) + 'static>(recall: F) -> Arc<Self> {
         Arc::new(Self {
-            recall,
+            recall: Box::new(recall),
             store: Mutex::new(HashMap::new()),
             cursor: Mutex::new(0),
             dirty: Mutex::new(false),
@@ -49,7 +49,7 @@ impl StateManager {
         }
     }
 
-    pub fn flush(self: Arc<Self>) {
+    pub fn flush(self: &Arc<Self>) {
         let mut d = self.dirty.lock().unwrap();
         if *d {
             *d = false;

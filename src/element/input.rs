@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use crossterm::event::KeyEvent;
 
 use crate::{
@@ -13,7 +15,7 @@ impl Input {
 }
 
 impl Element for Input {
-    fn init(&mut self, events: &mut crate::events::EventManager) {
+    fn init(&mut self, events: &Arc<EventManager>) {
         event_handler!(Self, self, events, on_keypress);
     }
 
@@ -39,7 +41,7 @@ impl Element for Input {
 }
 
 impl KeyPressEventHandler for Input {
-    fn on_keypress(&mut self, events: &mut EventManager, event: Box<KeyEvent>) {
+    fn on_keypress(&mut self, events: &Arc<EventManager>, event: Box<KeyEvent>) {
         match event.code {
             crossterm::event::KeyCode::Char(c) => {
                 self.0.insert(self.1, c);

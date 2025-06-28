@@ -1,6 +1,7 @@
 use std::{
     any::{Any, TypeId},
     collections::HashMap,
+    sync::Arc,
 };
 
 use crate::{
@@ -23,7 +24,7 @@ pub trait Element {
     #[allow(unused)]
     fn render(&mut self, scope: &mut RenderScope) {}
     #[allow(unused)]
-    fn init(&mut self, events: &mut EventManager) {}
+    fn init(&mut self, events: &Arc<EventManager>) {}
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
@@ -61,12 +62,14 @@ impl Widget {
 
 pub struct Screen {
     pub elements: Vec<Widget>,
+    pub events: Arc<EventManager>,
 }
 
 impl Screen {
     pub fn new() -> Screen {
         Screen {
             elements: Vec::new(),
+            events: EventManager::new(),
         }
     }
 
@@ -76,22 +79,18 @@ impl Screen {
         self.elements.last_mut().unwrap()
     }
 
-    pub fn run(
-        &mut self,
-        events: &mut EventManager,
-        extensions: &mut ExtensionManager,
-    ) -> std::io::Result<()> {
+    pub fn run(&mut self, extensions: &mut ExtensionManager) -> std::io::Result<()> {
         let mut scope = RenderScope::new();
 
         for elem in &mut self.elements {
             elem.component(Transform::new());
-            elem.0.init(events);
+            elem.0.init(&self.events);
         }
 
-        extensions.init(self, events);
+        extensions.init(self, &self.events.clone());
 
         loop {
-            extensions.tick_start(self, events);
+            extensions.tick_start(self, &self.events.clone());
 
             utils::clear().unwrap();
             for elem in &mut self.elements {
@@ -108,7 +107,7 @@ impl Screen {
                 scope.draw();
             }
 
-            extensions.tick_end(self, events);
+            extensions.tick_end(self, &self.events.clone());
         }
     }
 }

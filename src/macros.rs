@@ -122,3 +122,8 @@ macro_rules! event_handler {
         $events.on(move |es, e| unsafe { (*self_ref).$method(es, e) });
     }};
 }
+
+#[macro_export]
+macro_rules! rsx {
+    () => {};
+}

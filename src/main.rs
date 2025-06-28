@@ -3,27 +3,31 @@ use std::sync::Arc;
 use crossterm::event::KeyEvent;
 use osui::{
     element::rect::Rect,
-    events::{Close, EventManager},
-    extensions::{keypress::KeyPressExtension, tick_rate::TickRate, ExtensionManager},
+    events::Close,
+    extensions::{keypress::KeyPressExtension, ExtensionManager},
     state::StateManager,
     style::Transform,
     Screen,
 };
 
 fn main() {
-    let states = StateManager::new(app);
-    app(states);
+    init(&StateManager::new(init));
 }
 
-fn app(states: Arc<StateManager>) {
+fn init(states: &Arc<StateManager>) {
     let mut screen = Screen::new();
-    let mut extensions = ExtensionManager::new();
-    let mut events = EventManager::new();
+    screen.events.set_state_manager(states.clone());
 
-    extensions.add(TickRate(50));
+    let mut extensions = ExtensionManager::new();
     extensions.add(KeyPressExtension);
 
-    events.set_state_manager(states.clone());
+    app(states, &mut screen);
+
+    screen.run(&mut extensions).unwrap();
+}
+
+fn app(states: &Arc<StateManager>, screen: &mut Screen) {
+    screen.events.set_state_manager(states.clone());
 
     let count = states.use_state(0);
 
@@ -35,14 +39,14 @@ fn app(states: Arc<StateManager>) {
         .draw(format!("Count: {}", count.get()))
         .component(Transform::center());
 
-    events.on(move |events, event: Box<KeyEvent>| match event.code {
-        crossterm::event::KeyCode::Enter => {
-            count.set(count.get() + 1);
-        }
-        _ => {
-            events.dispatch(Close);
-        }
-    });
-
-    screen.run(&mut events, &mut extensions).unwrap();
+    screen
+        .events
+        .on(move |events, event: Box<KeyEvent>| match event.code {
+            crossterm::event::KeyCode::Enter => {
+                count.set(count.get() + 1);
+            }
+            _ => {
+                events.dispatch(Close);
+            }
+        });
 }

@@ -12,59 +12,51 @@ pub trait Event {
     fn as_any(self: Box<Self>) -> Box<dyn Any>;
 }
 
-#[derive(Clone)]
-pub struct EventHandlerFn(pub Arc<Mutex<dyn FnMut(&mut EventManager, Box<dyn Event>)>>);
-
-impl std::fmt::Debug for EventHandlerFn {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "FnMut()")
-    }
-}
-
 pub struct EventManager {
-    handlers: HashMap<TypeId, Vec<EventHandlerFn>>,
-    states: Option<Arc<StateManager>>,
+    handlers:
+        Mutex<HashMap<TypeId, Vec<Arc<Mutex<dyn FnMut(&Arc<EventManager>, Box<dyn Event>)>>>>>,
+    states: Mutex<Option<Arc<StateManager>>>,
 }
 
 impl EventManager {
-    pub fn new() -> EventManager {
-        EventManager {
-            handlers: HashMap::new(),
-            states: None,
-        }
+    pub fn new() -> Arc<EventManager> {
+        Arc::new(EventManager {
+            handlers: Mutex::new(HashMap::new()),
+            states: Mutex::new(None),
+        })
     }
 
-    pub fn on<E: Event + 'static, F: FnMut(&mut EventManager, Box<E>) + 'static>(
-        &mut self,
+    pub fn on<E: Event + 'static, F: FnMut(&Arc<EventManager>, Box<E>) + 'static>(
+        self: &Arc<Self>,
         mut f: F,
     ) {
-        let states = self.states.clone();
-        let wrapper = Arc::new(Mutex::new(
-            move |e: &mut EventManager, evt: Box<dyn Event>| {
-                if let Ok(concrete) = evt.as_any().downcast::<E>() {
-                    f(e, concrete);
-                    if let Some(states) = &states {
-                        states.clone().flush();
-                    }
-                }
-            },
-        )) as Arc<Mutex<dyn FnMut(&mut EventManager, Box<dyn Event>)>>;
-
+        let states = self.states.lock().unwrap().clone();
         self.handlers
+            .lock()
+            .unwrap()
             .entry(TypeId::of::<E>())
             .or_insert_with(Vec::new)
-            .push(EventHandlerFn(wrapper));
+            .push(Arc::new(Mutex::new(
+                move |e: &Arc<EventManager>, evt: Box<dyn Event>| {
+                    if let Ok(concrete) = evt.as_any().downcast::<E>() {
+                        f(&e, concrete);
+                        if let Some(states) = &states {
+                            states.clone().flush();
+                        }
+                    }
+                },
+            )));
     }
 
-    pub fn dispatch<E: Event + 'static + Clone>(&mut self, evt: E) {
+    pub fn dispatch<E: Event + 'static + Clone>(self: &Arc<Self>, evt: E) {
         let tid = evt.type_id();
 
-        if let Some(handlers) = self.handlers.get_mut(&tid) {
+        if let Some(handlers) = self.handlers.lock().unwrap().get_mut(&tid) {
             // Clone handlers to avoid borrowing self during call
             let handler_clones: Vec<_> = handlers.iter().cloned().collect();
 
             for h in handler_clones {
-                let mut ha = h.0.lock().unwrap();
+                let mut ha = h.lock().unwrap();
                 (ha)(self, Box::new(evt.clone()));
             }
         }
@@ -74,7 +66,7 @@ impl EventManager {
         }
     }
 
-    pub fn set_state_manager(&mut self, states: Arc<StateManager>) {
-        self.states = Some(states);
+    pub fn set_state_manager(self: &Arc<Self>, states: Arc<StateManager>) {
+        *self.states.lock().unwrap() = Some(states);
     }
 }
