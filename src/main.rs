@@ -3,7 +3,7 @@ use std::sync::Arc;
 use crossterm::event::KeyEvent;
 use osui::{
     element::rect::Rect,
-    events::Close,
+    events::EventManager,
     extensions::{keypress::KeyPressExtension, ExtensionManager},
     state::StateManager,
     style::Transform,
@@ -39,14 +39,14 @@ fn app(states: &Arc<StateManager>, screen: &mut Screen) {
         .draw(format!("Count: {}", count.get()))
         .component(Transform::center());
 
-    screen
-        .events
-        .on(move |events, event: Box<KeyEvent>| match event.code {
+    screen.events.on(
+        move |events: &Arc<EventManager>, event: &KeyEvent| match event.code {
             crossterm::event::KeyCode::Enter => {
                 count.set(count.get() + 1);
             }
             _ => {
-                events.dispatch(Close);
+                events.close();
             }
-        });
+        },
+    );
 }

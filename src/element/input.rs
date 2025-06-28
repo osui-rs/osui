@@ -41,7 +41,7 @@ impl Element for Input {
 }
 
 impl KeyPressEventHandler for Input {
-    fn on_keypress(&mut self, events: &Arc<EventManager>, event: Box<KeyEvent>) {
+    fn on_keypress(&mut self, events: &Arc<EventManager>, event: &KeyEvent) {
         match event.code {
             crossterm::event::KeyCode::Char(c) => {
                 self.0.insert(self.1, c);

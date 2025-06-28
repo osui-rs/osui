@@ -5,7 +5,7 @@ macro_rules! event {
         pub struct $name;
 
         impl $crate::events::Event for $name {
-            fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+            fn as_any(&self) -> &dyn std::any::Any {
                 self
             }
         }
@@ -18,7 +18,7 @@ macro_rules! event {
         }
 
         impl $crate::events::Event for $name {
-            fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+            fn as_any(&self) -> &dyn std::any::Any {
                 self
             }
         }
@@ -29,7 +29,7 @@ macro_rules! event {
         pub struct $name ($($inner)*);
 
         impl $crate::events::Event for $name {
-            fn as_any(self: Box<Self>) -> Box<dyn std::any::Any> {
+            fn as_any(&self) -> &dyn std::any::Any {
                 self
             }
         }
