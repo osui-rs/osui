@@ -15,7 +15,6 @@ pub trait Event {
 pub struct EventManager {
     handlers: Mutex<HashMap<TypeId, Vec<Arc<Mutex<dyn FnMut(&Arc<EventManager>, &dyn Event)>>>>>,
     states: Mutex<Option<Arc<StateManager>>>,
-    event_stack: Mutex<Vec<(TypeId, Box<dyn Event>)>>,
 }
 
 impl EventManager {
@@ -23,7 +22,6 @@ impl EventManager {
         Arc::new(EventManager {
             handlers: Mutex::new(HashMap::new()),
             states: Mutex::new(None),
-            event_stack: Mutex::new(Vec::new()),
         })
     }
 
@@ -49,25 +47,14 @@ impl EventManager {
             )));
     }
 
-    fn dispatch_single(self: &Arc<Self>, tid: TypeId, evt: &dyn Event) {
-        if let Some(handlers) = self.handlers.lock().unwrap().get_mut(&tid) {
-            let handler_clones: Vec<_> = handlers.iter().cloned().collect();
-
-            for h in handler_clones {
-                let mut ha = h.lock().unwrap();
-                (ha)(self, evt);
-            }
-        }
-    }
-
     pub fn dispatch<E: Event + 'static + Clone>(self: &Arc<Self>, evt: E) {
-        self.event_stack
-            .lock()
-            .unwrap()
-            .push((evt.type_id(), Box::new(evt)));
+        let handlers = { self.handlers.lock().unwrap().get(&evt.type_id()).cloned() };
 
-        while self.event_stack.lock().unwrap().len() > 0 {
-            dis
+        if let Some(handlers) = handlers {
+            for h in handlers {
+                let mut ha = h.lock().unwrap();
+                (ha)(self, &evt);
+            }
         }
     }
 
