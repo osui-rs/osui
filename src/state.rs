@@ -1,7 +1,7 @@
 use std::{
     any::Any,
     collections::HashMap,
-    fmt::Display,
+    fmt::{Debug, Display},
     marker::PhantomData,
     ops::{Add, AddAssign, Div, Sub, SubAssign},
     sync::{Arc, Mutex},
@@ -16,6 +16,7 @@ pub struct StateManager {
     dirty: Mutex<bool>,
 }
 
+#[derive(Clone)]
 pub struct State<S> {
     manager: Arc<StateManager>,
     id: usize,
@@ -67,6 +68,18 @@ impl<S: 'static> State<S> {
     pub fn dirty(&self) {
         *self.manager.dirty.lock().unwrap() = true;
     }
+
+    pub fn get(&self) -> S
+    where
+        S: Clone,
+    {
+        self.manager.store.lock().unwrap()[&self.id]
+            .downcast_ref::<Mutex<S>>()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .clone()
+    }
 }
 
 impl<S: Display + 'static> Display for State<S> {
@@ -80,10 +93,21 @@ impl<S: Display + 'static> Display for State<S> {
     }
 }
 
-impl<S: Add + Clone + 'static> Add<S> for State<S> {
-    type Output = <S as Add>::Output;
+impl<S: Debug + 'static> Debug for State<S> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.manager.store.lock().unwrap()[&self.id]
+            .downcast_ref::<Mutex<S>>()
+            .unwrap()
+            .lock()
+            .unwrap()
+            .fmt(f)
+    }
+}
 
-    fn add(self, rhs: S) -> Self::Output {
+impl<Sv, S: Add<Sv> + Clone + 'static> Add<Sv> for State<S> {
+    type Output = <S as Add<Sv>>::Output;
+
+    fn add(self, rhs: Sv) -> Self::Output {
         self.manager.store.lock().unwrap()[&self.id]
             .downcast_ref::<Mutex<S>>()
             .unwrap()
@@ -94,10 +118,10 @@ impl<S: Add + Clone + 'static> Add<S> for State<S> {
     }
 }
 
-impl<S: Sub + Clone + 'static> Sub<S> for State<S> {
-    type Output = <S as Sub>::Output;
+impl<Sv, S: Sub<Sv> + Clone + 'static> Sub<Sv> for State<S> {
+    type Output = <S as Sub<Sv>>::Output;
 
-    fn sub(self, rhs: S) -> Self::Output {
+    fn sub(self, rhs: Sv) -> Self::Output {
         self.manager.store.lock().unwrap()[&self.id]
             .downcast_ref::<Mutex<S>>()
             .unwrap()
@@ -108,10 +132,10 @@ impl<S: Sub + Clone + 'static> Sub<S> for State<S> {
     }
 }
 
-impl<S: Div + Clone + 'static> Div<S> for State<S> {
-    type Output = <S as Div>::Output;
+impl<Sv, S: Div<Sv> + Clone + 'static> Div<Sv> for State<S> {
+    type Output = <S as Div<Sv>>::Output;
 
-    fn div(self, rhs: S) -> Self::Output {
+    fn div(self, rhs: Sv) -> Self::Output {
         self.manager.store.lock().unwrap()[&self.id]
             .downcast_ref::<Mutex<S>>()
             .unwrap()
@@ -122,8 +146,8 @@ impl<S: Div + Clone + 'static> Div<S> for State<S> {
     }
 }
 
-impl<S: AddAssign + 'static> AddAssign<S> for State<S> {
-    fn add_assign(&mut self, rhs: S) {
+impl<Sv, S: AddAssign<Sv> + 'static> AddAssign<Sv> for State<S> {
+    fn add_assign(&mut self, rhs: Sv) {
         self.manager.store.lock().unwrap()[&self.id]
             .downcast_ref::<Mutex<S>>()
             .unwrap()
@@ -134,8 +158,8 @@ impl<S: AddAssign + 'static> AddAssign<S> for State<S> {
     }
 }
 
-impl<S: SubAssign + 'static> SubAssign<S> for State<S> {
-    fn sub_assign(&mut self, rhs: S) {
+impl<Sv, S: SubAssign<Sv> + 'static> SubAssign<Sv> for State<S> {
+    fn sub_assign(&mut self, rhs: Sv) {
         self.manager.store.lock().unwrap()[&self.id]
             .downcast_ref::<Mutex<S>>()
             .unwrap()
