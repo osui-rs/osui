@@ -42,7 +42,7 @@ macro_rules! component {
         #[derive(Debug, Clone)]
         pub struct $name;
 
-        impl $crate::Component for $name {
+        impl $crate::widget::Component for $name {
             fn as_any(&self) -> &dyn std::any::Any {
                 self
             }
@@ -59,7 +59,7 @@ macro_rules! component {
             $($inner)*
         }
 
-        impl $crate::Component for $name {
+        impl $crate::widget::Component for $name {
             fn as_any(&self) -> &dyn std::any::Any {
                 self
             }
@@ -74,7 +74,7 @@ macro_rules! component {
         #[derive(Debug, Clone)]
         pub struct $name ($($inner)*);
 
-        impl $crate::Component for $name {
+        impl $crate::widget::Component for $name {
             fn as_any(&self) -> &dyn std::any::Any {
                 self
             }
