@@ -6,21 +6,24 @@ use std::{
 
 use crate::render_scope::RenderScope;
 
-pub trait Element {
+pub type BoxedElement = Box<dyn Element + Send + Sync>;
+pub type BoxedComponent = Box<dyn Component + Send + Sync>;
+
+pub trait Element: Send + Sync {
     #[allow(unused)]
     fn render(&mut self, scope: &mut RenderScope) {}
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
-pub trait Component {
+pub trait Component: Send + Sync {
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }
 
 pub struct Widget(
-    pub Mutex<Box<dyn Element>>,
-    Mutex<HashMap<TypeId, Box<dyn Component>>>,
+    pub Mutex<BoxedElement>,
+    Mutex<HashMap<TypeId, BoxedComponent>>,
 );
 
 impl Widget {

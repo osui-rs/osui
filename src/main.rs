@@ -10,7 +10,7 @@ use osui::{
 fn main() {
     let mut screen = Screen::new();
     screen.extension(VelocityExtension);
-    screen.extension(TickExtension);
+    screen.extension(TickExtension(60));
 
     screen
         .draw(format!("Hello, World!"))
@@ -20,7 +20,7 @@ fn main() {
             if let Some(mut v) = w.get::<Velocity>() {
                 if let Some(t) = w.get::<Transform>() {
                     if let Position::Const(c) = t.x {
-                        if c == 30 {
+                        if c >= 30 {
                             v.0 = 0;
                             w.set_component(v);
                         }

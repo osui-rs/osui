@@ -16,21 +16,21 @@ pub mod utils;
 pub mod widget;
 
 pub struct Screen {
-    pub elements: Vec<Arc<Widget>>,
+    pub widgets: Vec<Arc<Widget>>,
     extensions: Vec<Arc<Box<dyn Extension>>>,
 }
 
 impl Screen {
     pub fn new() -> Screen {
         Screen {
-            elements: Vec::new(),
+            widgets: Vec::new(),
             extensions: Vec::new(),
         }
     }
 
     pub fn draw<E: Element + 'static>(&mut self, element: E) -> &Arc<Widget> {
-        self.elements.push(Arc::new(Widget::new(Box::new(element))));
-        self.elements.last().unwrap()
+        self.widgets.push(Arc::new(Widget::new(Box::new(element))));
+        self.widgets.last().unwrap()
     }
 
     pub fn extension<E: Extension + 'static>(&mut self, ext: E) {
@@ -38,15 +38,19 @@ impl Screen {
     }
 
     pub fn run(&mut self) -> std::io::Result<()> {
-        for elem in &mut self.elements {
+        for elem in &mut self.widgets {
             elem.component(Transform::new());
+        }
+
+        for ext in &self.extensions {
+            ext.init(&self.widgets);
         }
 
         utils::hide_cursor()?;
 
         loop {
             self.render()?;
-            std::thread::sleep(std::time::Duration::from_millis(50));
+            std::thread::sleep(std::time::Duration::from_millis(28));
         }
     }
 
@@ -54,7 +58,7 @@ impl Screen {
         let mut scope = RenderScope::new();
 
         utils::clear()?;
-        for elem in &self.elements {
+        for elem in &self.widgets {
             scope.clear();
             if let Some(t) = elem.get() {
                 scope.set_transform(&t);
