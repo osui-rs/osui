@@ -15,7 +15,7 @@ fn main() {
     screen
         .draw(format!("Hello, World!"))
         .component(Transform::new())
-        .component(Velocity(1, 0))
+        .component(Velocity(100, 0))
         .component(OnTick(|w| {
             if let Some(mut v) = w.get::<Velocity>() {
                 if let Some(t) = w.get::<Transform>() {

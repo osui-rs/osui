@@ -9,35 +9,57 @@ use crate::{
 
 pub struct VelocityExtension;
 
-impl Extension for VelocityExtension {
-    fn render(&self, _widget: &Arc<Widget>) {
-        if let Some(velocity) = _widget.get::<Velocity>() {
-            if let Some(mut t) = _widget.get::<Transform>() {
+impl VelocityExtension {
+    fn apply_velocity(ticks: u16, velocity: i32, x: &mut u16) {
+        if velocity.abs() != 0 && ticks as i32 % (1000 / velocity.abs()) == 0 {
+            if velocity > 0 {
+                *x += 1;
+            } else if velocity < 0 {
+                *x -= 1;
+            }
+        }
+    }
+}
+
+impl VelocityExtension {
+    fn apply_velocity_xy(ticks: u16, widget: &Arc<Widget>) {
+        if let Some(velocity) = widget.get::<Velocity>() {
+            if let Some(mut t) = widget.get::<Transform>() {
                 match &mut t.x {
-                    Position::Const(x) => {
-                        if velocity.0 > 0 {
-                            *x += 1;
-                        } else if velocity.0 < 0 {
-                            *x -= 1;
-                        }
-                    }
+                    Position::Const(x) => Self::apply_velocity(ticks, velocity.0, x),
                     _ => {}
                 }
 
                 match &mut t.y {
-                    Position::Const(y) => {
-                        if velocity.1 > 0 {
-                            *y += 1;
-                        } else if velocity.1 < 0 {
-                            *y -= 1;
-                        }
-                    }
+                    Position::Const(y) => Self::apply_velocity(ticks, velocity.1, y),
                     _ => {}
                 }
 
-                _widget.set_component(t);
+                widget.set_component(t);
             }
         }
+    }
+}
+
+impl Extension for VelocityExtension {
+    fn init(&self, widgets: &Vec<Arc<Widget>>) {
+        std::thread::spawn({
+            let widgets = widgets.clone();
+            move || {
+                let mut tick = 0;
+                loop {
+                    for widget in &widgets {
+                        Self::apply_velocity_xy(tick, widget);
+                    }
+                    if tick > 1000 {
+                        tick = 0;
+                    } else {
+                        tick += 1;
+                    }
+                    std::thread::sleep(std::time::Duration::from_millis(1));
+                }
+            }
+        });
     }
 }
 
