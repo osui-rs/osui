@@ -4,7 +4,7 @@ macro_rules! event {
         #[derive(Debug, Clone)]
         pub struct $name;
 
-        impl $crate::events::Event for $name {
+        impl $crate::extensions::Event for $name {
             fn as_any(&self) -> &dyn std::any::Any {
                 self
             }
@@ -17,7 +17,7 @@ macro_rules! event {
             $($inner)*
         }
 
-        impl $crate::events::Event for $name {
+        impl $crate::extensions::Event for $name {
             fn as_any(&self) -> &dyn std::any::Any {
                 self
             }
@@ -28,7 +28,7 @@ macro_rules! event {
         #[derive(Debug, Clone)]
         pub struct $name ($($inner)*);
 
-        impl $crate::events::Event for $name {
+        impl $crate::extensions::Event for $name {
             fn as_any(&self) -> &dyn std::any::Any {
                 self
             }

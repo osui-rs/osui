@@ -1,9 +1,10 @@
 use osui::{
     extensions::{
         id::{Id, IdExtension},
-        tick::{OnTick, TickExtension},
+        tick::{TickEvent, TickExtension},
         Handler,
     },
+    style::Transform,
     Screen,
 };
 
@@ -15,7 +16,11 @@ fn main() {
 
     screen
         .draw(format!("Hello, World!"))
-        .component(OnTick(Handler::new(move |_| {})))
+        .component(Handler::new(move |w, e: &TickEvent| {
+            if e.0 == 30 {
+                w.set_component(Transform::center());
+            }
+        }))
         .component(Id(69));
 
     screen.run().unwrap();

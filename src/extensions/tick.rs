@@ -1,7 +1,8 @@
 use std::{fmt::Debug, sync::Arc};
 
+use crate::event;
 use crate::extensions::Handler;
-use crate::{component, extensions::Extension, widget::Widget};
+use crate::{extensions::Extension, widget::Widget};
 
 pub struct TickExtension(pub u16);
 
@@ -10,16 +11,20 @@ impl Extension for TickExtension {
         let rate_dur = 1000 / self.0 as u64;
         std::thread::spawn({
             let widgets = widgets.clone();
-            move || loop {
-                for w in &widgets {
-                    if let Some(on_tick) = w.get::<OnTick>() {
-                        on_tick.0.call(&w)
+            move || {
+                let mut tick = 0;
+                loop {
+                    for w in &widgets {
+                        if let Some(on_tick) = w.get::<Handler>() {
+                            on_tick.call(&w, &TickEvent(tick))
+                        }
                     }
+                    tick += 1;
+                    std::thread::sleep(std::time::Duration::from_millis(rate_dur));
                 }
-                std::thread::sleep(std::time::Duration::from_millis(rate_dur));
             }
         });
     }
 }
 
-component!(OnTick(pub Handler));
+event!(TickEvent(pub u32));
