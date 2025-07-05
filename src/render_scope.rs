@@ -8,6 +8,7 @@ use crate::{
 #[derive(Clone)]
 enum RenderMethod {
     Text(String),
+    TextColored(String, u32),
     Rectangle(u16, u16, u32),
 }
 
@@ -41,6 +42,14 @@ impl RenderScope {
         self.transform.height = self.transform.height.max(h);
     }
 
+    pub fn draw_text_colored(&mut self, text: &str, color: u32) {
+        self.render_stack
+            .push(RenderMethod::TextColored(text.to_string(), color));
+        let (w, h) = utils::str_size(text);
+        self.transform.width = self.transform.width.max(w);
+        self.transform.height = self.transform.height.max(h);
+    }
+
     pub fn draw_rect(&mut self, width: u16, height: u16, color: u32) {
         self.render_stack
             .push(RenderMethod::Rectangle(width, height, color));
@@ -54,6 +63,11 @@ impl RenderScope {
                 RenderMethod::Text(t) => {
                     utils::print(self.transform.x, self.transform.y, t);
                 }
+                RenderMethod::TextColored(t, c) => utils::print(
+                    self.transform.x,
+                    self.transform.y,
+                    &(utils::hex_ansi(*c) + t),
+                ),
                 RenderMethod::Rectangle(width, height, color) => {
                     utils::print_liner(
                         self.transform.x,
