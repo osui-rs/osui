@@ -1,22 +1,27 @@
 use osui::{
-    elements::grid::{HGrid, VGrid},
-    extensions::{id::IdExtension, tick::TickExtension},
+    elements::{
+        div::Div,
+        grid::{HGrid, VGrid},
+    },
     style::Transform,
     Screen,
 };
 
 fn main() {
     let mut screen = Screen::new();
-    let document = IdExtension::new();
-    screen.extension(document.clone());
-    screen.extension(TickExtension(10));
 
-    let vgrid = VGrid::new(0xff0000, 1);
+    let container = Div::new(0xffff00);
 
-    screen.draw(vgrid.clone()).component(Transform::center());
+    screen
+        .draw(container.clone())
+        .component(Transform::center().dimensions(70, 11));
+
+    let vgrid = VGrid::new(0x0000ff, 1);
+
+    container.draw(screen.draw(vgrid.clone()).component(Transform::center()));
 
     for _ in 1..6 {
-        let row = HGrid::new(0xff0000, 1);
+        let row = HGrid::new(0xff00ff, 1);
 
         vgrid.draw(screen.draw(row.clone()));
 

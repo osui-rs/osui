@@ -110,16 +110,30 @@ impl Dimension {
 
 impl Position {
     pub fn use_position(&self, size: u16, parent: u16, m: i32, r: &mut u16) {
-        match self {
-            Self::Center => *r = (parent - size) / 2,
-            Self::Const(n) => *r = *n,
-            Self::End => *r = parent - size,
-        }
+        let base = match self {
+            Self::Center => {
+                if parent < size {
+                    return;
+                }
+                (parent - size) / 2
+            }
+            Self::Const(n) => *n,
+            Self::End => {
+                if parent < size {
+                    return;
+                }
+                parent - size
+            }
+        };
 
-        if m > 0 {
-            *r += m as u16;
+        let adjusted = if m >= 0 {
+            base.checked_add(m as u16)
         } else {
-            *r -= -m as u16;
+            base.checked_sub((-m) as u16)
+        };
+
+        if let Some(val) = adjusted {
+            *r = val;
         }
     }
 }
