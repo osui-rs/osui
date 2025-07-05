@@ -13,20 +13,14 @@ fn main() {
 
     let vgrid = VGrid::new(0xff0000, 1);
 
-    screen
-        .draw(vgrid.clone())
-        .component(Transform::center().dimensions(34, 9));
+    screen.draw(vgrid.clone()).component(Transform::center());
 
     for _ in 1..6 {
-        let row = HGrid::new(0x000000, 1);
+        let row = HGrid::new(0xff0000, 1);
 
-        vgrid.draw(
-            screen
-                .draw(row.clone())
-                .component(Transform::new().dimensions(5, 1)),
-        );
+        vgrid.draw(screen.draw(row.clone()));
 
-        for i in 1..6 {
+        for i in 1..10 {
             row.draw(
                 screen
                     .draw((format!("Item {i}"), 0xff0000))

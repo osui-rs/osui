@@ -26,27 +26,14 @@ impl Element for Arc<VGrid> {
     }
 
     fn after_render(&mut self, scope: &crate::render_scope::RenderScope) {
-        *self.transform.lock().unwrap() = scope.get_transform().clone();
-    }
+        let mut t = self.transform.lock().unwrap();
+        let st = scope.get_transform();
 
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
+        t.x = st.x;
+        t.y = st.y;
 
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-        self
-    }
-}
-
-impl Element for Arc<HGrid> {
-    fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
-        let transform = self.transform.lock().unwrap();
-        let (w, h) = scope.get_size_or(transform.width, transform.height);
-        scope.draw_rect(w, h, self.color);
-    }
-
-    fn after_render(&mut self, scope: &crate::render_scope::RenderScope) {
-        *self.transform.lock().unwrap() = scope.get_transform().clone();
+        t.width = 0;
+        t.height = 0;
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -90,7 +77,15 @@ impl VGrid {
             }
 
             let elem_transform = scope.get_transform_mut();
-            elem_transform.x += transform.x;
+
+            transform.height += if transform.height == 0 {
+                elem_transform.height
+            } else {
+                elem_transform.height + r2.gap
+            };
+            transform.width = transform.width.max(elem_transform.width);
+
+            elem_transform.x = transform.x;
             elem_transform.y = transform.y;
             transform.y += elem_transform.height + r2.gap;
 
@@ -100,6 +95,33 @@ impl VGrid {
             scope.set_parent_size(w, h);
         }));
         r
+    }
+}
+
+impl Element for Arc<HGrid> {
+    fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
+        let transform = self.transform.lock().unwrap();
+        let (w, h) = scope.get_size_or(transform.width, transform.height);
+        scope.draw_rect(w, h, self.color);
+    }
+
+    fn after_render(&mut self, scope: &crate::render_scope::RenderScope) {
+        let mut t = self.transform.lock().unwrap();
+        let st = scope.get_transform();
+
+        t.x = st.x;
+        t.y = st.y;
+
+        t.width = 0;
+        t.height = 0;
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
     }
 }
 
@@ -135,8 +157,16 @@ impl HGrid {
             }
 
             let elem_transform = scope.get_transform_mut();
+
+            transform.width += if transform.width == 0 {
+                elem_transform.width
+            } else {
+                elem_transform.width + r2.gap
+            };
+            transform.height = transform.height.max(elem_transform.height);
+
             elem_transform.x = transform.x;
-            elem_transform.y += transform.y;
+            elem_transform.y = transform.y;
             transform.x += elem_transform.width + r2.gap;
 
             scope.draw();
