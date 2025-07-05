@@ -79,6 +79,21 @@ impl RenderScope {
         (self.transform.width, self.transform.height)
     }
 
+    pub fn get_size_or(&self, width: u16, height: u16) -> (u16, u16) {
+        (
+            if self.transform.width == 0 {
+                width
+            } else {
+                self.transform.width
+            },
+            if self.transform.height == 0 {
+                height
+            } else {
+                self.transform.height
+            },
+        )
+    }
+
     pub fn get_size_or_parent(&self) -> (u16, u16) {
         (
             if self.transform.width == 0 {
