@@ -1,33 +1,22 @@
 use osui::{
     extensions::{
+        id::{Id, IdExtension},
         tick::{OnTick, TickExtension},
-        velocity::{Velocity, VelocityExtension},
+        Handler,
     },
-    style::{Position, Transform},
     Screen,
 };
 
 fn main() {
     let mut screen = Screen::new();
-    screen.extension(VelocityExtension);
-    screen.extension(TickExtension(60));
+    let document = IdExtension::new();
+    screen.extension(document.clone());
+    screen.extension(TickExtension(10));
 
     screen
         .draw(format!("Hello, World!"))
-        .component(Transform::new())
-        .component(Velocity(100, 0))
-        .component(OnTick(|w| {
-            if let Some(mut v) = w.get::<Velocity>() {
-                if let Some(t) = w.get::<Transform>() {
-                    if let Position::Const(c) = t.x {
-                        if c >= 30 {
-                            v.0 = 0;
-                            w.set_component(v);
-                        }
-                    }
-                }
-            }
-        }));
+        .component(OnTick(Handler::new(move |_| {})))
+        .component(Id(69));
 
     screen.run().unwrap();
 }

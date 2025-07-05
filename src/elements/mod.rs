@@ -1,3 +1,5 @@
+pub mod div;
+
 use crate::Element;
 
 impl Element for String {

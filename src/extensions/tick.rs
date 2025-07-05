@@ -1,18 +1,19 @@
-use std::sync::Arc;
+use std::{fmt::Debug, sync::Arc};
 
+use crate::extensions::Handler;
 use crate::{component, extensions::Extension, widget::Widget};
 
 pub struct TickExtension(pub u16);
 
 impl Extension for TickExtension {
-    fn init(&self, widgets: &Vec<Arc<Widget>>) {
+    fn init(&mut self, widgets: &Vec<Arc<Widget>>) {
         let rate_dur = 1000 / self.0 as u64;
         std::thread::spawn({
             let widgets = widgets.clone();
             move || loop {
                 for w in &widgets {
                     if let Some(on_tick) = w.get::<OnTick>() {
-                        (on_tick.0)(&w)
+                        on_tick.0.call(&w)
                     }
                 }
                 std::thread::sleep(std::time::Duration::from_millis(rate_dur));
@@ -21,4 +22,4 @@ impl Extension for TickExtension {
     }
 }
 
-component!(OnTick(pub fn(&Arc<Widget>)));
+component!(OnTick(pub Handler));

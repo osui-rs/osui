@@ -42,7 +42,7 @@ impl VelocityExtension {
 }
 
 impl Extension for VelocityExtension {
-    fn init(&self, widgets: &Vec<Arc<Widget>>) {
+    fn init(&mut self, widgets: &Vec<Arc<Widget>>) {
         std::thread::spawn({
             let widgets = widgets.clone();
             move || {

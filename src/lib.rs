@@ -1,4 +1,4 @@
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
 use crate::{
     extensions::Extension,
@@ -17,7 +17,7 @@ pub mod widget;
 
 pub struct Screen {
     pub widgets: Vec<Arc<Widget>>,
-    extensions: Vec<Arc<Box<dyn Extension>>>,
+    extensions: Vec<Arc<Mutex<Box<dyn Extension>>>>,
 }
 
 impl Screen {
@@ -34,7 +34,7 @@ impl Screen {
     }
 
     pub fn extension<E: Extension + 'static>(&mut self, ext: E) {
-        self.extensions.push(Arc::new(Box::new(ext)));
+        self.extensions.push(Arc::new(Mutex::new(Box::new(ext))));
     }
 
     pub fn run(&mut self) -> std::io::Result<()> {
@@ -43,7 +43,7 @@ impl Screen {
         }
 
         for ext in &self.extensions {
-            ext.init(&self.widgets);
+            ext.lock().unwrap().init(&self.widgets);
         }
 
         utils::hide_cursor()?;
@@ -64,20 +64,16 @@ impl Screen {
                 scope.set_transform(&t);
             }
 
-            self.render_extension(elem.clone()).unwrap();
+            for ext in &self.extensions {
+                ext.lock().unwrap().render_widget(&mut scope, elem);
+            }
+
             elem.0.lock().unwrap().render(&mut scope);
 
             if let Some(t) = elem.get() {
                 scope.set_transform(&t);
             }
             scope.draw();
-        }
-        Ok(())
-    }
-
-    pub fn render_extension(&self, wi: Arc<Widget>) -> std::io::Result<()> {
-        for ext in &self.extensions {
-            ext.render(&wi);
         }
         Ok(())
     }
