@@ -12,6 +12,8 @@ pub type BoxedComponent = Box<dyn Component + Send + Sync>;
 pub trait Element: Send + Sync {
     #[allow(unused)]
     fn render(&mut self, scope: &mut RenderScope) {}
+    #[allow(unused)]
+    fn after_render(&mut self, scope: &RenderScope) {}
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }

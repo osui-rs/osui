@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    extensions::Extension,
+    extensions::{Extension, Handler},
     render_scope::RenderScope,
     style::Transform,
     widget::{Element, Widget},
@@ -19,6 +19,17 @@ pub struct Screen {
     pub widgets: Vec<Arc<Widget>>,
     extensions: Vec<Arc<Mutex<Box<dyn Extension>>>>,
 }
+
+event!(RenderWrapperEvent(*mut RenderScope));
+
+impl RenderWrapperEvent {
+    pub fn get_scope(&self) -> &mut RenderScope {
+        unsafe { &mut *self.0 }
+    }
+}
+
+unsafe impl Send for RenderWrapperEvent {}
+unsafe impl Sync for RenderWrapperEvent {}
 
 impl Screen {
     pub fn new() -> Screen {
@@ -56,24 +67,32 @@ impl Screen {
 
     pub fn render(&self) -> std::io::Result<()> {
         let mut scope = RenderScope::new();
+        let (w, h) = crossterm::terminal::size().unwrap();
+        scope.set_parent_size(w, h);
 
         utils::clear()?;
         for elem in &self.widgets {
-            scope.clear();
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
+            if let Some(wrapper) = elem.get::<Handler<RenderWrapperEvent>>() {
+                wrapper.call(elem, &RenderWrapperEvent(&mut scope));
+            } else {
+                scope.clear();
+                if let Some(t) = elem.get() {
+                    scope.set_transform(&t);
+                }
 
-            for ext in &self.extensions {
-                ext.lock().unwrap().render_widget(&mut scope, elem);
-            }
+                for ext in &self.extensions {
+                    ext.lock().unwrap().render_widget(&mut scope, elem);
+                }
 
-            elem.0.lock().unwrap().render(&mut scope);
+                elem.0.lock().unwrap().render(&mut scope);
 
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
+                if let Some(t) = elem.get() {
+                    scope.set_transform(&t);
+                }
+                scope.draw();
+
+                elem.0.lock().unwrap().after_render(&scope);
             }
-            scope.draw();
         }
         Ok(())
     }

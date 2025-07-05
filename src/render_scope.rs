@@ -1,13 +1,17 @@
+use std::fmt::Debug;
+
 use crate::{
     style::{RawTransform, Transform},
     utils::{self, hex_ansi_bg},
 };
 
+#[derive(Clone)]
 enum RenderMethod {
     Text(String),
     Rectangle(u16, u16, u32),
 }
 
+#[derive(Clone)]
 pub struct RenderScope {
     transform: RawTransform,
     render_stack: Vec<RenderMethod>,
@@ -26,7 +30,6 @@ impl RenderScope {
     }
 
     pub fn set_transform(&mut self, transform: &Transform) {
-        (self.parent_width, self.parent_height) = crossterm::terminal::size().unwrap();
         transform.use_dimensions(&mut self.transform);
         transform.use_position(self.parent_width, self.parent_height, &mut self.transform);
     }
@@ -76,7 +79,41 @@ impl RenderScope {
         (self.transform.width, self.transform.height)
     }
 
+    pub fn get_size_or_parent(&self) -> (u16, u16) {
+        (
+            if self.transform.width == 0 {
+                self.parent_width
+            } else {
+                self.transform.width
+            },
+            if self.transform.height == 0 {
+                self.parent_height
+            } else {
+                self.transform.height
+            },
+        )
+    }
+
     pub fn get_parent_size(&self) -> (u16, u16) {
         (self.parent_width, self.parent_height)
+    }
+
+    pub fn set_parent_size(&mut self, width: u16, height: u16) {
+        self.parent_width = width;
+        self.parent_height = height;
+    }
+
+    pub fn get_transform_mut(&mut self) -> &mut RawTransform {
+        &mut self.transform
+    }
+
+    pub fn get_transform(&self) -> &RawTransform {
+        &self.transform
+    }
+}
+
+impl Debug for RenderScope {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "RenderScope")
     }
 }

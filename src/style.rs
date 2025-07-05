@@ -1,5 +1,6 @@
 use crate::component;
 
+#[derive(Clone)]
 pub struct RawTransform {
     pub x: u16,
     pub y: u16,
@@ -54,6 +55,11 @@ impl Transform {
 
     pub fn bottom(mut self) -> Self {
         self.y = Position::End;
+        self
+    }
+
+    pub fn right(mut self) -> Self {
+        self.x = Position::End;
         self
     }
 

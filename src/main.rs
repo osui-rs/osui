@@ -1,9 +1,6 @@
 use osui::{
-    extensions::{
-        id::{Id, IdExtension},
-        tick::{TickEvent, TickExtension},
-        Handler,
-    },
+    elements::div::Div,
+    extensions::{id::IdExtension, tick::TickExtension},
     style::Transform,
     Screen,
 };
@@ -14,14 +11,17 @@ fn main() {
     screen.extension(document.clone());
     screen.extension(TickExtension(10));
 
+    let my_div = Div::new(0xff0000);
+
     screen
-        .draw(format!("Hello, World!"))
-        .component(Handler::new(move |w, e: &TickEvent| {
-            if e.0 == 30 {
-                w.set_component(Transform::center());
-            }
-        }))
-        .component(Id(69));
+        .draw(my_div.clone())
+        .component(Transform::center().dimensions(21, 3));
+
+    my_div.draw(
+        screen
+            .draw(format!("Hello, World!"))
+            .component(Transform::center()),
+    );
 
     screen.run().unwrap();
 }

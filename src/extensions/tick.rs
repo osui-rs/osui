@@ -15,7 +15,7 @@ impl Extension for TickExtension {
                 let mut tick = 0;
                 loop {
                     for w in &widgets {
-                        if let Some(on_tick) = w.get::<Handler>() {
+                        if let Some(on_tick) = w.get::<Handler<TickEvent>>() {
                             on_tick.call(&w, &TickEvent(tick))
                         }
                     }
