@@ -54,9 +54,8 @@ impl VGrid {
         })
     }
 
-    pub fn draw(self: &Arc<Self>, element: &Arc<Widget>) -> Arc<Self> {
+    pub fn draw(self: &Arc<Self>, element: &Arc<Widget>) -> Arc<Widget> {
         let r2 = self.clone();
-        let r = self.clone();
         element.component(Handler::new(move |elem, e: &RenderWrapperEvent| {
             let scope = e.get_scope();
             scope.clear();
@@ -94,7 +93,7 @@ impl VGrid {
 
             scope.set_parent_size(w, h);
         }));
-        r
+        element.clone()
     }
 }
 

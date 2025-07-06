@@ -1,9 +1,10 @@
 pub mod id;
 pub mod tick;
 pub mod velocity;
+pub mod resources;
 
 use std::{
-    any::Any,
+    any::{type_name, Any},
     fmt::Debug,
     sync::{Arc, Mutex},
 };
@@ -45,8 +46,8 @@ impl<E: Event + 'static> Handler<E> {
     }
 }
 
-impl<T: Event> Debug for Handler<T> {
+impl<E: Event> Debug for Handler<E> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Handler")
+        write!(f, "Handler({})", type_name::<E>())
     }
 }
