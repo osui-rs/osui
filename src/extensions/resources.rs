@@ -1,16 +1,22 @@
-use crate::{event, widget::Component};
+use std::sync::{Arc, Mutex};
 
-#[derive(Debug, Clone)]
-pub struct Resource<T>(pub T);
+#[derive(Clone)]
+pub struct VecResource<T>(Arc<Mutex<Box<dyn FnMut(&T) + Send + Sync>>>);
 
-impl<T: Send + Sync + 'static> Component for Resource<T> {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
+impl<T: Send + Sync + 'static> VecResource<T> {
+    pub fn new() -> Self {
+        Self(Arc::new(Mutex::new(Box::new(|_| {}))))
     }
 
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-        self
+    pub fn iterate<F: FnMut(&T) + Send + Sync + 'static>(&self, f: F) {
+        *self.0.lock().unwrap() = Box::new(f);
+    }
+
+    pub fn push(&self, e: T) {
+        let i = self.0.clone();
+
+        std::thread::spawn(move || {
+            (i.lock().unwrap())(&e);
+        });
     }
 }
-
-event!(ResourceUpdate);

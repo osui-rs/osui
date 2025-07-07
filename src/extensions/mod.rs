@@ -1,7 +1,7 @@
 pub mod id;
+pub mod resources;
 pub mod tick;
 pub mod velocity;
-pub mod resources;
 
 use std::{
     any::{type_name, Any},
@@ -12,10 +12,11 @@ use std::{
 use crate::{
     render_scope::RenderScope,
     widget::{Component, Widget},
+    Screen,
 };
 
 pub trait Extension {
-    fn init(&mut self, _widgets: &Vec<Arc<Widget>>) {}
+    fn init(&mut self, _screen: Arc<Screen>) {}
     fn render_widget(&mut self, _scope: &mut RenderScope, _widget: &Arc<Widget>) {}
 }
 

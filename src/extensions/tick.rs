@@ -1,20 +1,19 @@
 use std::{fmt::Debug, sync::Arc};
 
-use crate::event;
+use crate::extensions::Extension;
 use crate::extensions::Handler;
-use crate::{extensions::Extension, widget::Widget};
+use crate::{event, Screen};
 
 pub struct TickExtension(pub u16);
 
 impl Extension for TickExtension {
-    fn init(&mut self, widgets: &Vec<Arc<Widget>>) {
+    fn init(&mut self, screen: Arc<Screen>) {
         let rate_dur = 1000 / self.0 as u64;
         std::thread::spawn({
-            let widgets = widgets.clone();
             move || {
                 let mut tick = 0;
                 loop {
-                    for w in &widgets {
+                    for w in screen.widgets.lock().unwrap().iter() {
                         if let Some(on_tick) = w.get::<Handler<TickEvent>>() {
                             on_tick.call(&w, &TickEvent(tick))
                         }

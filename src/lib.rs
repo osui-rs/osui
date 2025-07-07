@@ -16,8 +16,8 @@ pub mod utils;
 pub mod widget;
 
 pub struct Screen {
-    pub widgets: Vec<Arc<Widget>>,
-    extensions: Vec<Arc<Mutex<Box<dyn Extension>>>>,
+    pub widgets: Mutex<Vec<Arc<Widget>>>,
+    extensions: Mutex<Vec<Arc<Mutex<Box<dyn Extension + Send + Sync>>>>>,
 }
 
 event!(RenderWrapperEvent(*mut RenderScope));
@@ -32,29 +32,33 @@ unsafe impl Send for RenderWrapperEvent {}
 unsafe impl Sync for RenderWrapperEvent {}
 
 impl Screen {
-    pub fn new() -> Screen {
-        Screen {
-            widgets: Vec::new(),
-            extensions: Vec::new(),
-        }
+    pub fn new() -> Arc<Self> {
+        Arc::new(Self {
+            widgets: Mutex::new(Vec::new()),
+            extensions: Mutex::new(Vec::new()),
+        })
     }
 
-    pub fn draw<E: Element + 'static>(&mut self, element: E) -> &Arc<Widget> {
-        self.widgets.push(Arc::new(Widget::new(Box::new(element))));
-        self.widgets.last().unwrap()
+    pub fn draw<E: Element + 'static>(self: &Arc<Self>, element: E) -> Arc<Widget> {
+        let w = Arc::new(Widget::new(Box::new(element)));
+        self.widgets.lock().unwrap().push(w.clone());
+        w
     }
 
-    pub fn extension<E: Extension + 'static>(&mut self, ext: E) {
-        self.extensions.push(Arc::new(Mutex::new(Box::new(ext))));
+    pub fn extension<E: Extension + Send + Sync + 'static>(self: &Arc<Self>, ext: E) {
+        self.extensions
+            .lock()
+            .unwrap()
+            .push(Arc::new(Mutex::new(Box::new(ext))));
     }
 
-    pub fn run(&mut self) -> std::io::Result<()> {
-        for elem in &mut self.widgets {
+    pub fn run(self: &Arc<Self>) -> std::io::Result<()> {
+        for elem in self.widgets.lock().unwrap().iter() {
             elem.component(Transform::new());
         }
 
-        for ext in &self.extensions {
-            ext.lock().unwrap().init(&self.widgets);
+        for ext in self.extensions.lock().unwrap().iter() {
+            ext.lock().unwrap().init(self.clone());
         }
 
         utils::hide_cursor()?;
@@ -65,13 +69,13 @@ impl Screen {
         }
     }
 
-    pub fn render(&self) -> std::io::Result<()> {
+    pub fn render(self: &Arc<Self>) -> std::io::Result<()> {
         let mut scope = RenderScope::new();
         let (w, h) = crossterm::terminal::size().unwrap();
         scope.set_parent_size(w, h);
 
         utils::clear()?;
-        for elem in &self.widgets {
+        for elem in self.widgets.lock().unwrap().iter() {
             if let Some(wrapper) = elem.get::<Handler<RenderWrapperEvent>>() {
                 wrapper.call(elem, &RenderWrapperEvent(&mut scope));
             } else {
@@ -80,7 +84,7 @@ impl Screen {
                     scope.set_transform(&t);
                 }
 
-                for ext in &self.extensions {
+                for ext in self.extensions.lock().unwrap().iter() {
                     ext.lock().unwrap().render_widget(&mut scope, elem);
                 }
 

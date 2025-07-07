@@ -5,6 +5,7 @@ use crate::{
     extensions::Extension,
     style::{Position, Transform},
     widget::Widget,
+    Screen,
 };
 
 pub struct VelocityExtension;
@@ -42,13 +43,12 @@ impl VelocityExtension {
 }
 
 impl Extension for VelocityExtension {
-    fn init(&mut self, widgets: &Vec<Arc<Widget>>) {
+    fn init(&mut self, screen: Arc<Screen>) {
         std::thread::spawn({
-            let widgets = widgets.clone();
             move || {
                 let mut tick = 0;
                 loop {
-                    for widget in &widgets {
+                    for widget in screen.widgets.lock().unwrap().iter() {
                         Self::apply_velocity_xy(tick, widget);
                     }
                     if tick > 1000 {
