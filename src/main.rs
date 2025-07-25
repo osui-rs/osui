@@ -1,44 +1,18 @@
-use osui::{
-    elements::grid::VGrid,
-    extensions::{
-        resources::VecResource,
-        tick::{TickEvent, TickExtension},
-        Handler,
-    },
-    style::Transform,
-    Screen,
-};
+use osui::{elements::state::use_state, Screen};
 
-fn main() {
+fn main() -> std::io::Result<()> {
     let screen = Screen::new();
-    screen.extension(TickExtension(10));
+    let count = use_state(0);
 
-    let items = <VecResource<&str>>::new();
+    screen.draw(count.draw({
+        let count = count.clone();
+        move || Box::new(format!("Count: {count}"))
+    }));
 
-    let vgrid = VGrid::new(0x000000, 0);
-
-    screen
-        .draw(vgrid.clone())
-        .component(Transform::center())
-        .component(Handler::new({
-            let items = items.clone();
-            move |_, e: &TickEvent| {
-                if e.0 == 1 {
-                    items.push("Hello?");
-                }
-            }
-        }));
-
-    items.iterate({
-        let screen = screen.clone();
-        move |i| {
-            vgrid.draw(
-                screen
-                    .draw((i.to_string(), 0xff0000))
-                    .component(Transform::new()),
-            );
-        }
+    std::thread::spawn(move || loop {
+        std::thread::sleep(std::time::Duration::from_millis(500));
+        count.set(unsafe { *count.value } + 1);
     });
 
-    screen.run().unwrap();
+    screen.run()
 }

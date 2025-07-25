@@ -20,6 +20,20 @@
   <b>OSUI is a customizable terminal user interface (TUI) library written in Rust. It provides a set of components and rsx to build interactive command-line interfaces with ease.</b>
 </p>
 
+```rust
+use osui::{style::Transform, Screen};
+
+fn main() -> std::io::Result<()> {
+    let screen = Screen::new();
+
+    screen
+        .draw(format!("Hello, World"))
+        .component(Transform::center());
+
+    screen.run()
+}
+```
+
 ## [Documentation](https://osui.netlify.app/docs)
 
 ## Features
