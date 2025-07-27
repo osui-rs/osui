@@ -1,94 +1,94 @@
-use std::ops::{Deref, DerefMut};
+use std::{
+    fmt::{Debug, Display, Formatter, Result as FmtResult},
+    ops::{Deref, DerefMut},
+    sync::{Arc, Mutex, MutexGuard},
+};
 
 use crate::dependency::DependencyHandler;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct State<T> {
-    pub value: *mut T,
-    dependencies: *mut usize,
-    changed: *mut usize, // set to dependencies when the value is changed
+    inner: Arc<Mutex<Inner<T>>>,
 }
 
-pub fn use_state<T>(mut v: T) -> State<T> {
+#[derive(Debug)]
+pub struct Inner<T> {
+    value: T,
+    dependencies: usize,
+    changed: usize,
+}
+
+pub fn use_state<T>(v: T) -> State<T> {
     State {
-        value: &mut v,
-        dependencies: &mut 0,
-        changed: &mut 0,
+        inner: Arc::new(Mutex::new(Inner {
+            value: v,
+            dependencies: 0,
+            changed: 0,
+        })),
+    }
+}
+
+impl<T: Clone> State<T> {
+    /// Gets the cloned value, recommended for preventing deadlocks
+    pub fn get_dl(&self) -> T {
+        self.inner.lock().unwrap().value.clone()
     }
 }
 
 impl<T> State<T> {
-    pub fn set(&self, v: T) {
-        unsafe {
-            *self.value = v;
-        }
-
-        self.change();
+    /// Gets a lock on the state for read/write access.
+    pub fn get(&self) -> MutexGuard<'_, Inner<T>> {
+        self.inner.lock().unwrap()
     }
 
-    pub fn change(&self) {
-        unsafe {
-            *self.changed = *self.dependencies;
-        }
+    /// Sets the value and marks it as changed.
+    pub fn set(&self, v: T) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.value = v;
+        inner.changed = inner.dependencies;
+    }
+
+    /// Marks the state as updated.
+    pub fn update(&self) {
+        let mut inner = self.inner.lock().unwrap();
+        inner.changed = inner.dependencies;
     }
 }
 
-impl<T: std::fmt::Debug> DependencyHandler for State<T> {
+impl<T: Debug + Send + Sync> DependencyHandler for State<T> {
     fn check(&self) -> bool {
-        unsafe {
-            let i = *self.changed > 0;
-            if i {
-                *self.changed -= 1;
-            }
-            i
+        let mut inner = self.inner.lock().unwrap();
+        let i = inner.changed > 0;
+        if i {
+            inner.changed -= 1;
         }
+        i
     }
 
     fn add(&self) {
-        unsafe {
-            *self.dependencies += 1;
-        }
+        let mut inner = self.inner.lock().unwrap();
+        inner.dependencies += 1;
     }
 }
 
-impl<T: std::fmt::Display> std::fmt::Display for State<T> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", unsafe { &*self.value })
+impl<T: Display> Display for State<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        let inner = self.inner.lock().unwrap();
+        write!(f, "{}", inner.value)
     }
 }
 
-unsafe impl<T> Send for State<T> {}
-unsafe impl<T> Sync for State<T> {}
-
-impl<T> Deref for State<T> {
+impl<T> Deref for Inner<T> {
     type Target = T;
+
     fn deref(&self) -> &Self::Target {
-        unsafe { &*self.value }
+        &self.value
     }
 }
 
-impl<T> DerefMut for State<T> {
+impl<T> DerefMut for Inner<T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
-        unsafe {
-            self.change();
-
-            &mut *self.value
-        }
-    }
-}
-
-impl<T> Clone for State<T> {
-    fn clone(&self) -> Self {
-        Self {
-            value: self.value,
-            dependencies: self.dependencies,
-            changed: self.changed,
-        }
-    }
-
-    fn clone_from(&mut self, source: &Self) {
-        self.changed = source.changed;
-        self.dependencies = source.dependencies;
-        self.value = source.value;
+        self.changed = self.dependencies;
+        &mut self.value
     }
 }
