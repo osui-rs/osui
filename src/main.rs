@@ -22,6 +22,8 @@ fn app() -> Rsx {
     });
 
     rsx! {
-        %count "{count}"
+        %count
+        @Transform::center();
+        "{count}"
     }
 }

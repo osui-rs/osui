@@ -136,7 +136,7 @@ macro_rules! rsx {
 
 #[macro_export]
 macro_rules! rsx_inner {
-    ($r:expr, $(%$dep:ident)* $s:literal $($rest:tt)*) => {
+    ($r:expr, $(%$dep:ident)* $(@$comp:expr;)* $s:literal $($rest:tt)*) => {
         $r.0.push((Box::new({ $(let $dep = $dep.clone();)* move || Box::new(format!($s)) }), vec![$(Arc::new($dep.clone()),)*]));
         $crate::rsx_inner!{ $r, $($rest)* };
     };
