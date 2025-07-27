@@ -125,5 +125,20 @@ macro_rules! event_handler {
 
 #[macro_export]
 macro_rules! rsx {
-    () => {};
+    ($($inner:tt)*) => {{
+        let mut r = Rsx(Vec::new());
+
+        $crate::rsx_inner! { r, $($inner)* };
+
+        r
+    }};
+}
+
+#[macro_export]
+macro_rules! rsx_inner {
+    ($r:expr, $(%$dep:ident)* $s:literal $($rest:tt)*) => {
+        $r.0.push((Box::new({ $(let $dep = $dep.clone();)* move || Box::new(format!($s)) }), vec![$(Arc::new($dep.clone()),)*]));
+        $crate::rsx_inner!{ $r, $($rest)* };
+    };
+    ($r:expr,) => {};
 }

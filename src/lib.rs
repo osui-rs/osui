@@ -10,6 +10,7 @@ use crate::{
 pub mod dependency;
 pub mod elements;
 pub mod extensions;
+pub mod frontend;
 pub mod macros;
 pub mod render_scope;
 pub mod style;
@@ -42,6 +43,12 @@ impl Screen {
 
     pub fn draw<E: Element + 'static>(self: &Arc<Self>, element: E) -> Arc<Widget> {
         let w = Arc::new(Widget::new(Box::new(element)));
+        self.widgets.lock().unwrap().push(w.clone());
+        w
+    }
+
+    pub fn draw_widget(self: &Arc<Self>, w: Widget) -> Arc<Widget> {
+        let w = Arc::new(w);
         self.widgets.lock().unwrap().push(w.clone());
         w
     }
