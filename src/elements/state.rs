@@ -1,16 +1,20 @@
-use crate::{render_scope::RenderScope, widget::Element};
-use std::sync::{Arc, Mutex};
+use std::ops::{Deref, DerefMut};
 
+use crate::dependency::DependencyHandler;
+
+#[derive(Debug)]
 pub struct State<T> {
     pub value: *mut T,
-    dependents: Mutex<Vec<Arc<Mutex<StateDependency>>>>,
+    dependencies: *mut usize,
+    changed: *mut usize, // set to dependencies when the value is changed
 }
 
-pub fn use_state<T>(mut v: T) -> Arc<State<T>> {
-    Arc::new(State {
+pub fn use_state<T>(mut v: T) -> State<T> {
+    State {
         value: &mut v,
-        dependents: Mutex::new(Vec::new()),
-    })
+        dependencies: &mut 0,
+        changed: &mut 0,
+    }
 }
 
 impl<T> State<T> {
@@ -19,50 +23,72 @@ impl<T> State<T> {
             *self.value = v;
         }
 
-        for d in self.dependents.lock().unwrap().iter() {
-            let mut d = d.lock().unwrap();
-            d.0 = (d.1)();
-        }
+        self.change();
     }
 
-    pub fn draw<F: FnMut() -> Box<dyn Element> + 'static + Send + Sync>(
-        self: &Arc<Self>,
-        mut element: F,
-    ) -> Arc<Mutex<StateDependency>> {
-        let d = Arc::new(Mutex::new(StateDependency((element)(), Box::new(element))));
-        self.dependents.lock().unwrap().push(d.clone());
-        d
+    pub fn change(&self) {
+        unsafe {
+            *self.changed = *self.dependencies;
+        }
     }
 }
 
-pub struct StateDependency(
-    Box<dyn Element>,
-    pub Box<dyn FnMut() -> Box<dyn Element> + Send + Sync>,
-);
-
-impl<'a> Element for Arc<Mutex<StateDependency>> {
-    fn render(&mut self, scope: &mut RenderScope) {
-        self.lock().unwrap().0.render(scope);
+impl<T: std::fmt::Debug> DependencyHandler for State<T> {
+    fn check(&self) -> bool {
+        unsafe {
+            let i = *self.changed > 0;
+            if i {
+                *self.changed -= 1;
+            }
+            i
+        }
     }
 
-    fn after_render(&mut self, scope: &RenderScope) {
-        self.lock().unwrap().0.after_render(scope);
-    }
-
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-        self
+    fn add(&self) {
+        unsafe {
+            *self.dependencies += 1;
+        }
     }
 }
 
 impl<T: std::fmt::Display> std::fmt::Display for State<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        unsafe { &*self.value }.fmt(f)
+        write!(f, "{}", unsafe { &*self.value })
     }
 }
 
 unsafe impl<T> Send for State<T> {}
 unsafe impl<T> Sync for State<T> {}
+
+impl<T> Deref for State<T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        unsafe { &*self.value }
+    }
+}
+
+impl<T> DerefMut for State<T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        unsafe {
+            self.change();
+
+            &mut *self.value
+        }
+    }
+}
+
+impl<T> Clone for State<T> {
+    fn clone(&self) -> Self {
+        Self {
+            value: self.value,
+            dependencies: self.dependencies,
+            changed: self.changed,
+        }
+    }
+
+    fn clone_from(&mut self, source: &Self) {
+        self.changed = source.changed;
+        self.dependencies = source.dependencies;
+        self.value = source.value;
+    }
+}

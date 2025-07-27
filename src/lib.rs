@@ -7,6 +7,7 @@ use crate::{
     widget::{Element, Widget},
 };
 
+pub mod dependency;
 pub mod elements;
 pub mod extensions;
 pub mod macros;
