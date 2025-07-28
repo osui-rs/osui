@@ -3,16 +3,15 @@ use std::sync::{Arc, Mutex};
 use crate::{
     extensions::{Extension, Handler},
     render_scope::RenderScope,
-    style::Transform,
-    widget::{Element, Widget},
+    widget::{Element, Widget, WidgetLoad},
 };
 
-pub mod dependency;
 pub mod elements;
 pub mod extensions;
 pub mod frontend;
 pub mod macros;
 pub mod render_scope;
+pub mod state;
 pub mod style;
 pub mod utils;
 pub mod widget;
@@ -41,14 +40,20 @@ impl Screen {
         })
     }
 
-    pub fn draw<E: Element + 'static>(self: &Arc<Self>, element: E) -> Arc<Widget> {
+    pub fn draw<F: FnMut() -> WidgetLoad + 'static + Send + Sync>(
+        self: &Arc<Self>,
+        element: F,
+    ) -> Arc<Widget> {
         let w = Arc::new(Widget::new(Box::new(element)));
         self.widgets.lock().unwrap().push(w.clone());
         w
     }
 
-    pub fn draw_widget(self: &Arc<Self>, w: Widget) -> Arc<Widget> {
-        let w = Arc::new(w);
+    pub fn draw_box(
+        self: &Arc<Self>,
+        element: Box<dyn FnMut() -> WidgetLoad + Send + Sync>,
+    ) -> Arc<Widget> {
+        let w = Arc::new(Widget::new(Box::new(element)));
         self.widgets.lock().unwrap().push(w.clone());
         w
     }
@@ -61,10 +66,6 @@ impl Screen {
     }
 
     pub fn run(self: &Arc<Self>) -> std::io::Result<()> {
-        for elem in self.widgets.lock().unwrap().iter() {
-            elem.component(Transform::new());
-        }
-
         for ext in self.extensions.lock().unwrap().iter() {
             ext.lock().unwrap().init(self.clone());
         }
@@ -104,6 +105,8 @@ impl Screen {
                 scope.draw();
 
                 elem.0.lock().unwrap().after_render(&scope);
+
+                elem.auto_refresh();
             }
         }
         Ok(())
