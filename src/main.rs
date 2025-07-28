@@ -1,4 +1,4 @@
-use osui::{rsx, state::use_state, Screen};
+use osui::{rsx, state::use_state, style::Transform, Screen};
 
 fn main() -> std::io::Result<()> {
     let screen = Screen::new();
@@ -6,6 +6,7 @@ fn main() -> std::io::Result<()> {
 
     rsx! {
         %count
+        @Transform::center();
         "{count}"
     }
     .draw(&screen);
