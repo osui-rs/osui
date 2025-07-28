@@ -140,21 +140,26 @@ macro_rules! rsx_inner {
         $r.create_element({ $(let $dep = $dep.clone();)* move || {
             $crate::widget::WidgetLoad::new(format!($s)) $(.component($comp))*
         } }, vec![$(Box::new($dep.clone())),*], $crate::frontend::Rsx(Vec::new()));
-        $crate::rsx_inner!{ $r, $($rest)* };
+        $crate::rsx_inner! { $r, $($rest)* };
     };
 
     ($r:expr, $(%$dep:ident)* $(@$comp:expr;)* $name:path { $($inner:tt)* } ($($e:expr),*) $($rest:tt)*) => {
         $r.create_element({ $(let $dep = $dep.clone();)* move || {
             $crate::widget::WidgetLoad::new(<$name>::new($($e),*)) $(.component($comp))*
         } }, vec![$(Box::new($dep.clone())),*], $crate::rsx!{ $($inner)* });
-        $crate::rsx_inner!{ $r, $($rest)* };
+        $crate::rsx_inner! { $r, $($rest)* };
     };
 
     ($r:expr, $(%$dep:ident)* $(@$comp:expr;)* $name:path { $($inner:tt)* } $($rest:tt)*) => {
         $r.create_element({ $(let $dep = $dep.clone();)* move || {
             $crate::widget::WidgetLoad::new(<$name>::new()) $(.component($comp))*
         } }, vec![$(Box::new($dep.clone())),*], $crate::rsx!{ $($inner)* });
-        $crate::rsx_inner!{ $r, $($rest)* };
+        $crate::rsx_inner! { $r, $($rest)* };
+    };
+
+    ($r:expr, $expand:ident($($inner:tt)*) $($rest:tt)*) => {
+        $r.expand(&mut $expand($($inner)*));
+        $crate::rsx_inner! { $r, $($rest)* };
     };
 
     ($r:expr,) => {};

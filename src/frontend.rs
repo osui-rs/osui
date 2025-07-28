@@ -47,4 +47,8 @@ impl Rsx {
         self.0
             .push(RsxElement::Element(Box::new(load), dependencies, children));
     }
+
+    pub fn expand(&mut self, other: &mut Rsx) {
+        self.0.append(&mut other.0);
+    }
 }

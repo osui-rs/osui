@@ -1,5 +1,5 @@
 pub mod div;
-pub mod grid;
+pub mod flex;
 
 use crate::Element;
 
