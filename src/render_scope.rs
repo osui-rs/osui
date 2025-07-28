@@ -30,6 +30,10 @@ impl RenderScope {
         }
     }
 
+    pub fn set_transform_raw(&mut self, transform: RawTransform) {
+        self.transform = transform;
+    }
+
     pub fn set_transform(&mut self, transform: &Transform) {
         transform.use_dimensions(&mut self.transform);
         transform.use_position(self.parent_width, self.parent_height, &mut self.transform);

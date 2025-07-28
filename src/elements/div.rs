@@ -2,14 +2,14 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     extensions::Handler,
-    style::RawTransform,
     widget::{Element, Widget},
     RenderWrapperEvent,
 };
 
 pub struct Div {
-    transform: Mutex<RawTransform>,
     color: u32,
+    children: Mutex<usize>,
+    rendered: Mutex<usize>,
 }
 
 impl Element for Arc<Div> {
@@ -18,20 +18,16 @@ impl Element for Arc<Div> {
         scope.draw_rect(w, h, self.color);
     }
 
-    fn after_render(&mut self, scope: &crate::render_scope::RenderScope) {
-        *self.transform.lock().unwrap() = scope.get_transform().clone();
-    }
-
     fn draw_child(&self, element: &Arc<Widget>) {
+        *self.children.lock().unwrap() += 1;
         let r = self.clone();
         element.inject(move |w| {
             let r = r.clone();
             w.component(Handler::new(move |elem, e: &RenderWrapperEvent| {
                 let scope = e.get_scope();
+                let transform = scope.get_transform().clone();
+
                 scope.clear();
-
-                let transform = r.transform.lock().unwrap();
-
                 let (w, h) = scope.get_parent_size();
                 scope.set_parent_size(transform.width, transform.height);
 
@@ -53,6 +49,17 @@ impl Element for Arc<Div> {
                 elem.0.lock().unwrap().after_render(&scope);
 
                 scope.set_parent_size(w, h);
+
+                {
+                    let mut rendered = r.rendered.lock().unwrap();
+                    let children = r.children.lock().unwrap();
+                    *rendered += 1;
+                    if *rendered < *children {
+                        scope.set_transform_raw(transform);
+                    } else {
+                        *rendered = 0;
+                    }
+                }
             }))
         })
     }
@@ -69,8 +76,9 @@ impl Element for Arc<Div> {
 impl Div {
     pub fn new(color: u32) -> Arc<Self> {
         Arc::new(Div {
-            transform: Mutex::new(RawTransform::new()),
             color,
+            children: Mutex::new(0),
+            rendered: Mutex::new(0),
         })
     }
 }

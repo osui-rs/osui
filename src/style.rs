@@ -1,6 +1,6 @@
 use crate::component;
 
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct RawTransform {
     pub x: u16,
     pub y: u16,
