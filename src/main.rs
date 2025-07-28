@@ -1,4 +1,4 @@
-use osui::{state::use_state, widget::WidgetLoad, Screen};
+use osui::{rsx, state::use_state, Screen};
 
 fn main() -> std::io::Result<()> {
     let screen = Screen::new();
@@ -13,12 +13,22 @@ fn main() -> std::io::Result<()> {
         }
     });
 
-    screen
-        .draw({
-            let count = count.clone();
-            move || WidgetLoad::new(format!("Hello, World {count}"))
-        })
-        .dependency(count);
+    // let mut r = Rsx(Vec::new());
+    // r.create_element(
+    //     {
+    //         let count = count.clone();
+    //         move || WidgetLoad::new(format!("{count}"))
+    //     },
+    //     vec![Box::new(count)],
+    // );
+
+    // r.draw(&screen);
+
+    rsx! {
+        %count
+        "{count}"
+    }
+    .draw(&screen);
 
     screen.run()
 }

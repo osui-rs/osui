@@ -126,7 +126,7 @@ macro_rules! event_handler {
 #[macro_export]
 macro_rules! rsx {
     ($($inner:tt)*) => {{
-        let mut r = Rsx(Vec::new());
+        let mut r = $crate::frontend::Rsx(Vec::new());
 
         $crate::rsx_inner! { r, $($inner)* };
 
@@ -137,7 +137,7 @@ macro_rules! rsx {
 #[macro_export]
 macro_rules! rsx_inner {
     ($r:expr, $(%$dep:ident)* $(@$comp:expr;)* $s:literal $($rest:tt)*) => {
-        $r.0.push((Box::new({ $(let $dep = $dep.clone();)* move || Box::new(format!($s)) }), vec![$(Arc::new($dep.clone()),)*]));
+        $r.create_element({ $(let $dep = $dep.clone();)* move || $crate::widget::WidgetLoad::new(format!($s)) }, vec![$(Box::new($dep.clone()))*]);
         $crate::rsx_inner!{ $r, $($rest)* };
     };
     ($r:expr,) => {};

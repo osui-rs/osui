@@ -61,6 +61,12 @@ impl Widget {
         self
     }
 
+    pub fn dependency_box(self: &Arc<Self>, d: Box<dyn DependencyHandler>) -> &Arc<Self> {
+        d.add();
+        self.3.lock().unwrap().push(d);
+        self
+    }
+
     pub fn component<C: Component + 'static>(self: &Arc<Self>, c: C) -> &Arc<Self> {
         self.1
             .lock()
