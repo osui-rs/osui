@@ -24,34 +24,37 @@ impl Element for Arc<Div> {
 
     fn draw_child(&self, element: &Arc<Widget>) {
         let r = self.clone();
-        element.component(Handler::new(move |elem, e: &RenderWrapperEvent| {
-            let scope = e.get_scope();
-            scope.clear();
+        element.inject(move |w| {
+            let r = r.clone();
+            w.component(Handler::new(move |elem, e: &RenderWrapperEvent| {
+                let scope = e.get_scope();
+                scope.clear();
 
-            let transform = r.transform.lock().unwrap();
+                let transform = r.transform.lock().unwrap();
 
-            let (w, h) = scope.get_parent_size();
-            scope.set_parent_size(transform.width, transform.height);
+                let (w, h) = scope.get_parent_size();
+                scope.set_parent_size(transform.width, transform.height);
 
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
+                if let Some(t) = elem.get() {
+                    scope.set_transform(&t);
+                }
 
-            elem.0.lock().unwrap().render(scope);
+                elem.0.lock().unwrap().render(scope);
 
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
+                if let Some(t) = elem.get() {
+                    scope.set_transform(&t);
+                }
 
-            let elem_transform = scope.get_transform_mut();
-            elem_transform.x += transform.x;
-            elem_transform.y += transform.y;
+                let elem_transform = scope.get_transform_mut();
+                elem_transform.x += transform.x;
+                elem_transform.y += transform.y;
 
-            scope.draw();
-            elem.0.lock().unwrap().after_render(&scope);
+                scope.draw();
+                elem.0.lock().unwrap().after_render(&scope);
 
-            scope.set_parent_size(w, h);
-        }));
+                scope.set_parent_size(w, h);
+            }))
+        })
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

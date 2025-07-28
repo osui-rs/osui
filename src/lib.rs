@@ -105,9 +105,9 @@ impl Screen {
                 scope.draw();
 
                 elem.0.lock().unwrap().after_render(&scope);
-
-                elem.auto_refresh();
             }
+
+            elem.auto_refresh();
         }
         Ok(())
     }

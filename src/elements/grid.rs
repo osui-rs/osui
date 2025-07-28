@@ -38,43 +38,46 @@ impl Element for Arc<VGrid> {
 
     fn draw_child(&self, element: &Arc<Widget>) {
         let r = self.clone();
-        element.component(Handler::new(move |elem, e: &RenderWrapperEvent| {
-            let scope = e.get_scope();
-            scope.clear();
+        element.inject(move |w| {
+            let r = r.clone();
+            w.component(Handler::new(move |elem, e: &RenderWrapperEvent| {
+                let scope = e.get_scope();
+                scope.clear();
 
-            let mut transform = r.transform.lock().unwrap();
+                let mut transform = r.transform.lock().unwrap();
 
-            let (w, h) = scope.get_parent_size();
-            scope.set_parent_size(transform.width, transform.height);
+                let (w, h) = scope.get_parent_size();
+                scope.set_parent_size(transform.width, transform.height);
 
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
+                if let Some(t) = elem.get() {
+                    scope.set_transform(&t);
+                }
 
-            elem.0.lock().unwrap().render(scope);
+                elem.0.lock().unwrap().render(scope);
 
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
+                if let Some(t) = elem.get() {
+                    scope.set_transform(&t);
+                }
 
-            let elem_transform = scope.get_transform_mut();
+                let elem_transform = scope.get_transform_mut();
 
-            transform.height += if transform.height == 0 {
-                elem_transform.height
-            } else {
-                elem_transform.height + r.gap
-            };
-            transform.width = transform.width.max(elem_transform.width);
+                transform.height += if transform.height == 0 {
+                    elem_transform.height
+                } else {
+                    elem_transform.height + r.gap
+                };
+                transform.width = transform.width.max(elem_transform.width);
 
-            elem_transform.x = transform.x;
-            elem_transform.y = transform.y;
-            transform.y += elem_transform.height + r.gap;
+                elem_transform.x = transform.x;
+                elem_transform.y = transform.y;
+                transform.y += elem_transform.height + r.gap;
 
-            scope.draw();
-            elem.0.lock().unwrap().after_render(&scope);
+                scope.draw();
+                elem.0.lock().unwrap().after_render(&scope);
 
-            scope.set_parent_size(w, h);
-        }));
+                scope.set_parent_size(w, h);
+            }))
+        })
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -116,43 +119,46 @@ impl Element for Arc<HGrid> {
 
     fn draw_child(&self, element: &Arc<Widget>) {
         let r = self.clone();
-        element.component(Handler::new(move |elem, e: &RenderWrapperEvent| {
-            let scope = e.get_scope();
-            scope.clear();
+        element.inject(move |w| {
+            let r = r.clone();
+            w.component(Handler::new(move |elem, e: &RenderWrapperEvent| {
+                let scope = e.get_scope();
+                scope.clear();
 
-            let mut transform = r.transform.lock().unwrap();
+                let mut transform = r.transform.lock().unwrap();
 
-            let (w, h) = scope.get_parent_size();
-            scope.set_parent_size(transform.width, transform.height);
+                let (w, h) = scope.get_parent_size();
+                scope.set_parent_size(transform.width, transform.height);
 
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
+                if let Some(t) = elem.get() {
+                    scope.set_transform(&t);
+                }
 
-            elem.0.lock().unwrap().render(scope);
+                elem.0.lock().unwrap().render(scope);
 
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
+                if let Some(t) = elem.get() {
+                    scope.set_transform(&t);
+                }
 
-            let elem_transform = scope.get_transform_mut();
+                let elem_transform = scope.get_transform_mut();
 
-            transform.width += if transform.width == 0 {
-                elem_transform.width
-            } else {
-                elem_transform.width + r.gap
-            };
-            transform.height = transform.height.max(elem_transform.height);
+                transform.width += if transform.width == 0 {
+                    elem_transform.width
+                } else {
+                    elem_transform.width + r.gap
+                };
+                transform.height = transform.height.max(elem_transform.height);
 
-            elem_transform.x = transform.x;
-            elem_transform.y = transform.y;
-            transform.x += elem_transform.width + r.gap;
+                elem_transform.x = transform.x;
+                elem_transform.y = transform.y;
+                transform.x += elem_transform.width + r.gap;
 
-            scope.draw();
-            elem.0.lock().unwrap().after_render(&scope);
+                scope.draw();
+                elem.0.lock().unwrap().after_render(&scope);
 
-            scope.set_parent_size(w, h);
-        }));
+                scope.set_parent_size(w, h);
+            }))
+        });
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

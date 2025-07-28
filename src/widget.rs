@@ -30,6 +30,7 @@ pub struct Widget(
     Mutex<HashMap<TypeId, BoxedComponent>>,
     Mutex<Box<dyn FnMut() -> WidgetLoad + Send + Sync>>,
     Mutex<Vec<Box<dyn DependencyHandler>>>,
+    Mutex<Option<Box<dyn FnMut(WidgetLoad) -> WidgetLoad + Send + Sync>>>,
 );
 
 impl Widget {
@@ -40,13 +41,33 @@ impl Widget {
             Mutex::new(wl.1),
             Mutex::new(Box::new(e)),
             Mutex::new(Vec::new()),
+            Mutex::new(None),
         )
+    }
+
+    pub fn inject<F: FnMut(WidgetLoad) -> WidgetLoad + 'static + Send + Sync>(
+        self: &Arc<Self>,
+        f: F,
+    ) {
+        {
+            *self.4.lock().unwrap() = Some(Box::new(f));
+        }
+        self.refresh();
     }
 
     pub fn refresh(self: &Arc<Self>) {
         let w = (self.2.lock().unwrap())();
-        *self.0.lock().unwrap() = w.0;
-        *self.1.lock().unwrap() = w.1;
+        match &mut *self.4.lock().unwrap() {
+            Some(inject) => {
+                let w = inject(w);
+                *self.0.lock().unwrap() = w.0;
+                *self.1.lock().unwrap() = w.1;
+            }
+            None => {
+                *self.0.lock().unwrap() = w.0;
+                *self.1.lock().unwrap() = w.1;
+            }
+        }
     }
 
     pub fn auto_refresh(self: &Arc<Self>) {
