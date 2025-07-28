@@ -1,20 +1,39 @@
 use std::sync::Arc;
 
-use crate::{state::DependencyHandler, widget::WidgetLoad, Screen};
+use crate::{
+    state::DependencyHandler,
+    widget::{Widget, WidgetLoad},
+    Screen,
+};
 
-pub struct Rsx(
-    pub  Vec<(
+pub enum RsxElement {
+    Element(
         Box<dyn FnMut() -> WidgetLoad + Send + Sync>,
         Vec<Box<dyn DependencyHandler>>,
-    )>,
-);
+        Rsx,
+    ),
+}
+
+pub struct Rsx(pub Vec<RsxElement>);
 
 impl Rsx {
     pub fn draw(self, screen: &Arc<Screen>) {
-        for i in self.0 {
-            let w = screen.draw_box(i.0);
-            for d in i.1 {
-                w.dependency_box(d);
+        self.draw_parent(screen, None);
+    }
+
+    pub fn draw_parent(self, screen: &Arc<Screen>, parent: Option<Arc<Widget>>) {
+        for rsx_elem in self.0 {
+            match rsx_elem {
+                RsxElement::Element(f, dep, child) => {
+                    let w = screen.draw_box(f);
+                    for d in dep {
+                        w.dependency_box(d);
+                    }
+                    child.draw_parent(screen, Some(w.clone()));
+                    if let Some(parent) = &parent {
+                        parent.0.lock().unwrap().draw_child(&w);
+                    }
+                }
             }
         }
     }
@@ -23,7 +42,9 @@ impl Rsx {
         &mut self,
         load: F,
         dependencies: Vec<Box<dyn DependencyHandler>>,
+        children: Rsx,
     ) {
-        self.0.push((Box::new(load), dependencies));
+        self.0
+            .push(RsxElement::Element(Box::new(load), dependencies, children));
     }
 }

@@ -22,31 +22,13 @@ impl Element for Arc<Div> {
         *self.transform.lock().unwrap() = scope.get_transform().clone();
     }
 
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-        self
-    }
-}
-
-impl Div {
-    pub fn new(color: u32) -> Arc<Self> {
-        Arc::new(Div {
-            transform: Mutex::new(RawTransform::new()),
-            color,
-        })
-    }
-
-    pub fn draw(self: &Arc<Self>, element: &Arc<Widget>) -> Arc<Self> {
-        let r2 = self.clone();
+    fn draw_child(&self, element: &Arc<Widget>) {
         let r = self.clone();
         element.component(Handler::new(move |elem, e: &RenderWrapperEvent| {
             let scope = e.get_scope();
             scope.clear();
 
-            let transform = r2.transform.lock().unwrap();
+            let transform = r.transform.lock().unwrap();
 
             let (w, h) = scope.get_parent_size();
             scope.set_parent_size(transform.width, transform.height);
@@ -70,6 +52,22 @@ impl Div {
 
             scope.set_parent_size(w, h);
         }));
-        r
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
+
+impl Div {
+    pub fn new(color: u32) -> Arc<Self> {
+        Arc::new(Div {
+            transform: Mutex::new(RawTransform::new()),
+            color,
+        })
     }
 }

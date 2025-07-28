@@ -14,6 +14,8 @@ pub trait Element: Send + Sync {
     fn render(&mut self, scope: &mut RenderScope) {}
     #[allow(unused)]
     fn after_render(&mut self, scope: &RenderScope) {}
+    #[allow(unused)]
+    fn draw_child(&self, element: &Arc<Widget>) {}
     fn as_any(&self) -> &dyn Any;
     fn as_any_mut(&mut self) -> &mut dyn Any;
 }

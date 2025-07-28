@@ -36,31 +36,13 @@ impl Element for Arc<VGrid> {
         t.height = 0;
     }
 
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-        self
-    }
-}
-
-impl VGrid {
-    pub fn new(color: u32, gap: u16) -> Arc<Self> {
-        Arc::new(Self {
-            transform: Mutex::new(RawTransform::new()),
-            color,
-            gap,
-        })
-    }
-
-    pub fn draw(self: &Arc<Self>, element: &Arc<Widget>) -> Arc<Widget> {
-        let r2 = self.clone();
+    fn draw_child(&self, element: &Arc<Widget>) {
+        let r = self.clone();
         element.component(Handler::new(move |elem, e: &RenderWrapperEvent| {
             let scope = e.get_scope();
             scope.clear();
 
-            let mut transform = r2.transform.lock().unwrap();
+            let mut transform = r.transform.lock().unwrap();
 
             let (w, h) = scope.get_parent_size();
             scope.set_parent_size(transform.width, transform.height);
@@ -80,20 +62,37 @@ impl VGrid {
             transform.height += if transform.height == 0 {
                 elem_transform.height
             } else {
-                elem_transform.height + r2.gap
+                elem_transform.height + r.gap
             };
             transform.width = transform.width.max(elem_transform.width);
 
             elem_transform.x = transform.x;
             elem_transform.y = transform.y;
-            transform.y += elem_transform.height + r2.gap;
+            transform.y += elem_transform.height + r.gap;
 
             scope.draw();
             elem.0.lock().unwrap().after_render(&scope);
 
             scope.set_parent_size(w, h);
         }));
-        element.clone()
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
+
+impl VGrid {
+    pub fn new(color: u32, gap: u16) -> Arc<Self> {
+        Arc::new(Self {
+            transform: Mutex::new(RawTransform::new()),
+            color,
+            gap,
+        })
     }
 }
 
@@ -115,32 +114,13 @@ impl Element for Arc<HGrid> {
         t.height = 0;
     }
 
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
-        self
-    }
-}
-
-impl HGrid {
-    pub fn new(color: u32, gap: u16) -> Arc<Self> {
-        Arc::new(Self {
-            transform: Mutex::new(RawTransform::new()),
-            color,
-            gap,
-        })
-    }
-
-    pub fn draw(self: &Arc<Self>, element: &Arc<Widget>) -> Arc<Self> {
-        let r2 = self.clone();
+    fn draw_child(&self, element: &Arc<Widget>) {
         let r = self.clone();
         element.component(Handler::new(move |elem, e: &RenderWrapperEvent| {
             let scope = e.get_scope();
             scope.clear();
 
-            let mut transform = r2.transform.lock().unwrap();
+            let mut transform = r.transform.lock().unwrap();
 
             let (w, h) = scope.get_parent_size();
             scope.set_parent_size(transform.width, transform.height);
@@ -160,19 +140,36 @@ impl HGrid {
             transform.width += if transform.width == 0 {
                 elem_transform.width
             } else {
-                elem_transform.width + r2.gap
+                elem_transform.width + r.gap
             };
             transform.height = transform.height.max(elem_transform.height);
 
             elem_transform.x = transform.x;
             elem_transform.y = transform.y;
-            transform.x += elem_transform.width + r2.gap;
+            transform.x += elem_transform.width + r.gap;
 
             scope.draw();
             elem.0.lock().unwrap().after_render(&scope);
 
             scope.set_parent_size(w, h);
         }));
-        r
+    }
+
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+
+    fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
+        self
+    }
+}
+
+impl HGrid {
+    pub fn new(color: u32, gap: u16) -> Arc<Self> {
+        Arc::new(Self {
+            transform: Mutex::new(RawTransform::new()),
+            color,
+            gap,
+        })
     }
 }
