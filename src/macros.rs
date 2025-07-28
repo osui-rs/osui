@@ -137,7 +137,7 @@ macro_rules! rsx {
 #[macro_export]
 macro_rules! rsx_inner {
     ($r:expr, $(%$dep:ident)* $(@$comp:expr;)* $s:literal $($rest:tt)*) => {
-        $r.create_element({ $(let $dep = $dep.clone();)* move || $crate::widget::WidgetLoad::new(format!($s)) }, vec![$(Box::new($dep.clone()))*]);
+        $r.create_element({ $(let $dep = $dep.clone();)* move || $crate::widget::WidgetLoad::new(format!($s)) }, vec![$(Box::new($dep.clone())),*]);
         $crate::rsx_inner!{ $r, $($rest)* };
     };
     ($r:expr,) => {};
