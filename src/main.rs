@@ -1,11 +1,4 @@
-use osui::{
-    elements::{div::Div, flex::FlexRow},
-    frontend::Rsx,
-    rsx,
-    state::use_state,
-    style::Transform,
-    Screen,
-};
+use osui::{elements::div::Div, frontend::Rsx, rsx, style::Transform, Screen};
 
 fn main() -> std::io::Result<()> {
     let screen = Screen::new();
@@ -17,32 +10,15 @@ fn main() -> std::io::Result<()> {
 
 fn app() -> Rsx {
     rsx! {
-        FlexRow {
-            counter()
-        } (0x00000, 1)
-    }
-}
-
-fn counter() -> Rsx {
-    let count = use_state(0);
-
-    std::thread::spawn({
-        let count = count.clone();
-        move || loop {
-            std::thread::sleep(std::time::Duration::from_millis(50));
-            **count.get() += 1;
-        }
-    });
-
-    rsx! {
-        @Transform::new().dimensions(40, 3);
+        @Transform::new();
         Div {
-            %count
-            "{count}"
-
-            %count
-            @Transform::center();
-            "{count}"
-        } (0xff0000)
+            @Transform::center().dimensions(40, 3);
+            Div {
+                @Transform::center().dimensions(8, 1);
+                Div {
+                    "hello"
+                } (0x00ff00)
+            } (0xff0000)
+        } (0x0000ff)
     }
 }

@@ -91,6 +91,8 @@ impl RenderScope {
         self.render_stack.clear();
         self.transform.width = 0;
         self.transform.height = 0;
+        self.transform.x = 0;
+        self.transform.y = 0;
     }
 
     pub fn get_size(&self) -> (u16, u16) {

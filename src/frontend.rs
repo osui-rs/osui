@@ -25,7 +25,14 @@ impl Rsx {
         for rsx_elem in self.0 {
             match rsx_elem {
                 RsxElement::Element(f, dep, child) => {
-                    let w = screen.draw_box(f);
+                    let w = if let Some(parent) = &parent {
+                        let w = Arc::new(Widget::new(Box::new(f)));
+                        parent.0.lock().unwrap().draw_child(&w);
+                        w
+                    } else {
+                        screen.draw_box(f)
+                    };
+
                     for d in dep {
                         w.dependency_box(d);
                     }
