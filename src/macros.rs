@@ -124,6 +124,15 @@ macro_rules! event_handler {
 }
 
 #[macro_export]
+macro_rules! transform {
+    ($($f:ident: $v:expr),* $(,)?) => {{
+        let mut t = Transform::new();
+        $(t.$f = $v.into();)*
+        t
+    }};
+}
+
+#[macro_export]
 macro_rules! rsx {
     ($($inner:tt)*) => {{
         let mut r = $crate::frontend::Rsx(Vec::new());

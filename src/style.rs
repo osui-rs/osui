@@ -139,3 +139,15 @@ impl Position {
         }
     }
 }
+
+impl From<u16> for Position {
+    fn from(value: u16) -> Self {
+        Self::Const(value)
+    }
+}
+
+impl From<u16> for Dimension {
+    fn from(value: u16) -> Self {
+        Self::Const(value)
+    }
+}

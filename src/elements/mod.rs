@@ -1,6 +1,9 @@
 pub mod div;
 pub mod flex;
 
+pub use div::*;
+pub use flex::*;
+
 use crate::Element;
 
 impl Element for String {

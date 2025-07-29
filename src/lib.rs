@@ -16,6 +16,15 @@ pub mod style;
 pub mod utils;
 pub mod widget;
 
+pub mod prelude {
+    pub use crate::{
+        elements::*, extensions::*, frontend::*, render_scope::*, state::*, style::*, utils::*,
+        widget::*, *,
+    };
+
+    pub use crate::style::{Dimension::{Full, Content}, Position::{Center, End}};
+}
+
 pub struct Screen {
     pub widgets: Mutex<Vec<Arc<Widget>>>,
     extensions: Mutex<Vec<Arc<Mutex<Box<dyn Extension + Send + Sync>>>>>,

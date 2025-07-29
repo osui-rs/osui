@@ -1,11 +1,4 @@
-use osui::{
-    elements::{div::Div, flex::FlexCol},
-    frontend::Rsx,
-    rsx,
-    state::use_state,
-    style::Transform,
-    Screen,
-};
+use osui::prelude::*;
 
 fn main() -> std::io::Result<()> {
     let screen = Screen::new();
@@ -39,7 +32,7 @@ fn test(inc: i32) -> Rsx {
     rsx! {
         @Transform::new().dimensions(40, 3);
         Div {
-            @Transform::center().dimensions(8, 1);
+            @transform! { x: Center, y: Center, width: 5 };
             Div {
                 %count
                 "{count}"

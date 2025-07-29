@@ -3,6 +3,11 @@ pub mod resources;
 pub mod tick;
 pub mod velocity;
 
+pub use id::*;
+pub use resources::*;
+pub use tick::*;
+pub use velocity::*;
+
 use std::{
     any::{type_name, Any},
     fmt::Debug,
