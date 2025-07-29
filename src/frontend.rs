@@ -37,9 +37,6 @@ impl Rsx {
                         w.dependency_box(d);
                     }
                     child.draw_parent(screen, Some(w.clone()));
-                    if let Some(parent) = &parent {
-                        parent.0.lock().unwrap().draw_child(&w);
-                    }
                 }
             }
         }

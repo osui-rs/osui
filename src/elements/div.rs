@@ -15,8 +15,6 @@ impl Element for Arc<Div> {
 
     fn after_render(&mut self, scope: &mut crate::render_scope::RenderScope) {
         let transform = scope.get_transform().clone();
-
-        scope.draw();
         let (w, h) = scope.get_parent_size();
         scope.set_parent_size(transform.width, transform.height);
 

@@ -157,7 +157,7 @@ macro_rules! rsx_inner {
         $crate::rsx_inner! { $r, $($rest)* };
     };
 
-    ($r:expr, $expand:ident($($inner:tt)*) $($rest:tt)*) => {
+    ($r:expr, $expand:ident => ($($inner:tt)*) $($rest:tt)*) => {
         $r.expand(&mut $expand($($inner)*));
         $crate::rsx_inner! { $r, $($rest)* };
     };
