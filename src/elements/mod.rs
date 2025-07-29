@@ -1,8 +1,10 @@
 pub mod div;
 pub mod flex;
+pub mod shape;
 
 pub use div::*;
 pub use flex::*;
+pub use shape::*;
 
 use crate::Element;
 
