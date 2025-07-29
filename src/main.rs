@@ -10,19 +10,8 @@ fn main() -> std::io::Result<()> {
 
 fn app() -> Rsx {
     rsx! {
-        @transform! {
-            width: Full,
-            height: Full,
-        };
-        Div {
-            @transform! {
-                width: Full,
-                height: Full,
-            };
-            RoundedOutline {}
-
-            @Transform::center();
-            "Welcome To OSUI!"
-        } (0x000000)
+        @Transform::new();
+        @Style { background: Background::RoundedOutline(0xff0000), foreground: None };
+        Div { @Transform::center(); "Hello, World!" }
     }
 }

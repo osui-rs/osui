@@ -1,16 +1,17 @@
 use std::sync::{Arc, Mutex};
 
-use crate::{widget::{Element, Widget}, NoRender};
+use crate::{
+    widget::{Element, Widget},
+    NoRender,
+};
 
 pub struct FlexRow {
-    color: u32,
     gap: u16,
     children: Mutex<Vec<Arc<Widget>>>,
     size: (u16, u16),
 }
 
 pub struct FlexCol {
-    color: u32,
     gap: u16,
     children: Mutex<Vec<Arc<Widget>>>,
     size: (u16, u16),
@@ -19,7 +20,7 @@ pub struct FlexCol {
 impl Element for FlexRow {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
-        scope.draw_rect(width, height, self.color);
+        scope.draw_background(width, height);
     }
 
     fn after_render(&mut self, scope: &mut crate::render_scope::RenderScope) {
@@ -68,11 +69,10 @@ impl Element for FlexRow {
 }
 
 impl FlexRow {
-    pub fn new(color: u32, gap: u16) -> Self {
+    pub fn new(gap: u16) -> Self {
         Self {
             children: Mutex::new(Vec::new()),
             size: (0, 0),
-            color,
             gap,
         }
     }
@@ -81,7 +81,7 @@ impl FlexRow {
 impl Element for FlexCol {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
-        scope.draw_rect(width, height, self.color);
+        scope.draw_background(width, height);
     }
 
     fn after_render(&mut self, scope: &mut crate::render_scope::RenderScope) {
@@ -130,11 +130,10 @@ impl Element for FlexCol {
 }
 
 impl FlexCol {
-    pub fn new(color: u32, gap: u16) -> Self {
+    pub fn new(gap: u16) -> Self {
         Self {
             children: Mutex::new(Vec::new()),
             size: (0, 0),
-            color,
             gap,
         }
     }

@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use crate::{
-    style::{RawTransform, Transform},
+    style::{RawTransform, Style, Transform},
     utils::{self, hex_ansi_bg},
 };
 
@@ -18,6 +18,7 @@ pub struct RenderScope {
     render_stack: Vec<RenderMethod>,
     parent_width: u16,
     parent_height: u16,
+    style: Style,
 }
 
 impl RenderScope {
@@ -27,6 +28,7 @@ impl RenderScope {
             render_stack: Vec::new(),
             parent_width: 0,
             parent_height: 0,
+            style: Style::new(),
         }
     }
 
@@ -61,17 +63,52 @@ impl RenderScope {
         self.transform.height = self.transform.height.max(height);
     }
 
+    pub fn draw_outline_rounded(&mut self, w: u16, h: u16, color: u32) {
+        if w > 1 && h > 1 {
+            let d = "─".repeat(w as usize - 2);
+            self.draw_text_colored(
+                &format!(
+                    "╭{d}╮{}\n╰{d}╯",
+                    format!("\n│{}│", " ".repeat(w as usize - 2)).repeat(h as usize - 2),
+                ),
+                color,
+            );
+        }
+    }
+
+    pub fn draw_outline(&mut self, w: u16, h: u16, color: u32) {
+        if w > 1 && h > 1 {
+            let d = "─".repeat(w as usize - 2);
+            self.draw_text_colored(
+                &format!(
+                    "┌{d}┐{}\n└{d}┘",
+                    format!("\n│{}│", " ".repeat(w as usize - 2)).repeat(h as usize - 2),
+                ),
+                color,
+            );
+        }
+    }
+
+    pub fn draw_background(&mut self, width: u16, height: u16) {
+        match self.style.background {
+            crate::style::Background::NoBackground => {}
+            crate::style::Background::Outline(c) => self.draw_outline(width, height, c),
+            crate::style::Background::RoundedOutline(c) => {
+                self.draw_outline_rounded(width, height, c)
+            }
+            crate::style::Background::Solid(c) => self.draw_rect(width, height, c),
+        }
+    }
+
     pub fn draw(&self) {
         for m in &self.render_stack {
             match m {
                 RenderMethod::Text(t) => {
                     utils::print(self.transform.x, self.transform.y, t);
                 }
-                RenderMethod::TextColored(t, c) => utils::print(
-                    self.transform.x,
-                    self.transform.y,
-                    &(utils::hex_ansi(*c) + t),
-                ),
+                RenderMethod::TextColored(t, c) => {
+                    utils::print_liner(self.transform.x, self.transform.y, &utils::hex_ansi(*c), t)
+                }
                 RenderMethod::Rectangle(width, height, color) => {
                     utils::print_liner(
                         self.transform.x,
@@ -144,6 +181,14 @@ impl RenderScope {
 
     pub fn get_transform(&self) -> &RawTransform {
         &self.transform
+    }
+
+    pub fn set_style(&mut self, style: Style) {
+        self.style = style;
+    }
+
+    pub fn get_style(&mut self) -> &mut Style {
+        &mut self.style
     }
 }
 

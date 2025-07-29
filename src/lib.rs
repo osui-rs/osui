@@ -22,7 +22,10 @@ pub mod prelude {
         widget::*, *,
     };
 
-    pub use crate::style::{Dimension::{Full, Content}, Position::{Center, End}};
+    pub use crate::style::{
+        Dimension::{Content, Full},
+        Position::{Center, End},
+    };
 }
 
 pub struct Screen {
@@ -107,6 +110,10 @@ impl Screen {
                 wrapper.call(elem, &RenderWrapperEvent(&mut scope));
             } else {
                 scope.clear();
+
+                if let Some(style) = elem.get() {
+                    scope.set_style(style);
+                }
                 if let Some(t) = elem.get() {
                     scope.set_transform(&t);
                 }

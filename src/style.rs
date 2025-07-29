@@ -22,6 +22,14 @@ pub enum Dimension {
     Const(u16),
 }
 
+#[derive(Debug, Clone)]
+pub enum Background {
+    NoBackground,
+    Outline(u32),
+    RoundedOutline(u32),
+    Solid(u32),
+}
+
 component!(Transform {
     pub x: Position,
     pub y: Position,
@@ -30,6 +38,20 @@ component!(Transform {
     pub width: Dimension,
     pub height: Dimension,
 });
+
+component!(Style {
+    pub background: Background,
+    pub foreground: Option<u32>,
+});
+
+impl Style {
+    pub fn new() -> Self {
+        Self {
+            background: Background::NoBackground,
+            foreground: None,
+        }
+    }
+}
 
 impl Transform {
     pub fn new() -> Transform {

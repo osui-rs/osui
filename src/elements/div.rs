@@ -6,7 +6,6 @@ use crate::{
 };
 
 pub struct Div {
-    color: u32,
     children: Mutex<Vec<Arc<Widget>>>,
     size: (u16, u16),
 }
@@ -14,7 +13,7 @@ pub struct Div {
 impl Element for Div {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
-        scope.draw_rect(width, height, self.color);
+        scope.draw_background(width, height);
     }
 
     fn after_render(&mut self, scope: &mut crate::render_scope::RenderScope) {
@@ -60,9 +59,8 @@ impl Element for Div {
 }
 
 impl Div {
-    pub fn new(color: u32) -> Self {
+    pub fn new() -> Self {
         Div {
-            color,
             children: Mutex::new(Vec::new()),
             size: (0, 0),
         }
