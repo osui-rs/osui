@@ -17,7 +17,8 @@ pub enum Position {
 
 #[derive(Debug, Clone)]
 pub enum Dimension {
-    Auto,
+    Full,
+    Content,
     Const(u16),
 }
 
@@ -37,8 +38,8 @@ impl Transform {
             y: Position::Const(0),
             mx: 0,
             my: 0,
-            width: Dimension::Auto,
-            height: Dimension::Auto,
+            width: Dimension::Content,
+            height: Dimension::Content,
         }
     }
 
@@ -48,8 +49,8 @@ impl Transform {
             y: Position::Center,
             mx: 0,
             my: 0,
-            width: Dimension::Auto,
-            height: Dimension::Auto,
+            width: Dimension::Content,
+            height: Dimension::Content,
         }
     }
 
@@ -75,9 +76,9 @@ impl Transform {
         self
     }
 
-    pub fn use_dimensions(&self, raw: &mut RawTransform) {
-        self.width.use_dimension(&mut raw.width);
-        self.height.use_dimension(&mut raw.height);
+    pub fn use_dimensions(&self, parent_width: u16, parent_height: u16, raw: &mut RawTransform) {
+        self.width.use_dimension(parent_width, &mut raw.width);
+        self.height.use_dimension(parent_height, &mut raw.height);
     }
 
     pub fn use_position(&self, parent_width: u16, parent_height: u16, raw: &mut RawTransform) {
@@ -100,9 +101,10 @@ impl RawTransform {
 }
 
 impl Dimension {
-    pub fn use_dimension(&self, r: &mut u16) {
+    pub fn use_dimension(&self, parent: u16, r: &mut u16) {
         match self {
-            Self::Auto => {}
+            Self::Full => *r = parent,
+            Self::Content => {}
             Self::Const(n) => *r = *n,
         }
     }

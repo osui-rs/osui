@@ -8,16 +8,17 @@ use crate::{
 pub struct Div {
     color: u32,
     children: Mutex<Vec<Arc<Widget>>>,
+    size: (u16, u16),
 }
 
-impl Element for Arc<Div> {
+impl Element for Div {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
-        let (width, height) = scope.get_size_or_parent();
+        let (width, height) = scope.get_size_or(self.size.0, self.size.1);
         scope.draw_rect(width, height, self.color);
     }
 
     fn after_render(&mut self, scope: &mut crate::render_scope::RenderScope) {
-        let transform = scope.get_transform().clone();
+        let mut transform = scope.get_transform().clone();
         let (w, h) = scope.get_parent_size();
         scope.set_parent_size(transform.width, transform.height);
 
@@ -31,6 +32,8 @@ impl Element for Arc<Div> {
                 scope.set_transform(&t);
             }
             let t = scope.get_transform_mut();
+            transform.width = transform.width.max(t.x + t.width);
+            transform.height = transform.height.max(t.y + t.height);
             t.x += transform.x;
             t.y += transform.y;
 
@@ -39,6 +42,7 @@ impl Element for Arc<Div> {
             scope.clear();
         }
         scope.set_parent_size(w, h);
+        self.size = (transform.width, transform.height);
     }
 
     fn draw_child(&self, element: &Arc<Widget>) {
@@ -56,10 +60,11 @@ impl Element for Arc<Div> {
 }
 
 impl Div {
-    pub fn new(color: u32) -> Arc<Self> {
-        Arc::new(Div {
+    pub fn new(color: u32) -> Self {
+        Div {
             color,
             children: Mutex::new(Vec::new()),
-        })
+            size: (0, 0),
+        }
     }
 }
