@@ -22,6 +22,7 @@ pub struct Screen {
 }
 
 event!(RenderWrapperEvent(*mut RenderScope));
+component!(NoRender);
 
 impl RenderWrapperEvent {
     pub fn get_scope(&self) -> &mut RenderScope {
@@ -85,6 +86,14 @@ impl Screen {
 
         utils::clear()?;
         for elem in self.widgets.lock().unwrap().iter() {
+            if let Some(NoRender) = elem.get() {
+                for ext in self.extensions.lock().unwrap().iter() {
+                    ext.lock().unwrap().render_widget(&mut scope, elem);
+                }
+                elem.auto_refresh();
+                continue;
+            }
+
             if let Some(wrapper) = elem.get::<Handler<RenderWrapperEvent>>() {
                 wrapper.call(elem, &RenderWrapperEvent(&mut scope));
             } else {

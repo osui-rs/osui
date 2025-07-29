@@ -26,7 +26,7 @@ impl Rsx {
             match rsx_elem {
                 RsxElement::Element(f, dep, child) => {
                     let w = if let Some(parent) = &parent {
-                        let w = Arc::new(Widget::new(Box::new(f)));
+                        let w = screen.draw_box(f);
                         parent.0.lock().unwrap().draw_child(&w);
                         w
                     } else {

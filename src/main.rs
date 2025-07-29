@@ -31,7 +31,7 @@ fn test(inc: i32) -> Rsx {
     std::thread::spawn({
         let count = count.clone();
         move || loop {
-            std::thread::sleep(std::time::Duration::from_millis(300));
+            std::thread::sleep(std::time::Duration::from_millis(50));
             **count.get() += inc;
         }
     });

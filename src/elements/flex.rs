@@ -1,6 +1,6 @@
 use std::sync::{Arc, Mutex};
 
-use crate::widget::{Element, Widget};
+use crate::{widget::{Element, Widget}, NoRender};
 
 pub struct FlexRow {
     color: u32,
@@ -55,6 +55,7 @@ impl Element for FlexRow {
 
     fn draw_child(&self, element: &Arc<Widget>) {
         self.children.lock().unwrap().push(element.clone());
+        element.inject(|w| w.component(NoRender));
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -116,6 +117,7 @@ impl Element for FlexCol {
 
     fn draw_child(&self, element: &Arc<Widget>) {
         self.children.lock().unwrap().push(element.clone());
+        element.inject(|w| w.component(NoRender));
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
