@@ -6,6 +6,8 @@ pub struct RawTransform {
     pub y: u16,
     pub width: u16,
     pub height: u16,
+    pub px: u16,
+    pub py: u16,
 }
 
 #[derive(Debug, Clone)]
@@ -35,6 +37,8 @@ component!(Transform {
     pub y: Position,
     pub mx: i32,
     pub my: i32,
+    pub px: u16,
+    pub py: u16,
     pub width: Dimension,
     pub height: Dimension,
 });
@@ -60,6 +64,8 @@ impl Transform {
             y: Position::Const(0),
             mx: 0,
             my: 0,
+            px: 0,
+            py: 0,
             width: Dimension::Content,
             height: Dimension::Content,
         }
@@ -71,6 +77,8 @@ impl Transform {
             y: Position::Center,
             mx: 0,
             my: 0,
+            px: 0,
+            py: 0,
             width: Dimension::Content,
             height: Dimension::Content,
         }
@@ -89,6 +97,12 @@ impl Transform {
     pub fn margin(mut self, x: i32, y: i32) -> Self {
         self.mx = x;
         self.my = y;
+        self
+    }
+
+    pub fn padding(mut self, x: u16, y: u16) -> Self {
+        self.px = x;
+        self.py = y;
         self
     }
 
@@ -118,6 +132,8 @@ impl RawTransform {
             y: 0,
             width: 0,
             height: 0,
+            px: 0,
+            py: 0,
         }
     }
 }

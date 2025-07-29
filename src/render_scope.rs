@@ -39,6 +39,8 @@ impl RenderScope {
     pub fn set_transform(&mut self, transform: &Transform) {
         transform.use_dimensions(self.parent_width, self.parent_height, &mut self.transform);
         transform.use_position(self.parent_width, self.parent_height, &mut self.transform);
+        self.transform.px = transform.px;
+        self.transform.py = transform.py;
     }
 
     pub fn draw_text(&mut self, text: &str) {
@@ -63,56 +65,59 @@ impl RenderScope {
         self.transform.height = self.transform.height.max(height);
     }
 
-    pub fn draw_outline_rounded(&mut self, w: u16, h: u16, color: u32) {
-        if w > 1 && h > 1 {
-            let d = "─".repeat(w as usize - 2);
-            self.draw_text_colored(
-                &format!(
-                    "╭{d}╮{}\n╰{d}╯",
-                    format!("\n│{}│", " ".repeat(w as usize - 2)).repeat(h as usize - 2),
-                ),
-                color,
-            );
-        }
-    }
-
-    pub fn draw_outline(&mut self, w: u16, h: u16, color: u32) {
-        if w > 1 && h > 1 {
-            let d = "─".repeat(w as usize - 2);
-            self.draw_text_colored(
-                &format!(
-                    "┌{d}┐{}\n└{d}┘",
-                    format!("\n│{}│", " ".repeat(w as usize - 2)).repeat(h as usize - 2),
-                ),
-                color,
-            );
-        }
-    }
-
-    pub fn draw_background(&mut self, width: u16, height: u16) {
+    pub fn draw(&self) {
+        let width = self.transform.width;
+        let height = self.transform.height;
         match self.style.background {
             crate::style::Background::NoBackground => {}
-            crate::style::Background::Outline(c) => self.draw_outline(width, height, c),
+            crate::style::Background::Outline(_c) => {}
             crate::style::Background::RoundedOutline(c) => {
-                self.draw_outline_rounded(width, height, c)
-            }
-            crate::style::Background::Solid(c) => self.draw_rect(width, height, c),
-        }
-    }
-
-    pub fn draw(&self) {
-        for m in &self.render_stack {
-            match m {
-                RenderMethod::Text(t) => {
-                    utils::print(self.transform.x, self.transform.y, t);
-                }
-                RenderMethod::TextColored(t, c) => {
-                    utils::print_liner(self.transform.x, self.transform.y, &utils::hex_ansi(*c), t)
-                }
-                RenderMethod::Rectangle(width, height, color) => {
+                let width = width + self.transform.px * 2;
+                let height = height + self.transform.py * 2;
+                if width > 1 && height > 1 {
+                    let d = "─".repeat(width as usize - 2);
                     utils::print_liner(
                         self.transform.x,
                         self.transform.y,
+                        &utils::hex_ansi(c),
+                        &format!(
+                            "╭{d}╮{}\n╰{d}╯",
+                            format!("\n│{}│", " ".repeat(width as usize - 2))
+                                .repeat(height as usize - 2),
+                        ),
+                    );
+                }
+            }
+            crate::style::Background::Solid(c) => utils::print_liner(
+                self.transform.x,
+                self.transform.y,
+                &hex_ansi_bg(c),
+                &std::iter::repeat(" ".repeat(width as usize))
+                    .take(height as usize)
+                    .collect::<Vec<_>>()
+                    .join("\n"),
+            ),
+        }
+
+        for m in &self.render_stack {
+            match m {
+                RenderMethod::Text(t) => {
+                    utils::print(
+                        self.transform.x + self.transform.px,
+                        self.transform.y + self.transform.py,
+                        t,
+                    );
+                }
+                RenderMethod::TextColored(t, c) => utils::print_liner(
+                    self.transform.x + self.transform.px,
+                    self.transform.y + self.transform.py,
+                    &utils::hex_ansi(*c),
+                    t,
+                ),
+                RenderMethod::Rectangle(width, height, color) => {
+                    utils::print_liner(
+                        self.transform.x + self.transform.px,
+                        self.transform.y + self.transform.py,
                         &hex_ansi_bg(*color),
                         &std::iter::repeat(" ".repeat(*width as usize))
                             .take(*height as usize)
@@ -126,10 +131,8 @@ impl RenderScope {
 
     pub fn clear(&mut self) {
         self.render_stack.clear();
-        self.transform.width = 0;
-        self.transform.height = 0;
-        self.transform.x = 0;
-        self.transform.y = 0;
+        self.transform = RawTransform::new();
+        self.style = Style::new();
     }
 
     pub fn get_size(&self) -> (u16, u16) {

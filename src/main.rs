@@ -10,8 +10,25 @@ fn main() -> std::io::Result<()> {
 
 fn app() -> Rsx {
     rsx! {
-        @Transform::new();
+        @Transform::new().padding(3, 3);
         @Style { background: Background::RoundedOutline(0xff0000), foreground: None };
-        Div { @Transform::center(); "Hello, World!" }
+        Div {
+            @Transform::new().padding(1, 1);
+            @Style { background: Background::RoundedOutline(0x00ff00), foreground: None };
+            FlexCol {
+                @Transform::new().padding(1, 1);
+                "Hello, World!"
+                @Transform::new().padding(1, 1);
+                "Hello, World!"
+                @Transform::new().padding(1, 1);
+                "Hello, World!"
+                @Transform::new().padding(1, 1);
+                "Hello, World!"
+                @Transform::new().padding(1, 1);
+                "Hello, World!"
+                @Transform::new().padding(1, 1);
+                "Hello, World!"
+            } (2)
+        }
     }
 }
