@@ -65,6 +65,11 @@ impl RenderScope {
         self.transform.height = self.transform.height.max(height);
     }
 
+    pub fn use_area(&mut self, width: u16, height: u16) {
+        self.transform.width = self.transform.width.max(width);
+        self.transform.height = self.transform.height.max(height);
+    }
+
     pub fn draw(&self) {
         let width = self.transform.width;
         let height = self.transform.height;

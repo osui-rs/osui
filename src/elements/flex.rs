@@ -20,7 +20,7 @@ pub struct FlexCol {
 impl Element for FlexRow {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
-        scope.draw_rect(width, height, 0);
+        scope.use_area(width, height);
     }
 
     fn after_render(&mut self, scope: &mut crate::render_scope::RenderScope) {
@@ -86,7 +86,7 @@ impl FlexRow {
 impl Element for FlexCol {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
-        scope.draw_rect(width, height, 0);
+        scope.use_area(width, height);
     }
 
     fn after_render(&mut self, scope: &mut crate::render_scope::RenderScope) {
