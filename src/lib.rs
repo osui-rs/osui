@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::{
     extensions::{Extension, Handler},
     render_scope::RenderScope,
-    widget::{Element, Widget, WidgetLoad},
+    widget::{BoxedElement, DynWidget, Element, StaticWidget, Widget, WidgetLoad},
 };
 
 pub mod elements;
@@ -53,20 +53,34 @@ impl Screen {
         })
     }
 
-    pub fn draw<F: FnMut() -> WidgetLoad + 'static + Send + Sync>(
-        self: &Arc<Self>,
-        element: F,
-    ) -> Arc<Widget> {
-        let w = Arc::new(Widget::new(Box::new(element)));
+    pub fn draw<E: Element + 'static + Send + Sync>(self: &Arc<Self>, element: E) -> Arc<Widget> {
+        let w = Arc::new(Widget::Static(Arc::new(StaticWidget::new(Box::new(
+            element,
+        )))));
         self.widgets.lock().unwrap().push(w.clone());
         w
     }
 
-    pub fn draw_box(
+    pub fn draw_box(self: &Arc<Self>, element: BoxedElement) -> Arc<Widget> {
+        let w = Arc::new(Widget::Static(Arc::new(StaticWidget::new(element))));
+        self.widgets.lock().unwrap().push(w.clone());
+        w
+    }
+
+    pub fn draw_dyn<F: FnMut() -> WidgetLoad + 'static + Send + Sync>(
+        self: &Arc<Self>,
+        element: F,
+    ) -> Arc<Widget> {
+        let w = Arc::new(Widget::Dynamic(Arc::new(DynWidget::new(element))));
+        self.widgets.lock().unwrap().push(w.clone());
+        w
+    }
+
+    pub fn draw_box_dyn(
         self: &Arc<Self>,
         element: Box<dyn FnMut() -> WidgetLoad + Send + Sync>,
     ) -> Arc<Widget> {
-        let w = Arc::new(Widget::new(Box::new(element)));
+        let w = Arc::new(Widget::Dynamic(Arc::new(DynWidget::new(element))));
         self.widgets.lock().unwrap().push(w.clone());
         w
     }
@@ -122,14 +136,14 @@ impl Screen {
                     ext.lock().unwrap().render_widget(&mut scope, elem);
                 }
 
-                elem.0.lock().unwrap().render(&mut scope);
+                elem.get_elem().render(&mut scope);
 
                 if let Some(t) = elem.get() {
                     scope.set_transform(&t);
                 }
                 scope.draw();
 
-                elem.0.lock().unwrap().after_render(&mut scope);
+                elem.get_elem().after_render(&mut scope);
             }
 
             elem.auto_refresh();

@@ -2,12 +2,14 @@ use std::sync::Arc;
 
 use crate::{
     state::DependencyHandler,
-    widget::{Widget, WidgetLoad},
+    widget::{BoxedElement, Widget, WidgetLoad},
     Screen,
 };
 
 pub enum RsxElement {
-    Element(
+    Element(BoxedElement, Vec<Box<dyn DependencyHandler>>, Rsx),
+
+    DynElement(
         Box<dyn FnMut() -> WidgetLoad + Send + Sync>,
         Vec<Box<dyn DependencyHandler>>,
         Rsx,
@@ -24,10 +26,25 @@ impl Rsx {
     pub fn draw_parent(self, screen: &Arc<Screen>, parent: Option<Arc<Widget>>) {
         for rsx_elem in self.0 {
             match rsx_elem {
+                RsxElement::DynElement(f, dep, child) => {
+                    let w = if let Some(parent) = &parent {
+                        let w = screen.draw_box_dyn(f);
+                        parent.get_elem().draw_child(&w);
+                        w
+                    } else {
+                        screen.draw_box_dyn(f)
+                    };
+
+                    for d in dep {
+                        w.dependency_box(d);
+                    }
+                    child.draw_parent(screen, Some(w.clone()));
+                }
+
                 RsxElement::Element(f, dep, child) => {
                     let w = if let Some(parent) = &parent {
                         let w = screen.draw_box(f);
-                        parent.0.lock().unwrap().draw_child(&w);
+                        parent.get_elem().draw_child(&w);
                         w
                     } else {
                         screen.draw_box(f)
@@ -48,8 +65,11 @@ impl Rsx {
         dependencies: Vec<Box<dyn DependencyHandler>>,
         children: Rsx,
     ) {
-        self.0
-            .push(RsxElement::Element(Box::new(load), dependencies, children));
+        self.0.push(RsxElement::DynElement(
+            Box::new(load),
+            dependencies,
+            children,
+        ));
     }
 
     pub fn expand(&mut self, other: &mut Rsx) {

@@ -29,7 +29,7 @@ impl Element for Div {
             if let Some(t) = elem.get() {
                 scope.set_transform(&t);
             }
-            elem.0.lock().unwrap().render(scope);
+            elem.get_elem().render(scope);
             if let Some(t) = elem.get() {
                 scope.set_transform(&t);
             }
@@ -40,7 +40,7 @@ impl Element for Div {
             t.y += transform.y + transform.py;
 
             scope.draw();
-            elem.0.lock().unwrap().after_render(scope);
+            elem.get_elem().after_render(scope);
         }
         scope.set_parent_size(w, h);
         self.size = (transform.width, transform.height);

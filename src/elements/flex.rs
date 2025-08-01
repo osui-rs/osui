@@ -38,7 +38,7 @@ impl Element for FlexRow {
             if let Some(t) = elem.get() {
                 scope.set_transform(&t);
             }
-            elem.0.lock().unwrap().render(scope);
+            elem.get_elem().render(scope);
             if let Some(t) = elem.get() {
                 scope.set_transform(&t);
             }
@@ -53,7 +53,7 @@ impl Element for FlexRow {
 
             scope.draw();
 
-            elem.0.lock().unwrap().after_render(scope);
+            elem.get_elem().after_render(scope);
         }
         scope.set_parent_size(w, h);
         self.size = (transform.width, transform.height);
@@ -104,7 +104,7 @@ impl Element for FlexCol {
             if let Some(t) = elem.get() {
                 scope.set_transform(&t);
             }
-            elem.0.lock().unwrap().render(scope);
+            elem.get_elem().render(scope);
             if let Some(t) = elem.get() {
                 scope.set_transform(&t);
             }
@@ -119,7 +119,7 @@ impl Element for FlexCol {
 
             scope.draw();
 
-            elem.0.lock().unwrap().after_render(scope);
+            elem.get_elem().after_render(scope);
         }
         scope.set_parent_size(w, h);
         self.size = (transform.width, transform.height);
