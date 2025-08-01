@@ -2,11 +2,14 @@ use osui::prelude::*;
 
 fn main() -> std::io::Result<()> {
     let screen = Screen::new();
+    screen.extension(VelocityExtension);
+
     let count = use_state(0);
 
     rsx! {
-        %count // Dependency of count
-        "Count: {count}"
+        @Velocity(20, 0);
+        @Transform::new();
+        static "Count: {count}"
     }
     .draw(&screen);
 

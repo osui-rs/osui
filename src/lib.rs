@@ -67,6 +67,10 @@ impl Screen {
         w
     }
 
+    pub fn draw_widget(self: &Arc<Self>, widget: Arc<Widget>) {
+        self.widgets.lock().unwrap().push(widget);
+    }
+
     pub fn draw_dyn<F: FnMut() -> WidgetLoad + 'static + Send + Sync>(
         self: &Arc<Self>,
         element: F,

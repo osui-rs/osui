@@ -2,12 +2,12 @@ use std::sync::Arc;
 
 use crate::{
     state::DependencyHandler,
-    widget::{BoxedElement, Widget, WidgetLoad},
+    widget::{StaticWidget, Widget, WidgetLoad},
     Screen,
 };
 
 pub enum RsxElement {
-    Element(BoxedElement, Vec<Box<dyn DependencyHandler>>, Rsx),
+    Element(Arc<StaticWidget>, Rsx),
 
     DynElement(
         Box<dyn FnMut() -> WidgetLoad + Send + Sync>,
@@ -41,18 +41,14 @@ impl Rsx {
                     child.draw_parent(screen, Some(w.clone()));
                 }
 
-                RsxElement::Element(f, dep, child) => {
-                    let w = if let Some(parent) = &parent {
-                        let w = screen.draw_box(f);
-                        parent.get_elem().draw_child(&w);
-                        w
-                    } else {
-                        screen.draw_box(f)
-                    };
+                RsxElement::Element(ws, child) => {
+                    let w = Arc::new(Widget::Static(ws));
+                    screen.draw_widget(w.clone());
 
-                    for d in dep {
-                        w.dependency_box(d);
+                    if let Some(parent) = &parent {
+                        parent.get_elem().draw_child(&w);
                     }
+
                     child.draw_parent(screen, Some(w.clone()));
                 }
             }
@@ -70,6 +66,10 @@ impl Rsx {
             dependencies,
             children,
         ));
+    }
+
+    pub fn create_element_static(&mut self, element: Arc<StaticWidget>, children: Rsx) {
+        self.0.push(RsxElement::Element(element, children));
     }
 
     pub fn expand(&mut self, other: &mut Rsx) {
