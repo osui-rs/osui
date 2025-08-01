@@ -2,12 +2,14 @@ use std::sync::Arc;
 
 use crate::{
     state::DependencyHandler,
-    widget::{Widget, WidgetLoad},
+    widget::{StaticWidget, Widget, WidgetLoad},
     Screen,
 };
 
 pub enum RsxElement {
-    Element(
+    Element(Arc<StaticWidget>, Rsx),
+
+    DynElement(
         Box<dyn FnMut() -> WidgetLoad + Send + Sync>,
         Vec<Box<dyn DependencyHandler>>,
         Rsx,
@@ -24,18 +26,29 @@ impl Rsx {
     pub fn draw_parent(self, screen: &Arc<Screen>, parent: Option<Arc<Widget>>) {
         for rsx_elem in self.0 {
             match rsx_elem {
-                RsxElement::Element(f, dep, child) => {
+                RsxElement::DynElement(f, dep, child) => {
                     let w = if let Some(parent) = &parent {
-                        let w = screen.draw_box(f);
-                        parent.0.lock().unwrap().draw_child(&w);
+                        let w = screen.draw_box_dyn(f);
+                        parent.get_elem().draw_child(&w);
                         w
                     } else {
-                        screen.draw_box(f)
+                        screen.draw_box_dyn(f)
                     };
 
                     for d in dep {
                         w.dependency_box(d);
                     }
+                    child.draw_parent(screen, Some(w.clone()));
+                }
+
+                RsxElement::Element(ws, child) => {
+                    let w = Arc::new(Widget::Static(ws));
+                    screen.draw_widget(w.clone());
+
+                    if let Some(parent) = &parent {
+                        parent.get_elem().draw_child(&w);
+                    }
+
                     child.draw_parent(screen, Some(w.clone()));
                 }
             }
@@ -48,8 +61,15 @@ impl Rsx {
         dependencies: Vec<Box<dyn DependencyHandler>>,
         children: Rsx,
     ) {
-        self.0
-            .push(RsxElement::Element(Box::new(load), dependencies, children));
+        self.0.push(RsxElement::DynElement(
+            Box::new(load),
+            dependencies,
+            children,
+        ));
+    }
+
+    pub fn create_element_static(&mut self, element: Arc<StaticWidget>, children: Rsx) {
+        self.0.push(RsxElement::Element(element, children));
     }
 
     pub fn expand(&mut self, other: &mut Rsx) {

@@ -21,14 +21,15 @@
 </p>
 
 ```rust
-use osui::{style::Transform, Screen};
+use osui::prelude::*;
 
 fn main() -> std::io::Result<()> {
     let screen = Screen::new();
 
-    screen
-        .draw(format!("Hello, World"))
-        .component(Transform::center());
+    rsx! {
+        "Hello, World"
+    }
+    .draw(&screen);
 
     screen.run()
 }

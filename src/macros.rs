@@ -145,10 +145,28 @@ macro_rules! rsx {
 
 #[macro_export]
 macro_rules! rsx_inner {
+    // static
+    ($r:expr, $(@$comp:expr;)* static $s:literal $($rest:tt)*) => {
+        $r.create_element_static(std::sync::Arc::new($crate::widget::StaticWidget::new(Box::new(format!($s)))) $(.component($comp))* .clone(), $crate::frontend::Rsx(Vec::new()));
+        $crate::rsx_inner! { $r, $($rest)* };
+    };
+
     ($r:expr, $(%$dep:ident)* $(@$comp:expr;)* $s:literal $($rest:tt)*) => {
         $r.create_element({ $(let $dep = $dep.clone();)* move || {
             $crate::widget::WidgetLoad::new(format!($s)) $(.component($comp))*
         } }, vec![$(Box::new($dep.clone())),*], $crate::frontend::Rsx(Vec::new()));
+        $crate::rsx_inner! { $r, $($rest)* };
+    };
+
+    // static
+    ($r:expr, $(%$dep:ident)* $(@$comp:expr;)* static $name:path { $($inner:tt)* } ($($e:expr),*) $($rest:tt)*) => {
+        $r.create_element_static(std::sync::Arc::new($crate::widget::StaticWidget::new(Box::new(<$name>::new($($e),*)))) $(.component($comp))* .clone(), $crate::frontend::Rsx(Vec::new()));
+        $crate::rsx_inner! { $r, $($rest)* };
+    };
+
+    // static
+    ($r:expr, $(@$comp:expr;)* static $name:path { $($inner:tt)* } $($rest:tt)*) => {
+        $r.create_element_static(std::sync::Arc::new($crate::widget::StaticWidget::new(Box::new(<$name>::new()))) $(.component($comp))* .clone(), $crate::frontend::Rsx(Vec::new()));
         $crate::rsx_inner! { $r, $($rest)* };
     };
 

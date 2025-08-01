@@ -2,33 +2,21 @@ use osui::prelude::*;
 
 fn main() -> std::io::Result<()> {
     let screen = Screen::new();
+    screen.extension(VelocityExtension);
 
-    app().draw(&screen);
+    let count = use_state(0);
+
+    rsx! {
+        @Velocity(20, 0);
+        @Transform::new();
+        static "Count: {count}"
+    }
+    .draw(&screen);
+
+    std::thread::spawn(move || loop {
+        **count.get() += 1;
+        std::thread::sleep(std::time::Duration::from_millis(100));
+    });
 
     screen.run()
-}
-
-fn app() -> Rsx {
-    rsx! {
-        @Transform::new().padding(3, 3);
-        @Style { background: Background::RoundedOutline(0xff0000), foreground: None };
-        Div {
-            @Transform::new().padding(1, 1);
-            @Style { background: Background::RoundedOutline(0x00ff00), foreground: None };
-            FlexCol {
-                @Transform::new().padding(1, 1);
-                "Hello, World!"
-                @Transform::new().padding(1, 1);
-                "Hello, World!"
-                @Transform::new().padding(1, 1);
-                "Hello, World!"
-                @Transform::new().padding(1, 1);
-                "Hello, World!"
-                @Transform::new().padding(1, 1);
-                "Hello, World!"
-                @Transform::new().padding(1, 1);
-                "Hello, World!"
-            } (2)
-        }
-    }
 }
