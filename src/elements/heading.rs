@@ -32,11 +32,15 @@ impl Element for Heading {
             }
         }
         if let Some(t) = self.font.convert(&s) {
-            scope.draw_text(&if self.smooth {
-                format!("{t}").replace("-", "─").replace("|", "│")
-            } else {
-                format!("{t}")
-            });
+            scope.draw_text(
+                0,
+                0,
+                &if self.smooth {
+                    format!("{t}").replace("-", "─").replace("|", "│")
+                } else {
+                    format!("{t}")
+                },
+            );
         }
     }
 
