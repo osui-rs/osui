@@ -67,7 +67,7 @@ impl Element for FlexRow {
             transform.height = transform.height.max(v + t.height);
             t.x += transform.x;
             t.y += transform.y + v;
-            v += t.height + self.gap;
+            v += t.height + self.gap + (t.py * 2);
             t.px += transform.px;
             t.py += transform.py;
 
@@ -123,7 +123,7 @@ impl Element for FlexCol {
             transform.height = transform.height.max(t.height + (t.py * 2));
             t.x += transform.x + v;
             t.y += transform.y;
-            v += t.width + self.gap;
+            v += t.width + self.gap + (t.px * 2);
             t.px += transform.px;
             t.py += transform.py;
 
