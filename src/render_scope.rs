@@ -153,11 +153,20 @@ impl RenderScope {
         for m in &self.render_stack {
             match m {
                 RenderMethod::Text(t) => {
-                    utils::print(
-                        self.transform.x + self.transform.px,
-                        self.transform.y + self.transform.py,
-                        t,
-                    );
+                    if let Some(c) = self.style.foreground {
+                        utils::print_liner(
+                            self.transform.x + self.transform.px,
+                            self.transform.y + self.transform.py,
+                            &utils::hex_ansi(c),
+                            t,
+                        );
+                    } else {
+                        utils::print(
+                            self.transform.x + self.transform.px,
+                            self.transform.y + self.transform.py,
+                            t,
+                        );
+                    }
                 }
                 RenderMethod::TextColored(t, c) => utils::print_liner(
                     self.transform.x + self.transform.px,
