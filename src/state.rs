@@ -4,6 +4,14 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
+/// Trait for tracking dependencies and reactivity.
+pub trait DependencyHandler: std::fmt::Debug + Send + Sync {
+    /// Called when a dependent is registered.
+    fn add(&self);
+    /// Returns `true` if the state has changed since the last check.
+    fn check(&self) -> bool;
+}
+
 #[derive(Debug, Clone)]
 pub struct State<T> {
     inner: Arc<Mutex<Inner<T>>>,
@@ -89,9 +97,4 @@ impl<T> DerefMut for Inner<T> {
         self.changed = self.dependencies;
         &mut self.value
     }
-}
-
-pub trait DependencyHandler: std::fmt::Debug + Send + Sync {
-    fn add(&self);
-    fn check(&self) -> bool;
 }
