@@ -20,7 +20,8 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
                 screen.close();
         }});
         FlexRow, gap: 1, {
-            FlexCol {
+            FlexCol, gap: 3, {
+                Heading, smooth: false, { "OSUI" }
                 @Transform::new().padding(2, 2);
                 @Style { foreground: None, background: Background::RoundedOutline(0x00ff00) };
                 Div {
