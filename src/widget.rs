@@ -173,13 +173,16 @@ impl Widget {
 
     pub fn inject<F: FnMut(WidgetLoad) -> WidgetLoad + 'static + Send + Sync>(
         self: &Arc<Self>,
-        f: F,
+        mut f: F,
     ) {
         match &**self {
             Widget::Dynamic(w) => {
                 w.inject(f);
             }
-            Widget::Static(_) => {}
+            Widget::Static(w) => {
+                let wl = WidgetLoad::new(String::new());
+                w.1.lock().unwrap().extend(f(wl).1);
+            }
         }
     }
 

@@ -46,13 +46,11 @@ impl Rsx {
         for rsx_elem in self.0 {
             match rsx_elem {
                 RsxElement::DynElement(f, dep, child) => {
-                    let w = if let Some(parent) = &parent {
-                        let w = screen.draw_box_dyn(f);
+                    let w = screen.draw_box_dyn(f);
+
+                    if let Some(parent) = &parent {
                         parent.get_elem().draw_child(&w);
-                        w
-                    } else {
-                        screen.draw_box_dyn(f)
-                    };
+                    }
 
                     for d in dep {
                         w.dependency_box(d);

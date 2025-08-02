@@ -6,33 +6,33 @@ use crate::{
 };
 
 pub struct FlexRow {
-    gap: u16,
+    pub gap: u16,
     children: Mutex<Vec<Arc<Widget>>>,
     size: (u16, u16),
 }
 
 pub struct FlexCol {
-    gap: u16,
+    pub gap: u16,
     children: Mutex<Vec<Arc<Widget>>>,
     size: (u16, u16),
 }
 
 impl FlexRow {
-    pub fn new(gap: u16) -> Self {
+    pub fn new() -> Self {
         Self {
             children: Mutex::new(Vec::new()),
             size: (0, 0),
-            gap,
+            gap: 0,
         }
     }
 }
 
 impl FlexCol {
-    pub fn new(gap: u16) -> Self {
+    pub fn new() -> Self {
         Self {
             children: Mutex::new(Vec::new()),
             size: (0, 0),
-            gap,
+            gap: 0,
         }
     }
 }
