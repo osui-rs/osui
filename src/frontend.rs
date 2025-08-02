@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub enum RsxElement {
-    Element(Arc<StaticWidget>, Rsx),
+    Element(StaticWidget, Rsx),
 
     DynElement(
         Box<dyn FnMut() -> WidgetLoad + Send + Sync>,
@@ -68,7 +68,7 @@ impl Rsx {
         ));
     }
 
-    pub fn create_element_static(&mut self, element: Arc<StaticWidget>, children: Rsx) {
+    pub fn create_element_static(&mut self, element: StaticWidget, children: Rsx) {
         self.0.push(RsxElement::Element(element, children));
     }
 

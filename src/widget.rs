@@ -50,12 +50,38 @@ impl WidgetLoad {
     }
 }
 
+pub struct StaticWidget(Mutex<BoxedElement>, Mutex<HashMap<TypeId, BoxedComponent>>);
+
+pub struct DynWidget(
+    Mutex<BoxedElement>,
+    Mutex<HashMap<TypeId, BoxedComponent>>,
+    Mutex<Box<dyn FnMut() -> WidgetLoad + Send + Sync>>,
+    Mutex<Vec<Box<dyn DependencyHandler>>>,
+    Mutex<Option<Box<dyn FnMut(WidgetLoad) -> WidgetLoad + Send + Sync>>>,
+);
+
 pub enum Widget {
-    Static(Arc<StaticWidget>),
-    Dynamic(Arc<DynWidget>),
+    Static(StaticWidget),
+    Dynamic(DynWidget),
 }
 
-// === Trait Implementation ===
+impl Widget {
+    pub fn new_static(e: BoxedElement) -> Self {
+        Self::Static(StaticWidget(Mutex::new(e), Mutex::new(HashMap::new())))
+    }
+
+    pub fn new_dyn<F: FnMut() -> WidgetLoad + 'static + Send + Sync>(mut e: F) -> Self {
+        let wl = e();
+        Self::Dynamic(DynWidget(
+            Mutex::new(wl.0),
+            Mutex::new(wl.1),
+            Mutex::new(Box::new(e)),
+            Mutex::new(Vec::new()),
+            Mutex::new(None),
+        ))
+    }
+}
+
 impl Widget {
     pub fn get_elem(&self) -> MutexGuard<BoxedElement> {
         match self {
@@ -153,9 +179,6 @@ impl Widget {
     }
 }
 
-// === Static Widget ===
-pub struct StaticWidget(Mutex<BoxedElement>, Mutex<HashMap<TypeId, BoxedComponent>>);
-
 impl StaticWidget {
     fn after_render(&self) {}
     fn get_elem(&self) -> MutexGuard<BoxedElement> {
@@ -168,18 +191,16 @@ impl StaticWidget {
         Self(Mutex::new(e), Mutex::new(HashMap::new()))
     }
 
-    pub fn component<C: Component + 'static>(self: &Arc<Self>, c: C) -> &Arc<Self> {
+    pub fn component<C: Component + 'static>(&self, c: C) {
         self.1
             .lock()
             .unwrap()
             .entry(c.type_id())
             .or_insert_with(|| Box::new(c));
-        self
     }
 
-    pub fn set_component<C: Component + 'static>(self: &Arc<Self>, c: C) -> &Arc<Self> {
+    pub fn set_component<C: Component + 'static>(&self, c: C) {
         self.1.lock().unwrap().insert(c.type_id(), Box::new(c));
-        self
     }
 
     pub fn get<C: Component + 'static + Clone>(&self) -> Option<C> {
@@ -191,15 +212,6 @@ impl StaticWidget {
             .map(Clone::clone)
     }
 }
-
-// === Dynamic Widget ===
-pub struct DynWidget(
-    Mutex<BoxedElement>,
-    Mutex<HashMap<TypeId, BoxedComponent>>,
-    Mutex<Box<dyn FnMut() -> WidgetLoad + Send + Sync>>,
-    Mutex<Vec<Box<dyn DependencyHandler>>>,
-    Mutex<Option<Box<dyn FnMut(WidgetLoad) -> WidgetLoad + Send + Sync>>>,
-);
 
 impl DynWidget {
     fn after_render(&self) {}
@@ -220,15 +232,12 @@ impl DynWidget {
         )
     }
 
-    pub fn inject<F: FnMut(WidgetLoad) -> WidgetLoad + 'static + Send + Sync>(
-        self: &Arc<Self>,
-        f: F,
-    ) {
+    pub fn inject<F: FnMut(WidgetLoad) -> WidgetLoad + 'static + Send + Sync>(&self, f: F) {
         *self.4.lock().unwrap() = Some(Box::new(f));
         self.refresh();
     }
 
-    pub fn refresh(self: &Arc<Self>) {
+    pub fn refresh(&self) {
         let mut w = (self.2.lock().unwrap())();
 
         if let Some(we) = &mut *self.4.lock().unwrap() {
@@ -239,7 +248,7 @@ impl DynWidget {
         *self.1.lock().unwrap() = w.1;
     }
 
-    pub fn auto_refresh(self: &Arc<Self>) {
+    pub fn auto_refresh(&self) {
         for d in self.3.lock().unwrap().iter() {
             if d.check() {
                 self.refresh();
@@ -247,30 +256,26 @@ impl DynWidget {
         }
     }
 
-    pub fn dependency<D: DependencyHandler + 'static>(self: &Arc<Self>, d: D) -> &Arc<Self> {
+    pub fn dependency<D: DependencyHandler + 'static>(&self, d: D) {
         d.add();
         self.3.lock().unwrap().push(Box::new(d));
-        self
     }
 
-    pub fn dependency_box(self: &Arc<Self>, d: Box<dyn DependencyHandler>) -> &Arc<Self> {
+    pub fn dependency_box(&self, d: Box<dyn DependencyHandler>) {
         d.add();
         self.3.lock().unwrap().push(d);
-        self
     }
 
-    pub fn component<C: Component + 'static>(self: &Arc<Self>, c: C) -> &Arc<Self> {
+    pub fn component<C: Component + 'static>(&self, c: C) {
         self.1
             .lock()
             .unwrap()
             .entry(c.type_id())
             .or_insert_with(|| Box::new(c));
-        self
     }
 
-    pub fn set_component<C: Component + 'static>(self: &Arc<Self>, c: C) -> &Arc<Self> {
+    pub fn set_component<C: Component + 'static>(&self, c: C) {
         self.1.lock().unwrap().insert(c.type_id(), Box::new(c));
-        self
     }
 
     pub fn get<C: Component + 'static + Clone>(&self) -> Option<C> {

@@ -147,7 +147,9 @@ macro_rules! rsx {
 macro_rules! rsx_inner {
     // static
     ($r:expr, $(@$comp:expr;)* static $s:literal $($rest:tt)*) => {
-        $r.create_element_static(std::sync::Arc::new($crate::widget::StaticWidget::new(Box::new(format!($s)))) $(.component($comp))* .clone(), $crate::frontend::Rsx(Vec::new()));
+        let w = $crate::widget::StaticWidget::new(Box::new(format!($s)));
+        $(w.component($comp);)*
+        $r.create_element_static(w, $crate::frontend::Rsx(Vec::new()));
         $crate::rsx_inner! { $r, $($rest)* };
     };
 
@@ -160,13 +162,17 @@ macro_rules! rsx_inner {
 
     // static
     ($r:expr, $(%$dep:ident)* $(@$comp:expr;)* static $name:path { $($inner:tt)* } ($($e:expr),*) $($rest:tt)*) => {
-        $r.create_element_static(std::sync::Arc::new($crate::widget::StaticWidget::new(Box::new(<$name>::new($($e),*)))) $(.component($comp))* .clone(), $crate::frontend::Rsx(Vec::new()));
+        let w = $crate::widget::StaticWidget::new(Box::new(<$name>::new($($e),*)));
+        $(w.component($comp);)*
+        $r.create_element_static(w, $crate::frontend::Rsx(Vec::new()));
         $crate::rsx_inner! { $r, $($rest)* };
     };
 
     // static
     ($r:expr, $(@$comp:expr;)* static $name:path { $($inner:tt)* } $($rest:tt)*) => {
-        $r.create_element_static(std::sync::Arc::new($crate::widget::StaticWidget::new(Box::new(<$name>::new()))) $(.component($comp))* .clone(), $crate::frontend::Rsx(Vec::new()));
+        let w = $crate::widget::StaticWidget::new(Box::new(<$name>::new()));
+        $(w.component($comp);)*
+        $r.create_element_static(w, $crate::frontend::Rsx(Vec::new()));
         $crate::rsx_inner! { $r, $($rest)* };
     };
 

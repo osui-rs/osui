@@ -54,15 +54,13 @@ impl Screen {
     }
 
     pub fn draw<E: Element + 'static + Send + Sync>(self: &Arc<Self>, element: E) -> Arc<Widget> {
-        let w = Arc::new(Widget::Static(Arc::new(StaticWidget::new(Box::new(
-            element,
-        )))));
+        let w = Arc::new(Widget::Static(StaticWidget::new(Box::new(element))));
         self.widgets.lock().unwrap().push(w.clone());
         w
     }
 
     pub fn draw_box(self: &Arc<Self>, element: BoxedElement) -> Arc<Widget> {
-        let w = Arc::new(Widget::Static(Arc::new(StaticWidget::new(element))));
+        let w = Arc::new(Widget::Static(StaticWidget::new(element)));
         self.widgets.lock().unwrap().push(w.clone());
         w
     }
@@ -75,7 +73,7 @@ impl Screen {
         self: &Arc<Self>,
         element: F,
     ) -> Arc<Widget> {
-        let w = Arc::new(Widget::Dynamic(Arc::new(DynWidget::new(element))));
+        let w = Arc::new(Widget::Dynamic(DynWidget::new(element)));
         self.widgets.lock().unwrap().push(w.clone());
         w
     }
@@ -84,7 +82,7 @@ impl Screen {
         self: &Arc<Self>,
         element: Box<dyn FnMut() -> WidgetLoad + Send + Sync>,
     ) -> Arc<Widget> {
-        let w = Arc::new(Widget::Dynamic(Arc::new(DynWidget::new(element))));
+        let w = Arc::new(Widget::Dynamic(DynWidget::new(element)));
         self.widgets.lock().unwrap().push(w.clone());
         w
     }
