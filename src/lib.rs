@@ -59,8 +59,21 @@ pub mod prelude {
     };
 }
 
+/// The main screen abstraction for rendering and managing widgets and extensions.
+///
+/// `Screen` holds the root widget list and registered extensions. It provides methods
+/// for drawing elements, adding extensions, and running the main rendering loop.
+///
+/// # Examples
+/// ```rust
+/// let screen = Screen::new();
+/// rsx! { "Hello" }.draw(&screen);
+/// screen.run()?;
+/// ```
 pub struct Screen {
+    /// The list of widgets currently managed by the screen.
     pub widgets: Mutex<Vec<Arc<Widget>>>,
+    /// Registered extensions for the screen.
     extensions: Mutex<Vec<Arc<Mutex<Box<dyn Extension + Send + Sync>>>>>,
 }
 
@@ -68,6 +81,10 @@ event!(RenderWrapperEvent(*mut RenderScope));
 component!(NoRender);
 
 impl RenderWrapperEvent {
+    /// Returns a mutable reference to the underlying `RenderScope`.
+    ///
+    /// # Safety
+    /// The caller must ensure the pointer is valid for the lifetime of the event.
     pub fn get_scope(&self) -> &mut RenderScope {
         unsafe { &mut *self.0 }
     }
@@ -77,6 +94,7 @@ unsafe impl Send for RenderWrapperEvent {}
 unsafe impl Sync for RenderWrapperEvent {}
 
 impl Screen {
+    /// Creates a new screen instance wrapped in an `Arc`.
     pub fn new() -> Arc<Self> {
         Arc::new(Self {
             widgets: Mutex::new(Vec::new()),
@@ -84,22 +102,26 @@ impl Screen {
         })
     }
 
+    /// Draws a static element and returns its widget handle.
     pub fn draw<E: Element + 'static + Send + Sync>(self: &Arc<Self>, element: E) -> Arc<Widget> {
         let w = Arc::new(Widget::Static(StaticWidget::new(Box::new(element))));
         self.widgets.lock().unwrap().push(w.clone());
         w
     }
 
+    /// Draws a boxed element and returns its widget handle.
     pub fn draw_box(self: &Arc<Self>, element: BoxedElement) -> Arc<Widget> {
         let w = Arc::new(Widget::Static(StaticWidget::new(element)));
         self.widgets.lock().unwrap().push(w.clone());
         w
     }
 
+    /// Adds an existing widget to the screen.
     pub fn draw_widget(self: &Arc<Self>, widget: Arc<Widget>) {
         self.widgets.lock().unwrap().push(widget);
     }
 
+    /// Draws a dynamic element using a closure and returns its widget handle.
     pub fn draw_dyn<F: FnMut() -> WidgetLoad + 'static + Send + Sync>(
         self: &Arc<Self>,
         element: F,
@@ -109,6 +131,7 @@ impl Screen {
         w
     }
 
+    /// Draws a dynamic element from a boxed closure and returns its widget handle.
     pub fn draw_box_dyn(
         self: &Arc<Self>,
         element: Box<dyn FnMut() -> WidgetLoad + Send + Sync>,
@@ -118,6 +141,7 @@ impl Screen {
         w
     }
 
+    /// Registers an extension with the screen.
     pub fn extension<E: Extension + Send + Sync + 'static>(self: &Arc<Self>, ext: E) {
         self.extensions
             .lock()
@@ -125,6 +149,9 @@ impl Screen {
             .push(Arc::new(Mutex::new(Box::new(ext))));
     }
 
+    /// Runs the main rendering loop, calling extensions and rendering widgets.
+    ///
+    /// This method blocks and repeatedly renders the screen at a fixed interval.
     pub fn run(self: &Arc<Self>) -> std::io::Result<()> {
         for ext in self.extensions.lock().unwrap().iter() {
             ext.lock().unwrap().init(self.clone());
@@ -138,6 +165,9 @@ impl Screen {
         }
     }
 
+    /// Renders all widgets and applies extensions.
+    ///
+    /// This method is called internally by `run`.
     pub fn render(self: &Arc<Self>) -> std::io::Result<()> {
         let mut scope = RenderScope::new();
         let (w, h) = crossterm::terminal::size().unwrap();
