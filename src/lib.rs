@@ -1,3 +1,34 @@
+//! **OSUI** – A Rust Terminal User Interface Library
+//!
+//! OSUI is a library for building interactive and customizable terminal user interfaces in Rust.
+//! It provides a component system, real-time keyboard input handling, and a `rsx!` macro
+//! for defining UI elements in a declarative way, however that is optional.
+//!
+//! ✅ **Features**
+//! - 🧱 RSX-like syntax with `rsx!` macro
+//! - 🖥️ Virtual screen abstraction
+//! - 🎹 Keyboard input handling
+//! - 🎯 Component-based design
+//! - ⚡ Real-time rendering
+//!
+//! 🚀 **Quick Example**
+//! ```rust
+//! use osui::prelude::*;
+//!
+//! fn main() -> std::io::Result<()> {
+//!     let screen = Screen::new();
+//!     rsx! {
+//!         "👋 Hello, World!"
+//!     }.draw(&screen);
+//!     screen.run()
+//! }
+//! ```
+//!
+//! ---
+//! 🧰 For full documentation, visit: [osui.netlify.app/docs](https://osui.netlify.app/docs)  
+//!
+//! 🧪 Examples and demos: [github.com/osui-rs/osui/demos](https://github.com/osui-rs/osui/tree/master/src/demos)
+
 use std::sync::{Arc, Mutex};
 
 use crate::{
