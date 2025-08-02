@@ -17,6 +17,26 @@ pub struct FlexCol {
     size: (u16, u16),
 }
 
+impl FlexRow {
+    pub fn new(gap: u16) -> Self {
+        Self {
+            children: Mutex::new(Vec::new()),
+            size: (0, 0),
+            gap,
+        }
+    }
+}
+
+impl FlexCol {
+    pub fn new(gap: u16) -> Self {
+        Self {
+            children: Mutex::new(Vec::new()),
+            size: (0, 0),
+            gap,
+        }
+    }
+}
+
 impl Element for FlexRow {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
@@ -73,16 +93,6 @@ impl Element for FlexRow {
     }
 }
 
-impl FlexRow {
-    pub fn new(gap: u16) -> Self {
-        Self {
-            children: Mutex::new(Vec::new()),
-            size: (0, 0),
-            gap,
-        }
-    }
-}
-
 impl Element for FlexCol {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
@@ -136,15 +146,5 @@ impl Element for FlexCol {
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
-    }
-}
-
-impl FlexCol {
-    pub fn new(gap: u16) -> Self {
-        Self {
-            children: Mutex::new(Vec::new()),
-            size: (0, 0),
-            gap,
-        }
     }
 }
