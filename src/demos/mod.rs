@@ -12,6 +12,9 @@ pub fn app() -> Rsx {
     });
 
     rsx! {
+        @Handler::new(|_, _: &crossterm::event::Event| {
+            panic!("idk lol");
+        });
         FlexRow {
             FlexCol {
                 @Transform::new().padding(2, 2);

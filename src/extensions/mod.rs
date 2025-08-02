@@ -1,8 +1,10 @@
 pub mod id;
+pub mod input_handling;
 pub mod tick;
 pub mod velocity;
 
 pub use id::*;
+pub use input_handling::*;
 pub use tick::*;
 pub use velocity::*;
 
