@@ -10,6 +10,15 @@ pub struct Div {
     size: (u16, u16),
 }
 
+impl Div {
+    pub fn new() -> Self {
+        Div {
+            children: Mutex::new(Vec::new()),
+            size: (0, 0),
+        }
+    }
+}
+
 impl Element for Div {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
@@ -57,14 +66,5 @@ impl Element for Div {
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
-    }
-}
-
-impl Div {
-    pub fn new() -> Self {
-        Div {
-            children: Mutex::new(Vec::new()),
-            size: (0, 0),
-        }
     }
 }

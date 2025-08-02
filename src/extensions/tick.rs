@@ -6,6 +6,8 @@ use crate::{event, Screen};
 
 pub struct TickExtension(pub u16);
 
+event!(TickEvent(pub u32));
+
 impl Extension for TickExtension {
     fn init(&mut self, screen: Arc<Screen>) {
         let rate_dur = 1000 / self.0 as u64;
@@ -25,5 +27,3 @@ impl Extension for TickExtension {
         });
     }
 }
-
-event!(TickEvent(pub u32));

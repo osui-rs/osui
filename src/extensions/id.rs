@@ -4,6 +4,8 @@ use crate::{component, extensions::Extension, widget::Widget, Screen};
 
 pub struct IdExtension(pub Arc<Screen>);
 
+component!(Id(pub usize));
+
 impl Extension for Arc<IdExtension> {}
 
 impl IdExtension {
@@ -23,5 +25,3 @@ impl IdExtension {
         None
     }
 }
-
-component!(Id(pub usize));

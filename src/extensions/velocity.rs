@@ -10,6 +10,8 @@ use crate::{
 
 pub struct VelocityExtension;
 
+component!(Velocity(pub i32, pub i32));
+
 impl VelocityExtension {
     fn apply_velocity(ticks: u16, velocity: i32, x: &mut u16) {
         if velocity.abs() != 0 && ticks as i32 % (1000 / velocity.abs()) == 0 {
@@ -20,9 +22,7 @@ impl VelocityExtension {
             }
         }
     }
-}
 
-impl VelocityExtension {
     fn apply_velocity_xy(ticks: u16, widget: &Arc<Widget>) {
         if let Some(velocity) = widget.get::<Velocity>() {
             if let Some(mut t) = widget.get::<Transform>() {
@@ -62,5 +62,3 @@ impl Extension for VelocityExtension {
         });
     }
 }
-
-component!(Velocity(pub i32, pub i32));
