@@ -19,8 +19,9 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
             move |_, _: &crossterm::event::Event| {
                 screen.close();
         }});
-        FlexRow {
-            FlexCol {
+        FlexRow, gap: 1, {
+            FlexCol, gap: 3, {
+                Heading, smooth: false, { "OSUI" }
                 @Transform::new().padding(2, 2);
                 @Style { foreground: None, background: Background::RoundedOutline(0x00ff00) };
                 Div {
@@ -34,14 +35,14 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
                 }
 
                 // TODO: div with width full
-            } (1)
+            }
 
             FlexCol {
-                Div {
+                static Div { // static only affects the element, not children
                     %count
                     "This will increment every second: {count}"
                 }
-            } (2)
-        } (0)
+            }
+        }
     }
 }

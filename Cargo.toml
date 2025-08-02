@@ -25,6 +25,7 @@ cc = "1.0"
 
 [dependencies]
 crossterm = "0.28.1"
+figlet-rs = "0.1.5"
 
 [profile.dev]
 opt-level = 1
