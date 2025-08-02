@@ -105,8 +105,22 @@ impl RenderScope {
 
         match self.style.background {
             crate::style::Background::NoBackground => {}
-            crate::style::Background::Outline(_c) => {
-                // TODO: Implement basic outline drawing if needed
+            crate::style::Background::Outline(c) => {
+                let width = width + self.transform.px * 2;
+                let height = height + self.transform.py * 2;
+                if width > 1 && height > 1 {
+                    let d = "─".repeat(width as usize - 2);
+                    utils::print_liner(
+                        self.transform.x,
+                        self.transform.y,
+                        &utils::hex_ansi(c),
+                        &format!(
+                            "┌{d}┐{}\n└{d}┘",
+                            format!("\n│{}│", " ".repeat(width as usize - 2))
+                                .repeat(height as usize - 2),
+                        ),
+                    );
+                }
             }
             crate::style::Background::RoundedOutline(c) => {
                 let width = width + self.transform.px * 2;

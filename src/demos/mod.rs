@@ -15,13 +15,19 @@ pub fn app() -> Rsx {
         FlexRow {
             FlexCol {
                 @Transform::new().padding(2, 2);
-                @Style { foreground: None, background: Background::RoundedOutline(0x00ff00) }; // TODO: Outline doesn't work
+                @Style { foreground: None, background: Background::RoundedOutline(0x00ff00) };
                 Div {
                     "This is text inside a div"
                 }
 
+                @Transform::new().padding(2, 2);
+                @Style { foreground: None, background: Background::Outline(0x00ff00) };
+                Div {
+                    "This is text inside a div with square outlines"
+                }
+
                 // TODO: div with width full
-            } (2)
+            } (1)
 
             FlexCol {
                 Div {
