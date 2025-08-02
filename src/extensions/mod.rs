@@ -22,6 +22,7 @@ use crate::{
 
 pub trait Extension {
     fn init(&mut self, _screen: Arc<Screen>) {}
+    fn on_close(&mut self, _screen: Arc<Screen>) {}
     fn render_widget(&mut self, _scope: &mut RenderScope, _widget: &Arc<Widget>) {}
 }
 

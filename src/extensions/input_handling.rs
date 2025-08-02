@@ -15,6 +15,10 @@ impl Extension for InputExtension {
             }
         });
     }
+
+    fn on_close(&mut self, _screen: std::sync::Arc<crate::Screen>) {
+        crossterm::terminal::disable_raw_mode().unwrap();
+    }
 }
 
 impl crate::extensions::Event for crossterm::event::Event {

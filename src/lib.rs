@@ -75,6 +75,8 @@ pub struct Screen {
     pub widgets: Mutex<Vec<Arc<Widget>>>,
     /// Registered extensions for the screen.
     extensions: Mutex<Vec<Arc<Mutex<Box<dyn Extension + Send + Sync>>>>>,
+    /// If it's still running
+    running: Mutex<bool>,
 }
 
 event!(RenderWrapperEvent(*mut RenderScope));
@@ -99,6 +101,7 @@ impl Screen {
         Arc::new(Self {
             widgets: Mutex::new(Vec::new()),
             extensions: Mutex::new(Vec::new()),
+            running: Mutex::new(true),
         })
     }
 
@@ -159,10 +162,12 @@ impl Screen {
 
         utils::hide_cursor()?;
 
-        loop {
+        while *self.running.lock().unwrap() {
             self.render()?;
             std::thread::sleep(std::time::Duration::from_millis(28));
         }
+
+        Ok(())
     }
 
     /// Renders all widgets and applies extensions.
@@ -212,5 +217,18 @@ impl Screen {
             elem.auto_refresh();
         }
         Ok(())
+    }
+
+    /// Closes the loop and calls `on_close` in the extensions
+    pub fn close(self: &Arc<Self>) {
+        *self.running.lock().unwrap() = false;
+
+        utils::show_cursor().unwrap();
+
+        utils::clear().unwrap();
+
+        for ext in self.extensions.lock().unwrap().iter() {
+            ext.lock().unwrap().on_close(self.clone());
+        }
     }
 }

@@ -1,6 +1,8 @@
+use std::sync::Arc;
+
 use osui::prelude::*;
 
-pub fn app() -> Rsx {
+pub fn app(screen: Arc<Screen>) -> Rsx {
     let count = use_state(0);
 
     std::thread::spawn({
@@ -12,9 +14,11 @@ pub fn app() -> Rsx {
     });
 
     rsx! {
-        @Handler::new(|_, _: &crossterm::event::Event| {
-            panic!("idk lol");
-        });
+        @Handler::new({
+            let screen = screen.clone();
+            move |_, _: &crossterm::event::Event| {
+                screen.close();
+        }});
         FlexRow {
             FlexCol {
                 @Transform::new().padding(2, 2);
