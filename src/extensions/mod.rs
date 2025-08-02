@@ -58,3 +58,9 @@ impl<E: Event> Debug for Handler<E> {
         write!(f, "Handler({})", type_name::<E>())
     }
 }
+
+impl<'a> dyn Event + 'a {
+    pub fn get<T: Event + 'static>(&self) -> Option<&T> {
+        self.as_any().downcast_ref()
+    }
+}

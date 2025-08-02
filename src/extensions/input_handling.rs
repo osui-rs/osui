@@ -1,4 +1,4 @@
-use crate::{extensions::Extension, prelude::Handler};
+use crate::extensions::Extension;
 
 pub struct InputExtension;
 
@@ -8,9 +8,7 @@ impl Extension for InputExtension {
         std::thread::spawn(move || loop {
             if let Ok(e) = crossterm::event::read() {
                 for widget in screen.widgets.lock().unwrap().iter() {
-                    if let Some(h) = widget.get::<Handler<crossterm::event::Event>>() {
-                        h.call(widget, &e);
-                    }
+                    widget.event(&e);
                 }
             }
         });
