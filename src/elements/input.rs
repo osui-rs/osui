@@ -26,7 +26,7 @@ impl Element for Input {
             code, modifiers, ..
         })) = event.get()
         {
-            if !modifiers.is_empty() && modifiers.contains(KeyModifiers::SHIFT) {
+            if !modifiers.is_empty() && !modifiers.contains(KeyModifiers::SHIFT) {
                 return;
             }
 
