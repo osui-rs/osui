@@ -23,9 +23,14 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
                     }
                 }
             }});
-        FlexRow {
-            FlexCol, gap: 3, {
+        Paginator {
+            FlexRow {
                 Heading, smooth: false, { "OSUI" }
+                "Welcome to the OSUI demo!"
+                "Press tab to switch to the next page or shift+tab to the previous page"
+            }
+
+            FlexCol, gap: 3, {
                 @Transform::new().padding(2, 2);
                 @Style { foreground: None, background: Background::RoundedOutline(0x00ff00) };
                 Div {
