@@ -1,4 +1,4 @@
-use crossterm::event::{KeyCode, KeyEvent};
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 
 use crate::{
     state::{use_state, State},
@@ -22,7 +22,14 @@ impl Element for Input {
     }
 
     fn event(&mut self, event: &dyn crate::prelude::Event) {
-        if let Some(crossterm::event::Event::Key(KeyEvent { code, .. })) = event.get() {
+        if let Some(crossterm::event::Event::Key(KeyEvent {
+            code, modifiers, ..
+        })) = event.get()
+        {
+            if !modifiers.is_empty() && !modifiers.contains(KeyModifiers::SHIFT) {
+                return;
+            }
+
             match code {
                 KeyCode::Char(c) => {
                     self.state.get().insert(self.cursor, *c);

@@ -4,7 +4,7 @@ use figlet_rs::FIGfont;
 
 use crate::{
     widget::{Element, Widget},
-    NoRender,
+    NoRender, NoRenderRoot,
 };
 
 pub struct Heading {
@@ -27,6 +27,10 @@ impl Element for Heading {
     fn render(&mut self, scope: &mut crate::prelude::RenderScope) {
         let mut s = String::new();
         for element in &self.children {
+            if element.get::<NoRender>().is_some() {
+                continue;
+            }
+
             if let Some(e) = element.get_elem().as_any().downcast_ref::<String>() {
                 s += e;
             }
@@ -45,7 +49,7 @@ impl Element for Heading {
     }
 
     fn draw_child(&mut self, element: &Arc<Widget>) {
-        element.inject(|w| w.component(NoRender));
+        element.inject(|w| w.component(NoRenderRoot));
         self.children.push(element.clone());
     }
 
