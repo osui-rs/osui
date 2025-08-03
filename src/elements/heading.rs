@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use figlet_rs::FIGfont;
 
@@ -10,7 +10,7 @@ use crate::{
 pub struct Heading {
     pub font: FIGfont,
     pub smooth: bool,
-    children: Mutex<Vec<Arc<Widget>>>,
+    children: Vec<Arc<Widget>>,
 }
 
 impl Heading {
@@ -18,7 +18,7 @@ impl Heading {
         Heading {
             font: FIGfont::standard().unwrap(),
             smooth: false,
-            children: Mutex::new(Vec::new()),
+            children: Vec::new(),
         }
     }
 }
@@ -26,7 +26,7 @@ impl Heading {
 impl Element for Heading {
     fn render(&mut self, scope: &mut crate::prelude::RenderScope) {
         let mut s = String::new();
-        for element in self.children.lock().unwrap().iter() {
+        for element in &self.children {
             if let Some(e) = element.get_elem().as_any().downcast_ref::<String>() {
                 s += e;
             }
@@ -44,9 +44,9 @@ impl Element for Heading {
         }
     }
 
-    fn draw_child(&self, element: &Arc<Widget>) {
+    fn draw_child(&mut self, element: &Arc<Widget>) {
         element.inject(|w| w.component(NoRender));
-        self.children.lock().unwrap().push(element.clone());
+        self.children.push(element.clone());
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

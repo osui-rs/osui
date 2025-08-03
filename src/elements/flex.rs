@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::{
     widget::{Element, Widget},
@@ -7,20 +7,20 @@ use crate::{
 
 pub struct FlexRow {
     pub gap: u16,
-    children: Mutex<Vec<Arc<Widget>>>,
+    children: Vec<Arc<Widget>>,
     size: (u16, u16),
 }
 
 pub struct FlexCol {
     pub gap: u16,
-    children: Mutex<Vec<Arc<Widget>>>,
+    children: Vec<Arc<Widget>>,
     size: (u16, u16),
 }
 
 impl FlexRow {
     pub fn new() -> Self {
         Self {
-            children: Mutex::new(Vec::new()),
+            children: Vec::new(),
             size: (0, 0),
             gap: 0,
         }
@@ -30,7 +30,7 @@ impl FlexRow {
 impl FlexCol {
     pub fn new() -> Self {
         Self {
-            children: Mutex::new(Vec::new()),
+            children: Vec::new(),
             size: (0, 0),
             gap: 0,
         }
@@ -50,7 +50,7 @@ impl Element for FlexRow {
 
         let mut v = 0;
 
-        for elem in self.children.lock().unwrap().iter() {
+        for elem in &self.children {
             scope.clear();
             if let Some(style) = elem.get() {
                 scope.set_style(style);
@@ -79,8 +79,8 @@ impl Element for FlexRow {
         self.size = (transform.width, transform.height);
     }
 
-    fn draw_child(&self, element: &Arc<Widget>) {
-        self.children.lock().unwrap().push(element.clone());
+    fn draw_child(&mut self, element: &Arc<Widget>) {
+        self.children.push(element.clone());
         element.inject(|w| w.component(NoRender));
     }
 
@@ -106,7 +106,7 @@ impl Element for FlexCol {
 
         let mut v = 0;
 
-        for elem in self.children.lock().unwrap().iter() {
+        for elem in &self.children {
             scope.clear();
             if let Some(style) = elem.get() {
                 scope.set_style(style);
@@ -135,8 +135,8 @@ impl Element for FlexCol {
         self.size = (transform.width, transform.height);
     }
 
-    fn draw_child(&self, element: &Arc<Widget>) {
-        self.children.lock().unwrap().push(element.clone());
+    fn draw_child(&mut self, element: &Arc<Widget>) {
+        self.children.push(element.clone());
         element.inject(|w| w.component(NoRender));
     }
 

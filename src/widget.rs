@@ -39,7 +39,7 @@ pub trait Element: Send + Sync {
 
     /// Called to draw child widgets, if any.
     #[allow(unused)]
-    fn draw_child(&self, element: &Arc<Widget>) {}
+    fn draw_child(&mut self, element: &Arc<Widget>) {}
 
     #[allow(unused)]
     fn event(&mut self, event: &dyn Event) {}

@@ -1,4 +1,4 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
 use crate::{
     widget::{Element, Widget},
@@ -6,14 +6,14 @@ use crate::{
 };
 
 pub struct Div {
-    children: Mutex<Vec<Arc<Widget>>>,
+    children: Vec<Arc<Widget>>,
     size: (u16, u16),
 }
 
 impl Div {
     pub fn new() -> Self {
         Div {
-            children: Mutex::new(Vec::new()),
+            children: Vec::new(),
             size: (0, 0),
         }
     }
@@ -30,7 +30,7 @@ impl Element for Div {
         let (w, h) = scope.get_parent_size();
         scope.set_parent_size(transform.width, transform.height);
 
-        for elem in self.children.lock().unwrap().iter() {
+        for elem in &self.children {
             scope.clear();
             if let Some(style) = elem.get() {
                 scope.set_style(style);
@@ -55,8 +55,8 @@ impl Element for Div {
         self.size = (transform.width, transform.height);
     }
 
-    fn draw_child(&self, element: &Arc<Widget>) {
-        self.children.lock().unwrap().push(element.clone());
+    fn draw_child(&mut self, element: &Arc<Widget>) {
+        self.children.push(element.clone());
         element.inject(|w| w.component(NoRender));
     }
 
