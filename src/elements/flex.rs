@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     widget::{Element, Widget},
-    NoRender,
+    NoRender, NoRenderRoot,
 };
 
 pub struct FlexRow {
@@ -51,6 +51,10 @@ impl Element for FlexRow {
         let mut v = 0;
 
         for elem in &self.children {
+            if elem.get::<NoRender>().is_some() {
+                continue;
+            }
+
             scope.clear();
             if let Some(style) = elem.get() {
                 scope.set_style(style);
@@ -81,7 +85,7 @@ impl Element for FlexRow {
 
     fn draw_child(&mut self, element: &Arc<Widget>) {
         self.children.push(element.clone());
-        element.inject(|w| w.component(NoRender));
+        element.inject(|w| w.component(NoRenderRoot));
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -107,6 +111,10 @@ impl Element for FlexCol {
         let mut v = 0;
 
         for elem in &self.children {
+            if elem.get::<NoRender>().is_some() {
+                continue;
+            }
+
             scope.clear();
             if let Some(style) = elem.get() {
                 scope.set_style(style);
@@ -137,7 +145,7 @@ impl Element for FlexCol {
 
     fn draw_child(&mut self, element: &Arc<Widget>) {
         self.children.push(element.clone());
-        element.inject(|w| w.component(NoRender));
+        element.inject(|w| w.component(NoRenderRoot));
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

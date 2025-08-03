@@ -4,7 +4,7 @@ use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
     widget::{Element, Widget},
-    NoRender,
+    NoRender, NoRenderRoot,
 };
 
 pub struct Paginator {
@@ -31,6 +31,10 @@ impl Element for Paginator {
 
     fn after_render(&mut self, scope: &mut crate::render_scope::RenderScope) {
         if let Some(elem) = self.children.get(self.index) {
+            if elem.get::<NoRender>().is_some() {
+                return;
+            }
+
             let mut transform = scope.get_transform().clone();
             let (w, h) = scope.get_parent_size();
             scope.set_parent_size(transform.width, transform.height);
@@ -85,7 +89,7 @@ impl Element for Paginator {
 
     fn draw_child(&mut self, element: &Arc<Widget>) {
         self.children.push(element.clone());
-        element.inject(|w| w.component(NoRender));
+        element.inject(|w| w.component(NoRenderRoot));
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

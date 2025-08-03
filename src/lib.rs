@@ -81,6 +81,7 @@ pub struct Screen {
 
 event!(RenderWrapperEvent(*mut RenderScope));
 component!(NoRender);
+component!(NoRenderRoot);
 
 impl RenderWrapperEvent {
     /// Returns a mutable reference to the underlying `RenderScope`.
@@ -180,7 +181,7 @@ impl Screen {
 
         utils::clear()?;
         for elem in self.widgets.lock().unwrap().iter() {
-            if let Some(NoRender) = elem.get() {
+            if elem.get::<NoRender>().is_some() || elem.get::<NoRenderRoot>().is_some() {
                 for ext in self.extensions.lock().unwrap().iter() {
                     ext.lock().unwrap().render_widget(&mut scope, elem);
                 }

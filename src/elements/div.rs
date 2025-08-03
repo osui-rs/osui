@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     widget::{Element, Widget},
-    NoRender,
+    NoRender, NoRenderRoot,
 };
 
 pub struct Div {
@@ -31,7 +31,12 @@ impl Element for Div {
         scope.set_parent_size(transform.width, transform.height);
 
         for elem in &self.children {
+            if elem.get::<NoRender>().is_some() {
+                continue;
+            }
+
             scope.clear();
+
             if let Some(style) = elem.get() {
                 scope.set_style(style);
             }
@@ -57,7 +62,7 @@ impl Element for Div {
 
     fn draw_child(&mut self, element: &Arc<Widget>) {
         self.children.push(element.clone());
-        element.inject(|w| w.component(NoRender));
+        element.inject(|w| w.component(NoRenderRoot));
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
