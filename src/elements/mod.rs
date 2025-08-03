@@ -1,16 +1,20 @@
 pub mod div;
 pub mod flex;
 pub mod heading;
+pub mod input;
+pub mod paginator;
 
 pub use div::*;
 pub use flex::*;
 pub use heading::*;
+pub use input::*;
+pub use paginator::*;
 
 use crate::Element;
 
 impl Element for String {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
-        scope.draw_text(self);
+        scope.draw_text(0, 0, self);
     }
 
     fn as_any(&self) -> &dyn std::any::Any {
@@ -24,7 +28,7 @@ impl Element for String {
 
 impl Element for (String, u32) {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
-        scope.draw_text_colored(&self.0, self.1);
+        scope.draw_text_colored(0, 0, &self.0, self.1);
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

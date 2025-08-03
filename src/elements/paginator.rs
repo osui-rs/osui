@@ -1,37 +1,41 @@
 use std::sync::Arc;
 
+use crossterm::event::{KeyCode, KeyEvent};
+
 use crate::{
     widget::{Element, Widget},
     NoRender,
 };
 
-pub struct Div {
+pub struct Paginator {
     children: Vec<Arc<Widget>>,
     size: (u16, u16),
+    index: usize,
 }
 
-impl Div {
+impl Paginator {
     pub fn new() -> Self {
-        Div {
+        Self {
             children: Vec::new(),
             size: (0, 0),
+            index: 0,
         }
     }
 }
 
-impl Element for Div {
+impl Element for Paginator {
     fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
         scope.use_area(width, height);
     }
 
     fn after_render(&mut self, scope: &mut crate::render_scope::RenderScope) {
-        let mut transform = scope.get_transform().clone();
-        let (w, h) = scope.get_parent_size();
-        scope.set_parent_size(transform.width, transform.height);
-
-        for elem in &self.children {
+        if let Some(elem) = self.children.get(self.index) {
+            let mut transform = scope.get_transform().clone();
+            let (w, h) = scope.get_parent_size();
+            scope.set_parent_size(transform.width, transform.height);
             scope.clear();
+
             if let Some(style) = elem.get() {
                 scope.set_style(style);
             }
@@ -50,9 +54,33 @@ impl Element for Div {
 
             scope.draw();
             elem.get_elem().after_render(scope);
+
+            scope.set_parent_size(w, h);
+            self.size = (transform.width, transform.height);
         }
-        scope.set_parent_size(w, h);
-        self.size = (transform.width, transform.height);
+    }
+
+    fn event(&mut self, event: &dyn crate::prelude::Event) {
+        if let Some(crossterm::event::Event::Key(KeyEvent { code, .. })) = event.get() {
+            let cl = self.children.len();
+            match code {
+                KeyCode::Tab => {
+                    if self.index + 1 < cl {
+                        self.index += 1;
+                    } else {
+                        self.index = 0;
+                    }
+                }
+                KeyCode::BackTab => {
+                    if self.index > 0 {
+                        self.index -= 1;
+                    } else if cl > 0 {
+                        self.index = cl - 1;
+                    }
+                }
+                _ => {}
+            }
+        }
     }
 
     fn draw_child(&mut self, element: &Arc<Widget>) {

@@ -19,11 +19,13 @@ use crate::{
 #[derive(Clone)]
 enum RenderMethod {
     /// Plain text rendering at current transform.
-    Text(String),
+    Text(u16, u16, String),
+    /// Plain text rendering at current transform with the bg and fg swapped.
+    TextInverted(u16, u16, String),
     /// Text rendered with a specific 24-bit color.
-    TextColored(String, u32),
+    TextColored(u16, u16, String, u32),
     /// A filled rectangle of a given size and background color.
-    Rectangle(u16, u16, u32),
+    Rectangle(u16, u16, u16, u16, u32),
 }
 
 /// Stores renderable state and transformation data for a single UI widget.
@@ -65,26 +67,36 @@ impl RenderScope {
     }
 
     /// Adds a text draw instruction.
-    pub fn draw_text(&mut self, text: &str) {
-        self.render_stack.push(RenderMethod::Text(text.to_string()));
+    pub fn draw_text(&mut self, x: u16, y: u16, text: &str) {
+        self.render_stack
+            .push(RenderMethod::Text(x, y, text.to_string()));
+        let (w, h) = utils::str_size(text);
+        self.transform.width = self.transform.width.max(w);
+        self.transform.height = self.transform.height.max(h);
+    }
+
+    /// Adds a text draw instruction.
+    pub fn draw_text_inverted(&mut self, x: u16, y: u16, text: &str) {
+        self.render_stack
+            .push(RenderMethod::TextInverted(x, y, text.to_string()));
         let (w, h) = utils::str_size(text);
         self.transform.width = self.transform.width.max(w);
         self.transform.height = self.transform.height.max(h);
     }
 
     /// Adds a colored text draw instruction.
-    pub fn draw_text_colored(&mut self, text: &str, color: u32) {
+    pub fn draw_text_colored(&mut self, x: u16, y: u16, text: &str, color: u32) {
         self.render_stack
-            .push(RenderMethod::TextColored(text.to_string(), color));
+            .push(RenderMethod::TextColored(x, y, text.to_string(), color));
         let (w, h) = utils::str_size(text);
         self.transform.width = self.transform.width.max(w);
         self.transform.height = self.transform.height.max(h);
     }
 
     /// Adds a background rectangle draw instruction.
-    pub fn draw_rect(&mut self, width: u16, height: u16, color: u32) {
+    pub fn draw_rect(&mut self, x: u16, y: u16, width: u16, height: u16, color: u32) {
         self.render_stack
-            .push(RenderMethod::Rectangle(width, height, color));
+            .push(RenderMethod::Rectangle(x, y, width, height, color));
         self.transform.width = self.transform.width.max(width);
         self.transform.height = self.transform.height.max(height);
     }
@@ -152,11 +164,11 @@ impl RenderScope {
 
         for m in &self.render_stack {
             match m {
-                RenderMethod::Text(t) => {
+                RenderMethod::Text(x, y, t) => {
                     if let Some(c) = self.style.foreground {
                         utils::print_liner(
-                            self.transform.x + self.transform.px,
-                            self.transform.y + self.transform.py,
+                            self.transform.x + self.transform.px + x,
+                            self.transform.y + self.transform.py + y,
                             &utils::hex_ansi(c),
                             t,
                         );
@@ -168,16 +180,32 @@ impl RenderScope {
                         );
                     }
                 }
-                RenderMethod::TextColored(t, c) => utils::print_liner(
-                    self.transform.x + self.transform.px,
-                    self.transform.y + self.transform.py,
+                RenderMethod::TextInverted(x, y, t) => {
+                    if let Some(c) = self.style.foreground {
+                        utils::print_liner(
+                            self.transform.x + self.transform.px + x,
+                            self.transform.y + self.transform.py + y,
+                            &utils::hex_ansi_bg(c),
+                            t,
+                        );
+                    } else {
+                        utils::print(
+                            self.transform.x + self.transform.px,
+                            self.transform.y + self.transform.py,
+                            t,
+                        );
+                    }
+                }
+                RenderMethod::TextColored(x, y, t, c) => utils::print_liner(
+                    self.transform.x + self.transform.px + x,
+                    self.transform.y + self.transform.py + y,
                     &utils::hex_ansi(*c),
                     t,
                 ),
-                RenderMethod::Rectangle(width, height, color) => {
+                RenderMethod::Rectangle(x, y, width, height, color) => {
                     utils::print_liner(
-                        self.transform.x + self.transform.px,
-                        self.transform.y + self.transform.py,
+                        self.transform.x + self.transform.px + x,
+                        self.transform.y + self.transform.py + y,
                         &hex_ansi_bg(*color),
                         &std::iter::repeat(" ".repeat(*width as usize))
                             .take(*height as usize)

@@ -12,7 +12,11 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
-use crate::{render_scope::RenderScope, state::DependencyHandler};
+use crate::{
+    prelude::{Event, Handler},
+    render_scope::RenderScope,
+    state::DependencyHandler,
+};
 
 /// A trait object for any renderable UI element.
 pub type BoxedElement = Box<dyn Element + Send + Sync>;
@@ -35,7 +39,10 @@ pub trait Element: Send + Sync {
 
     /// Called to draw child widgets, if any.
     #[allow(unused)]
-    fn draw_child(&self, element: &Arc<Widget>) {}
+    fn draw_child(&mut self, element: &Arc<Widget>) {}
+
+    #[allow(unused)]
+    fn event(&mut self, event: &dyn Event) {}
 
     /// Returns a type-erased reference to this object.
     fn as_any(&self) -> &dyn Any;
@@ -222,6 +229,21 @@ impl Widget {
             Widget::Static(_) => {}
         }
         self
+    }
+
+    pub fn event<E: Event + Clone + 'static>(self: &Arc<Self>, e: &E) {
+        if let Some(wrapper) = self.get::<Handler<E>>() {
+            wrapper.call(self, e);
+        }
+
+        match &**self {
+            Widget::Dynamic(w) => {
+                w.get_elem().event(e);
+            }
+            Widget::Static(w) => {
+                w.get_elem().event(e);
+            }
+        }
     }
 }
 
