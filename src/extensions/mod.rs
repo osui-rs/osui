@@ -22,13 +22,9 @@ use crate::{
 
 pub trait Extension {
     fn init(&mut self, _ctx: &ExtensionContext) {}
+    fn event(&mut self, _ctx: &ExtensionContext, _event: &dyn Event) {}
     fn on_close(&mut self) {}
-    fn render_widget(
-        &mut self,
-        _scope: &mut RenderScope,
-        _widget: &Arc<Widget>,
-    ) {
-    }
+    fn render_widget(&mut self, _scope: &mut RenderScope, _widget: &Arc<Widget>) {}
 }
 
 pub trait Event: Send + Sync {
@@ -83,6 +79,10 @@ impl ExtensionContext {
     pub fn event<E: Event + Clone + 'static>(&self, e: &E) {
         for widget in self.screen.widgets.lock().unwrap().iter() {
             widget.event(e);
+        }
+
+        for ext in self.screen.extensions.lock().unwrap().iter() {
+            ext.lock().unwrap().event(self, e);
         }
     }
 
