@@ -183,6 +183,10 @@ impl Screen {
         let (w, h) = crossterm::terminal::size().unwrap();
         scope.set_parent_size(w, h);
 
+        for ext in self.extensions.lock().unwrap().iter() {
+            ext.lock().unwrap().render(ctx, &mut scope);
+        }
+
         utils::clear()?;
         for elem in self.widgets.lock().unwrap().iter() {
             if elem.get::<NoRender>().is_some() || elem.get::<NoRenderRoot>().is_some() {

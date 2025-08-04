@@ -1,8 +1,10 @@
+pub mod focus;
 pub mod id;
 pub mod input_handling;
 pub mod tick;
 pub mod velocity;
 
+pub use focus::*;
 pub use id::*;
 pub use input_handling::*;
 pub use tick::*;
@@ -24,6 +26,7 @@ pub trait Extension {
     fn init(&mut self, _ctx: &Context) {}
     fn event(&mut self, _ctx: &Context, _event: &dyn Event) {}
     fn on_close(&mut self) {}
+    fn render(&mut self, _ctx: &Context, _scope: &mut RenderScope) {}
     fn render_widget(&mut self, _ctx: &Context, _scope: &mut RenderScope, _widget: &Arc<Widget>) {}
     fn after_render_widget(
         &mut self,

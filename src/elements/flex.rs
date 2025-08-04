@@ -53,6 +53,7 @@ impl Element for FlexRow {
         ctx: &crate::extensions::Context,
     ) {
         let mut transform = scope.get_transform().clone();
+        let transform_before = transform.clone();
         let (w, h) = scope.get_parent_size();
         scope.set_parent_size(transform.width, transform.height);
 
@@ -91,6 +92,7 @@ impl Element for FlexRow {
         }
         scope.set_parent_size(w, h);
         self.size = (transform.width, transform.height);
+        scope.set_transform_raw(transform_before);
     }
 
     fn draw_child(&mut self, element: &Arc<Widget>) {
@@ -123,6 +125,7 @@ impl Element for FlexCol {
         ctx: &crate::extensions::Context,
     ) {
         let mut transform = scope.get_transform().clone();
+        let transform_before = transform.clone();
         let (w, h) = scope.get_parent_size();
         scope.set_parent_size(transform.width, transform.height);
 
@@ -160,6 +163,7 @@ impl Element for FlexCol {
             ctx.after_render(elem, scope);
         }
         scope.set_parent_size(w, h);
+        scope.set_transform_raw(transform_before);
         self.size = (transform.width, transform.height);
     }
 
