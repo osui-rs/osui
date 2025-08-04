@@ -23,6 +23,7 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
                     }
                 }
             }});
+        @AlwaysFocused;
         Paginator {
             FlexRow {
                 Heading, smooth: false, { "OSUI" }

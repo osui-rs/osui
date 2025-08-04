@@ -1,8 +1,19 @@
 use std::sync::{Arc, Mutex};
 
+use crate::component;
+
 use super::Extension;
 
-use crossterm::event::{Event as CrosstermEvent, KeyCode};
+use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
+
+component!(AlwaysFocused);
+
+enum Direction {
+    Left,
+    Right,
+    Up,
+    Down,
+}
 
 pub struct RelativeFocusExtension {
     cursor: usize,
@@ -13,94 +24,102 @@ impl Extension for RelativeFocusExtension {
     fn event(&mut self, ctx: &super::Context, event: &dyn super::Event) {
         if let Some(e) = event.get::<CrosstermEvent>() {
             match e {
-                CrosstermEvent::Key(k) => match k.code {
-                    KeyCode::Right => {
-                        let rendered = self.rendered.lock().unwrap();
-                        let (_, current_x, current_y) = rendered
-                            .iter()
-                            .find(|r| r.0 == self.cursor)
-                            .unwrap_or(&(0, 0, 0));
+                CrosstermEvent::Key(k) => {
+                    if k.modifiers.contains(KeyModifiers::SHIFT) {
+                        match k.code {
+                            KeyCode::Right => {
+                                let rendered = self.rendered.lock().unwrap();
+                                let (_, current_x, current_y) = rendered
+                                    .iter()
+                                    .find(|r| r.0 == self.cursor)
+                                    .unwrap_or(&(0, 0, 0));
 
-                        if let Some(index) = find_closest_in_direction(
-                            Direction::Right,
-                            *current_x,
-                            *current_y,
-                            &rendered,
-                            self.cursor,
-                        ) {
-                            self.cursor = index;
-                            for (i, w) in ctx.get_widgets().iter().enumerate() {
-                                w.set_focused(i == self.cursor);
+                                if let Some(index) = find_closest_in_direction(
+                                    Direction::Right,
+                                    *current_x,
+                                    *current_y,
+                                    &rendered,
+                                    self.cursor,
+                                ) {
+                                    self.cursor = index;
+                                    for (i, w) in ctx.get_widgets().iter().enumerate() {
+                                        w.set_focused(i == self.cursor);
+                                    }
+                                }
                             }
+
+                            KeyCode::Left => {
+                                let rendered = self.rendered.lock().unwrap();
+                                let (_, current_x, current_y) = rendered
+                                    .iter()
+                                    .find(|r| r.0 == self.cursor)
+                                    .unwrap_or(&(0, 0, 0));
+
+                                if let Some(index) = find_closest_in_direction(
+                                    Direction::Left,
+                                    *current_x,
+                                    *current_y,
+                                    &rendered,
+                                    self.cursor,
+                                ) {
+                                    self.cursor = index;
+                                    for (i, w) in ctx.get_widgets().iter().enumerate() {
+                                        w.set_focused(i == self.cursor);
+                                    }
+                                }
+                            }
+
+                            KeyCode::Up => {
+                                let rendered = self.rendered.lock().unwrap();
+                                let (_, current_x, current_y) = rendered
+                                    .iter()
+                                    .find(|r| r.0 == self.cursor)
+                                    .unwrap_or(&(0, 0, 0));
+
+                                if let Some(index) = find_closest_in_direction(
+                                    Direction::Up,
+                                    *current_x,
+                                    *current_y,
+                                    &rendered,
+                                    self.cursor,
+                                ) {
+                                    self.cursor = index;
+                                    for (i, w) in ctx.get_widgets().iter().enumerate() {
+                                        w.set_focused(i == self.cursor);
+                                    }
+                                }
+                            }
+
+                            KeyCode::Down => {
+                                let rendered = self.rendered.lock().unwrap();
+                                let (_, current_x, current_y) = *rendered
+                                    .iter()
+                                    .find(|r| r.0 == self.cursor)
+                                    .unwrap_or(&(0, 0, 0));
+
+                                if let Some(index) = find_closest_in_direction(
+                                    Direction::Down,
+                                    current_x,
+                                    current_y,
+                                    &rendered,
+                                    self.cursor,
+                                ) {
+                                    self.cursor = index;
+
+                                    for (i, w) in ctx.get_widgets().iter().enumerate() {
+                                        if let Some(AlwaysFocused) = w.get() {
+                                            w.set_focused(true);
+                                        } else {
+                                            w.set_focused(i == self.cursor);
+                                        }
+                                    }
+                                }
+                            }
+
+                            _ => {}
                         }
                     }
-
-                    KeyCode::Left => {
-                        let rendered = self.rendered.lock().unwrap();
-                        let (_, current_x, current_y) = rendered
-                            .iter()
-                            .find(|r| r.0 == self.cursor)
-                            .unwrap_or(&(0, 0, 0));
-
-                        if let Some(index) = find_closest_in_direction(
-                            Direction::Left,
-                            *current_x,
-                            *current_y,
-                            &rendered,
-                            self.cursor,
-                        ) {
-                            self.cursor = index;
-                            for (i, w) in ctx.get_widgets().iter().enumerate() {
-                                w.set_focused(i == self.cursor);
-                            }
-                        }
-                    }
-
-                    KeyCode::Up => {
-                        let rendered = self.rendered.lock().unwrap();
-                        let (_, current_x, current_y) = rendered
-                            .iter()
-                            .find(|r| r.0 == self.cursor)
-                            .unwrap_or(&(0, 0, 0));
-
-                        if let Some(index) = find_closest_in_direction(
-                            Direction::Up,
-                            *current_x,
-                            *current_y,
-                            &rendered,
-                            self.cursor,
-                        ) {
-                            self.cursor = index;
-                            for (i, w) in ctx.get_widgets().iter().enumerate() {
-                                w.set_focused(i == self.cursor);
-                            }
-                        }
-                    }
-
-                    KeyCode::Down => {
-                        let rendered = self.rendered.lock().unwrap();
-                        let (_, current_x, current_y) = *rendered
-                            .iter()
-                            .find(|r| r.0 == self.cursor)
-                            .unwrap_or(&(0, 0, 0));
-
-                        if let Some(index) = find_closest_in_direction(
-                            Direction::Down,
-                            current_x,
-                            current_y,
-                            &rendered,
-                            self.cursor,
-                        ) {
-                            self.cursor = index;
-
-                            for (i, w) in ctx.get_widgets().iter().enumerate() {
-                                w.set_focused(i == self.cursor);
-                            }
-                        }
-                    }
-
-                    _ => {}
-                },
+                }
                 _ => {}
             }
         }
@@ -141,13 +160,6 @@ impl RelativeFocusExtension {
             rendered: Arc::new(Mutex::new(Vec::new())),
         }
     }
-}
-
-enum Direction {
-    Left,
-    Right,
-    Up,
-    Down,
 }
 
 fn find_closest_in_direction(
