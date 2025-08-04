@@ -33,6 +33,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     extensions::{Extension, Handler},
+    prelude::Context,
     render_scope::RenderScope,
     widget::{BoxedElement, DynWidget, Element, StaticWidget, Widget, WidgetLoad},
 };
@@ -108,21 +109,14 @@ impl Screen {
 
     /// Draws a static element and returns its widget handle.
     pub fn draw<E: Element + 'static + Send + Sync>(self: &Arc<Self>, element: E) -> Arc<Widget> {
-        let w = Arc::new(Widget::Static(StaticWidget::new(Box::new(element))));
-        self.widgets.lock().unwrap().push(w.clone());
-        w
+        self.draw_box(Box::new(element))
     }
 
     /// Draws a boxed element and returns its widget handle.
     pub fn draw_box(self: &Arc<Self>, element: BoxedElement) -> Arc<Widget> {
         let w = Arc::new(Widget::Static(StaticWidget::new(element)));
-        self.widgets.lock().unwrap().push(w.clone());
+        self.draw_widget(w.clone());
         w
-    }
-
-    /// Adds an existing widget to the screen.
-    pub fn draw_widget(self: &Arc<Self>, widget: Arc<Widget>) {
-        self.widgets.lock().unwrap().push(widget);
     }
 
     /// Draws a dynamic element using a closure and returns its widget handle.
@@ -130,9 +124,7 @@ impl Screen {
         self: &Arc<Self>,
         element: F,
     ) -> Arc<Widget> {
-        let w = Arc::new(Widget::Dynamic(DynWidget::new(element)));
-        self.widgets.lock().unwrap().push(w.clone());
-        w
+        self.draw_box_dyn(Box::new(element))
     }
 
     /// Draws a dynamic element from a boxed closure and returns its widget handle.
@@ -141,8 +133,18 @@ impl Screen {
         element: Box<dyn FnMut() -> WidgetLoad + Send + Sync>,
     ) -> Arc<Widget> {
         let w = Arc::new(Widget::Dynamic(DynWidget::new(element)));
-        self.widgets.lock().unwrap().push(w.clone());
+        self.draw_widget(w.clone());
         w
+    }
+
+    /// Adds an existing widget to the screen.
+    pub fn draw_widget(self: &Arc<Self>, widget: Arc<Widget>) {
+        if self.widgets.lock().unwrap().len() == 0 {
+            widget.set_focused(true); // first widget is focused
+            self.widgets.lock().unwrap().push(widget);
+        } else {
+            self.widgets.lock().unwrap().push(widget);
+        }
     }
 
     /// Registers an extension with the screen.
@@ -157,14 +159,16 @@ impl Screen {
     ///
     /// This method blocks and repeatedly renders the screen at a fixed interval.
     pub fn run(self: &Arc<Self>) -> std::io::Result<()> {
+        let ctx = Context::new(self.clone());
+
         for ext in self.extensions.lock().unwrap().iter() {
-            ext.lock().unwrap().init(self.clone());
+            ext.lock().unwrap().init(&ctx);
         }
 
         utils::hide_cursor()?;
 
         while *self.running.lock().unwrap() {
-            self.render()?;
+            self.render(&ctx)?;
             std::thread::sleep(std::time::Duration::from_millis(28));
         }
 
@@ -174,17 +178,18 @@ impl Screen {
     /// Renders all widgets and applies extensions.
     ///
     /// This method is called internally by `run`.
-    pub fn render(self: &Arc<Self>) -> std::io::Result<()> {
+    pub fn render(self: &Arc<Self>, ctx: &Context) -> std::io::Result<()> {
         let mut scope = RenderScope::new();
         let (w, h) = crossterm::terminal::size().unwrap();
         scope.set_parent_size(w, h);
 
+        for ext in self.extensions.lock().unwrap().iter() {
+            ext.lock().unwrap().render(ctx, &mut scope);
+        }
+
         utils::clear()?;
         for elem in self.widgets.lock().unwrap().iter() {
             if elem.get::<NoRender>().is_some() || elem.get::<NoRenderRoot>().is_some() {
-                for ext in self.extensions.lock().unwrap().iter() {
-                    ext.lock().unwrap().render_widget(&mut scope, elem);
-                }
                 elem.auto_refresh();
                 continue;
             }
@@ -202,17 +207,17 @@ impl Screen {
                 }
 
                 for ext in self.extensions.lock().unwrap().iter() {
-                    ext.lock().unwrap().render_widget(&mut scope, elem);
+                    ext.lock().unwrap().render_widget(ctx, &mut scope, elem);
                 }
 
-                elem.get_elem().render(&mut scope);
+                elem.get_elem().render(&mut scope, ctx);
 
                 if let Some(t) = elem.get() {
                     scope.set_transform(&t);
                 }
                 scope.draw();
 
-                elem.get_elem().after_render(&mut scope);
+                elem.get_elem().after_render(&mut scope, ctx);
             }
 
             elem.auto_refresh();
@@ -229,7 +234,7 @@ impl Screen {
         utils::clear().unwrap();
 
         for ext in self.extensions.lock().unwrap().iter() {
-            ext.lock().unwrap().on_close(self.clone());
+            ext.lock().unwrap().on_close();
         }
     }
 }

@@ -23,6 +23,7 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
                     }
                 }
             }});
+        @AlwaysFocused;
         Paginator {
             FlexRow {
                 Heading, smooth: false, { "OSUI" }
@@ -46,15 +47,16 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
                 // TODO: div with width full
             }
 
-            FlexCol, gap: 2, {
-                @transform!{ y: Center };
-                static Div { // static only affects the element, not children
-                    %count
-                    "This will increment every second: {count}"
-                }
+            FlexRow, gap: 1, {
+                %count
+                "This will increment every second: {count}"
 
                 @Transform::new().padding(1, 1).dimensions(40, 1);
                 @Style { foreground: Some(0xffffff), background: Background::RoundedOutline(0xff0000) };
+                Input { }
+
+                @Transform::new().padding(1, 1).dimensions(40, 1);
+                @Style { foreground: Some(0xffffff), background: Background::RoundedOutline(0xffff00) };
                 Input { }
             }
         }
