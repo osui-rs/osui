@@ -108,21 +108,14 @@ impl Screen {
 
     /// Draws a static element and returns its widget handle.
     pub fn draw<E: Element + 'static + Send + Sync>(self: &Arc<Self>, element: E) -> Arc<Widget> {
-        let w = Arc::new(Widget::Static(StaticWidget::new(Box::new(element))));
-        self.widgets.lock().unwrap().push(w.clone());
-        w
+        self.draw_box(Box::new(element))
     }
 
     /// Draws a boxed element and returns its widget handle.
     pub fn draw_box(self: &Arc<Self>, element: BoxedElement) -> Arc<Widget> {
         let w = Arc::new(Widget::Static(StaticWidget::new(element)));
-        self.widgets.lock().unwrap().push(w.clone());
+        self.draw_widget(w.clone());
         w
-    }
-
-    /// Adds an existing widget to the screen.
-    pub fn draw_widget(self: &Arc<Self>, widget: Arc<Widget>) {
-        self.widgets.lock().unwrap().push(widget);
     }
 
     /// Draws a dynamic element using a closure and returns its widget handle.
@@ -130,9 +123,7 @@ impl Screen {
         self: &Arc<Self>,
         element: F,
     ) -> Arc<Widget> {
-        let w = Arc::new(Widget::Dynamic(DynWidget::new(element)));
-        self.widgets.lock().unwrap().push(w.clone());
-        w
+        self.draw_box_dyn(Box::new(element))
     }
 
     /// Draws a dynamic element from a boxed closure and returns its widget handle.
@@ -141,8 +132,18 @@ impl Screen {
         element: Box<dyn FnMut() -> WidgetLoad + Send + Sync>,
     ) -> Arc<Widget> {
         let w = Arc::new(Widget::Dynamic(DynWidget::new(element)));
-        self.widgets.lock().unwrap().push(w.clone());
+        self.draw_widget(w.clone());
         w
+    }
+
+    /// Adds an existing widget to the screen.
+    pub fn draw_widget(self: &Arc<Self>, widget: Arc<Widget>) {
+        if self.widgets.lock().unwrap().len() == 0 {
+            widget.set_focused(true); // first widget is focused
+            self.widgets.lock().unwrap().push(widget);
+        } else {
+            self.widgets.lock().unwrap().push(widget);
+        }
     }
 
     /// Registers an extension with the screen.
