@@ -33,6 +33,7 @@ use std::sync::{Arc, Mutex};
 
 use crate::{
     extensions::{Extension, Handler},
+    prelude::ExtensionContext,
     render_scope::RenderScope,
     widget::{BoxedElement, DynWidget, Element, StaticWidget, Widget, WidgetLoad},
 };
@@ -158,8 +159,10 @@ impl Screen {
     ///
     /// This method blocks and repeatedly renders the screen at a fixed interval.
     pub fn run(self: &Arc<Self>) -> std::io::Result<()> {
+        let ctx = ExtensionContext::new(self.clone());
+
         for ext in self.extensions.lock().unwrap().iter() {
-            ext.lock().unwrap().init(self.clone());
+            ext.lock().unwrap().init(&ctx);
         }
 
         utils::hide_cursor()?;
@@ -230,7 +233,7 @@ impl Screen {
         utils::clear().unwrap();
 
         for ext in self.extensions.lock().unwrap().iter() {
-            ext.lock().unwrap().on_close(self.clone());
+            ext.lock().unwrap().on_close();
         }
     }
 }

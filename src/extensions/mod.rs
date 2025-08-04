@@ -11,7 +11,7 @@ pub use velocity::*;
 use std::{
     any::{type_name, Any},
     fmt::Debug,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex, MutexGuard},
 };
 
 use crate::{
@@ -21,13 +21,23 @@ use crate::{
 };
 
 pub trait Extension {
-    fn init(&mut self, _screen: Arc<Screen>) {}
-    fn on_close(&mut self, _screen: Arc<Screen>) {}
-    fn render_widget(&mut self, _scope: &mut RenderScope, _widget: &Arc<Widget>) {}
+    fn init(&mut self, _ctx: &ExtensionContext) {}
+    fn on_close(&mut self) {}
+    fn render_widget(
+        &mut self,
+        _scope: &mut RenderScope,
+        _widget: &Arc<Widget>,
+    ) {
+    }
 }
 
 pub trait Event: Send + Sync {
     fn as_any(&self) -> &dyn Any;
+}
+
+#[derive(Clone)]
+pub struct ExtensionContext {
+    screen: Arc<Screen>,
 }
 
 #[derive(Clone)]
@@ -62,5 +72,40 @@ impl<E: Event> Debug for Handler<E> {
 impl<'a> dyn Event + 'a {
     pub fn get<T: Event + 'static>(&self) -> Option<&T> {
         self.as_any().downcast_ref()
+    }
+}
+
+impl ExtensionContext {
+    pub fn new(screen: Arc<Screen>) -> Self {
+        Self { screen }
+    }
+
+    pub fn event<E: Event + Clone + 'static>(&self, e: &E) {
+        for widget in self.screen.widgets.lock().unwrap().iter() {
+            widget.event(e);
+        }
+    }
+
+    pub fn get_widgets(&self) -> MutexGuard<Vec<Arc<Widget>>> {
+        self.screen.widgets.lock().unwrap()
+    }
+
+    pub fn iter_components<C: Component + 'static + Clone, F: FnMut(&Arc<Widget>, Option<C>)>(
+        &self,
+        mut iterator: F,
+    ) {
+        for widget in self.screen.widgets.lock().unwrap().iter() {
+            iterator(widget, widget.get());
+        }
+    }
+
+    pub fn get_components<C: Component + 'static + Clone>(&self) -> Vec<C> {
+        let mut components = Vec::new();
+        for widget in self.screen.widgets.lock().unwrap().iter() {
+            if let Some(c) = widget.get() {
+                components.push(c);
+            }
+        }
+        components
     }
 }

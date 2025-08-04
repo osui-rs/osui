@@ -1,20 +1,19 @@
-use crate::extensions::Extension;
+use crate::extensions::{Extension, ExtensionContext};
 
 pub struct InputExtension;
 
 impl Extension for InputExtension {
-    fn init(&mut self, screen: std::sync::Arc<crate::Screen>) {
+    fn init(&mut self, ctx: &ExtensionContext) {
+        let ctx = ctx.clone();
         crossterm::terminal::enable_raw_mode().unwrap();
         std::thread::spawn(move || loop {
             if let Ok(e) = crossterm::event::read() {
-                for widget in screen.widgets.lock().unwrap().iter() {
-                    widget.event(&e);
-                }
+                ctx.event(&e);
             }
         });
     }
 
-    fn on_close(&mut self, _screen: std::sync::Arc<crate::Screen>) {
+    fn on_close(&mut self) {
         crossterm::terminal::disable_raw_mode().unwrap();
     }
 }
