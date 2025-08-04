@@ -8,12 +8,21 @@
 //!
 //! Used internally by OSUI's layout and rendering system.
 
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use crate::{
+    prelude::{Context, Handler},
     style::{RawTransform, Style, Transform},
     utils::{self, hex_ansi_bg},
+    widget::Widget,
+    NoRender, RenderWrapperEvent,
 };
+
+pub trait ElementRenderer {
+    /// Called right after the `after_render` function is called
+    #[allow(unused)]
+    fn on_after_render(&mut self, scope: &mut RenderScope, widget: &Arc<Widget>) {}
+}
 
 /// Represents a single render instruction.
 #[derive(Clone)]
@@ -290,6 +299,47 @@ impl RenderScope {
     /// Gets a mutable reference to the style.
     pub fn get_style(&mut self) -> &mut Style {
         &mut self.style
+    }
+
+    pub fn render_widget(
+        &mut self,
+        renderer: &mut dyn ElementRenderer,
+        ctx: &Context,
+        widget: &std::sync::Arc<crate::widget::Widget>,
+    ) -> bool {
+        if widget.get::<NoRender>().is_some() {
+            widget.auto_refresh();
+            return false;
+        }
+
+        if let Some(wrapper) = widget.get::<Handler<RenderWrapperEvent>>() {
+            wrapper.call(widget, &RenderWrapperEvent(self));
+        } else {
+            self.clear();
+
+            if let Some(style) = widget.get() {
+                self.set_style(style);
+            }
+            if let Some(t) = widget.get() {
+                self.set_transform(&t);
+            }
+
+            widget.get_elem().render(self, ctx);
+            ctx.render(widget, self);
+
+            if let Some(t) = widget.get() {
+                self.set_transform(&t);
+            }
+            self.draw();
+
+            widget.get_elem().after_render(self, ctx);
+            ctx.after_render(widget, self);
+            renderer.on_after_render(self, widget);
+        }
+
+        widget.auto_refresh();
+
+        true
     }
 }
 
