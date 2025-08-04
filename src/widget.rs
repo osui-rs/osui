@@ -69,6 +69,7 @@ pub struct WidgetLoad(BoxedElement, HashMap<TypeId, BoxedComponent>);
 pub struct StaticWidget {
     element: Mutex<BoxedElement>,
     components: Mutex<HashMap<TypeId, BoxedComponent>>,
+    focused: Mutex<bool>,
 }
 
 /// A widget with dynamic content and dependency tracking.
@@ -81,6 +82,7 @@ pub struct DynWidget {
     load: Mutex<Box<dyn FnMut() -> WidgetLoad + Send + Sync>>,
     dependencies: Mutex<Vec<Box<dyn DependencyHandler>>>,
     injection: Mutex<Option<Box<dyn FnMut(WidgetLoad) -> WidgetLoad + Send + Sync>>>,
+    focused: Mutex<bool>,
 }
 
 /// A reference-counted wrapper around either a static or dynamic widget.
@@ -129,6 +131,20 @@ impl Widget {
 }
 
 impl Widget {
+    pub fn is_focused(&self) -> bool {
+        match self {
+            Self::Dynamic(w) => *w.focused.lock().unwrap(),
+            Self::Static(w) => *w.focused.lock().unwrap(),
+        }
+    }
+
+    pub fn set_focused(&self, f: bool) {
+        match self {
+            Self::Dynamic(w) => *w.focused.lock().unwrap() = f,
+            Self::Static(w) => *w.focused.lock().unwrap() = f,
+        }
+    }
+
     pub fn get_elem(&self) -> MutexGuard<BoxedElement> {
         match self {
             Widget::Static(w) => w.get_elem(),
@@ -232,12 +248,14 @@ impl Widget {
             wrapper.call(self, e);
         }
 
-        match &**self {
-            Widget::Dynamic(w) => {
-                w.get_elem().event(e);
-            }
-            Widget::Static(w) => {
-                w.get_elem().event(e);
+        if self.is_focused() {
+            match &**self {
+                Widget::Dynamic(w) => {
+                    w.get_elem().event(e);
+                }
+                Widget::Static(w) => {
+                    w.get_elem().event(e);
+                }
             }
         }
     }
@@ -255,6 +273,7 @@ impl StaticWidget {
         Self {
             element: Mutex::new(e),
             components: Mutex::new(HashMap::new()),
+            focused: Mutex::new(false),
         }
     }
 
@@ -299,6 +318,7 @@ impl DynWidget {
             load: Mutex::new(Box::new(e)),
             dependencies: Mutex::new(Vec::new()),
             injection: Mutex::new(None),
+            focused: Mutex::new(false),
         }
     }
 
