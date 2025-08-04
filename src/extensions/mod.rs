@@ -21,10 +21,17 @@ use crate::{
 };
 
 pub trait Extension {
-    fn init(&mut self, _ctx: &ExtensionContext) {}
-    fn event(&mut self, _ctx: &ExtensionContext, _event: &dyn Event) {}
+    fn init(&mut self, _ctx: &Context) {}
+    fn event(&mut self, _ctx: &Context, _event: &dyn Event) {}
     fn on_close(&mut self) {}
-    fn render_widget(&mut self, _scope: &mut RenderScope, _widget: &Arc<Widget>) {}
+    fn render_widget(&mut self, _ctx: &Context, _scope: &mut RenderScope, _widget: &Arc<Widget>) {}
+    fn after_render_widget(
+        &mut self,
+        _ctx: &Context,
+        _scope: &mut RenderScope,
+        _widget: &Arc<Widget>,
+    ) {
+    }
 }
 
 pub trait Event: Send + Sync {
@@ -32,7 +39,7 @@ pub trait Event: Send + Sync {
 }
 
 #[derive(Clone)]
-pub struct ExtensionContext {
+pub struct Context {
     screen: Arc<Screen>,
 }
 
@@ -71,7 +78,7 @@ impl<'a> dyn Event + 'a {
     }
 }
 
-impl ExtensionContext {
+impl Context {
     pub fn new(screen: Arc<Screen>) -> Self {
         Self { screen }
     }
@@ -107,5 +114,17 @@ impl ExtensionContext {
             }
         }
         components
+    }
+
+    pub fn render(&self, w: &Arc<Widget>, scope: &mut RenderScope) {
+        for ext in self.screen.extensions.lock().unwrap().iter() {
+            ext.lock().unwrap().render_widget(self, scope, w);
+        }
+    }
+
+    pub fn after_render(&self, w: &Arc<Widget>, scope: &mut RenderScope) {
+        for ext in self.screen.extensions.lock().unwrap().iter() {
+            ext.lock().unwrap().after_render_widget(self, scope, w);
+        }
     }
 }

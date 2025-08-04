@@ -20,12 +20,20 @@ impl Div {
 }
 
 impl Element for Div {
-    fn render(&mut self, scope: &mut crate::render_scope::RenderScope) {
+    fn render(
+        &mut self,
+        scope: &mut crate::render_scope::RenderScope,
+        _: &crate::extensions::Context,
+    ) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
         scope.use_area(width, height);
     }
 
-    fn after_render(&mut self, scope: &mut crate::render_scope::RenderScope) {
+    fn after_render(
+        &mut self,
+        scope: &mut crate::render_scope::RenderScope,
+        ctx: &crate::extensions::Context,
+    ) {
         let mut transform = scope.get_transform().clone();
         let (w, h) = scope.get_parent_size();
         scope.set_parent_size(transform.width, transform.height);
@@ -43,7 +51,8 @@ impl Element for Div {
             if let Some(t) = elem.get() {
                 scope.set_transform(&t);
             }
-            elem.get_elem().render(scope);
+            elem.get_elem().render(scope, ctx);
+            ctx.render(elem, scope);
             if let Some(t) = elem.get() {
                 scope.set_transform(&t);
             }
@@ -54,7 +63,8 @@ impl Element for Div {
             t.y += transform.y + transform.py;
 
             scope.draw();
-            elem.get_elem().after_render(scope);
+            elem.get_elem().after_render(scope, ctx);
+            ctx.after_render(elem, scope);
         }
         scope.set_parent_size(w, h);
         self.size = (transform.width, transform.height);

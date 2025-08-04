@@ -1,9 +1,9 @@
-use crate::extensions::{Extension, ExtensionContext};
+use crate::extensions::{Extension, Context};
 
 pub struct InputExtension;
 
 impl Extension for InputExtension {
-    fn init(&mut self, ctx: &ExtensionContext) {
+    fn init(&mut self, ctx: &Context) {
         let ctx = ctx.clone();
         crossterm::terminal::enable_raw_mode().unwrap();
         std::thread::spawn(move || loop {

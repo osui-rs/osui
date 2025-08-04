@@ -42,7 +42,7 @@ impl VelocityExtension {
 }
 
 impl Extension for VelocityExtension {
-    fn init(&mut self, ctx: &super::ExtensionContext) {
+    fn init(&mut self, ctx: &super::Context) {
         let ctx = ctx.clone();
         std::thread::spawn({
             move || {

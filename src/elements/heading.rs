@@ -24,7 +24,11 @@ impl Heading {
 }
 
 impl Element for Heading {
-    fn render(&mut self, scope: &mut crate::prelude::RenderScope) {
+    fn render(
+        &mut self,
+        scope: &mut crate::prelude::RenderScope,
+        _: &crate::extensions::Context,
+    ) {
         let mut s = String::new();
         for element in &self.children {
             if element.get::<NoRender>().is_some() {

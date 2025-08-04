@@ -31,11 +31,11 @@ pub type BoxedComponent = Box<dyn Component + Send + Sync>;
 pub trait Element: Send + Sync {
     /// Called to perform rendering for the element.
     #[allow(unused)]
-    fn render(&mut self, scope: &mut RenderScope) {}
+    fn render(&mut self, scope: &mut RenderScope, ctx: &crate::extensions::Context) {}
 
     /// Called after rendering, for follow-up logic or cleanup.
     #[allow(unused)]
-    fn after_render(&mut self, scope: &mut RenderScope) {}
+    fn after_render(&mut self, scope: &mut RenderScope, ctx: &crate::extensions::Context) {}
 
     /// Called to draw child widgets, if any.
     #[allow(unused)]

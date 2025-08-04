@@ -11,7 +11,11 @@ pub struct Input {
 }
 
 impl Element for Input {
-    fn render(&mut self, scope: &mut crate::prelude::RenderScope) {
+    fn render(
+        &mut self,
+        scope: &mut crate::prelude::RenderScope,
+        _: &crate::extensions::Context,
+    ) {
         let s = self.state.get();
         scope.draw_text(0, 0, &s);
         if let Some(c) = s.chars().nth(self.cursor) {

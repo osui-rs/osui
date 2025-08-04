@@ -1,14 +1,14 @@
 use std::fmt::Debug;
 
 use crate::event;
-use crate::extensions::{Extension, ExtensionContext};
+use crate::extensions::{Context, Extension};
 
 pub struct TickExtension(pub u16);
 
 event!(TickEvent(pub u32));
 
 impl Extension for TickExtension {
-    fn init(&mut self, ctx: &ExtensionContext) {
+    fn init(&mut self, ctx: &Context) {
         let ctx = ctx.clone();
         let rate_dur = 1000 / self.0 as u64;
         std::thread::spawn({
