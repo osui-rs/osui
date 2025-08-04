@@ -1,9 +1,13 @@
 use std::sync::Arc;
 
 use crate::{
+    prelude::ElementRenderer,
+    style::RawTransform,
     widget::{Element, Widget},
-    NoRender, NoRenderRoot,
+    NoRenderRoot,
 };
+
+pub struct DivRenderer<'a>(pub &'a mut RawTransform);
 
 pub struct Div {
     children: Vec<Arc<Widget>>,
@@ -35,39 +39,17 @@ impl Element for Div {
         ctx: &crate::extensions::Context,
     ) {
         let mut transform = scope.get_transform().clone();
+        let mut renderer = DivRenderer(&mut transform);
+
         let (w, h) = scope.get_parent_size();
-        scope.set_parent_size(transform.width, transform.height);
+        scope.set_parent_size(renderer.0.width, renderer.0.height);
 
-        for elem in &self.children {
-            if elem.get::<NoRender>().is_some() {
-                continue;
-            }
-
-            scope.clear();
-
-            if let Some(style) = elem.get() {
-                scope.set_style(style);
-            }
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
-            elem.get_elem().render(scope, ctx);
-            ctx.render(elem, scope);
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
-            let t = scope.get_transform_mut();
-            transform.width = transform.width.max(t.x + t.width + (t.px * 2));
-            transform.height = transform.height.max(t.y + t.height + (t.py * 2));
-            t.x += transform.x + transform.px;
-            t.y += transform.y + transform.py;
-
-            scope.draw();
-            elem.get_elem().after_render(scope, ctx);
-            ctx.after_render(elem, scope);
+        for widget in &self.children {
+            scope.render_widget(&mut renderer, ctx, widget);
         }
         scope.set_parent_size(w, h);
-        self.size = (transform.width, transform.height);
+
+        self.size = (renderer.0.width, renderer.0.height);
     }
 
     fn draw_child(&mut self, element: &Arc<Widget>) {
@@ -81,5 +63,15 @@ impl Element for Div {
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
+    }
+}
+
+impl ElementRenderer for DivRenderer<'_> {
+    fn before_draw(&mut self, scope: &mut crate::prelude::RenderScope, _widget: &Arc<Widget>) {
+        let t = scope.get_transform_mut();
+        self.0.width = self.0.width.max(t.width + (t.px * 2));
+        self.0.height = self.0.height.max(t.height + (t.py * 2));
+        t.x += self.0.x + self.0.px;
+        t.y += self.0.y + self.0.py;
     }
 }

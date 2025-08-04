@@ -21,7 +21,7 @@ use crate::{
 pub trait ElementRenderer {
     /// Called right after the `after_render` function is called
     #[allow(unused)]
-    fn on_after_render(&mut self, scope: &mut RenderScope, widget: &Arc<Widget>) {}
+    fn before_draw(&mut self, scope: &mut RenderScope, widget: &Arc<Widget>) {}
 }
 
 /// Represents a single render instruction.
@@ -330,11 +330,13 @@ impl RenderScope {
             if let Some(t) = widget.get() {
                 self.set_transform(&t);
             }
+
+            renderer.before_draw(self, widget);
+
             self.draw();
 
             widget.get_elem().after_render(self, ctx);
             ctx.after_render(widget, self);
-            renderer.on_after_render(self, widget);
         }
 
         widget.auto_refresh();
