@@ -46,7 +46,7 @@ impl Element for FlexRow {
     fn render(
         &mut self,
         scope: &mut crate::render_scope::RenderScope,
-        _: &crate::extensions::Context,
+        _: &crate::render_scope::RenderContext,
     ) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
         scope.use_area(width, height);
@@ -55,7 +55,7 @@ impl Element for FlexRow {
     fn after_render(
         &mut self,
         scope: &mut crate::render_scope::RenderScope,
-        ctx: &crate::extensions::Context,
+        ctx: &crate::render_scope::RenderContext,
     ) {
         let mut transform = scope.get_transform().clone();
         let transform_before = transform.clone();
@@ -66,7 +66,7 @@ impl Element for FlexRow {
         let mut renderer = RowRenderer(&mut transform, self.gap, &mut v);
 
         for widget in &self.children {
-            scope.render_widget(&mut renderer, ctx, widget);
+            scope.render_widget(&mut renderer, ctx.get_context(), widget);
         }
         scope.set_parent_size(w, h);
         scope.set_transform_raw(transform_before);
@@ -91,7 +91,7 @@ impl Element for FlexCol {
     fn render(
         &mut self,
         scope: &mut crate::render_scope::RenderScope,
-        _: &crate::extensions::Context,
+        _: &crate::render_scope::RenderContext,
     ) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
         scope.use_area(width, height);
@@ -100,7 +100,7 @@ impl Element for FlexCol {
     fn after_render(
         &mut self,
         scope: &mut crate::render_scope::RenderScope,
-        ctx: &crate::extensions::Context,
+        ctx: &crate::render_scope::RenderContext,
     ) {
         let mut transform = scope.get_transform().clone();
         let transform_before = transform.clone();
@@ -111,7 +111,7 @@ impl Element for FlexCol {
         let mut renderer = ColumnRenderer(&mut transform, self.gap, &mut v);
 
         for widget in &self.children {
-            scope.render_widget(&mut renderer, ctx, widget);
+            scope.render_widget(&mut renderer, ctx.get_context(), widget);
         }
         scope.set_parent_size(w, h);
         scope.set_transform_raw(transform_before);

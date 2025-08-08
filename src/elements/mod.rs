@@ -16,7 +16,7 @@ impl Element for String {
     fn render(
         &mut self,
         scope: &mut crate::render_scope::RenderScope,
-        _: &crate::extensions::Context,
+        _: &crate::render_scope::RenderContext,
     ) {
         scope.draw_text(0, 0, self);
     }

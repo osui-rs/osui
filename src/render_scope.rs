@@ -50,6 +50,30 @@ pub struct RenderScope {
     style: Style,
 }
 
+pub struct RenderContext(Context, bool);
+
+impl RenderContext {
+    pub fn new(c: &Context, focused: bool) -> Self {
+        Self(c.clone(), focused)
+    }
+
+    pub fn is_focused(&self) -> bool {
+        self.1
+    }
+
+    pub fn render(&self, w: &Arc<Widget>, scope: &mut RenderScope) {
+        self.0.render(w, scope);
+    }
+
+    pub fn after_render(&self, w: &Arc<Widget>, scope: &mut RenderScope) {
+        self.0.after_render(w, scope);
+    }
+
+    pub fn get_context(&self) -> &Context {
+        &self.0
+    }
+}
+
 impl RenderScope {
     /// Creates a new, empty `RenderScope`.
     pub fn new() -> RenderScope {
@@ -304,7 +328,7 @@ impl RenderScope {
     pub fn render_widget(
         &mut self,
         renderer: &mut dyn ElementRenderer,
-        ctx: &Context,
+        ctx: &crate::extensions::Context,
         widget: &std::sync::Arc<crate::widget::Widget>,
     ) -> bool {
         if widget.get::<NoRender>().is_some() {
@@ -317,6 +341,8 @@ impl RenderScope {
         } else {
             self.clear();
 
+            let render_context = RenderContext::new(ctx, widget.is_focused());
+
             if let Some(style) = widget.get() {
                 self.set_style(style);
             }
@@ -324,7 +350,7 @@ impl RenderScope {
                 self.set_transform(&t);
             }
 
-            widget.get_elem().render(self, ctx);
+            widget.get_elem().render(self, &render_context);
             ctx.render(widget, self);
 
             if let Some(t) = widget.get() {
@@ -335,7 +361,7 @@ impl RenderScope {
 
             self.draw();
 
-            widget.get_elem().after_render(self, ctx);
+            widget.get_elem().after_render(self, &render_context);
             ctx.after_render(widget, self);
         }
 

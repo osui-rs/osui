@@ -28,7 +28,7 @@ impl Element for Paginator {
     fn render(
         &mut self,
         scope: &mut crate::render_scope::RenderScope,
-        _: &crate::extensions::Context,
+        _: &crate::render_scope::RenderContext,
     ) {
         let (width, height) = scope.get_size_or(self.size.0, self.size.1);
         scope.use_area(width, height);
@@ -37,7 +37,7 @@ impl Element for Paginator {
     fn after_render(
         &mut self,
         scope: &mut crate::render_scope::RenderScope,
-        ctx: &crate::extensions::Context,
+        ctx: &crate::render_scope::RenderContext,
     ) {
         if let Some(widget) = self.children.get(self.index) {
             let mut transform = scope.get_transform().clone();
@@ -45,7 +45,7 @@ impl Element for Paginator {
             let (w, h) = scope.get_parent_size();
             scope.set_parent_size(renderer.0.width, renderer.0.height);
 
-            scope.render_widget(&mut renderer, ctx, widget);
+            scope.render_widget(&mut renderer, ctx.get_context(), widget);
 
             scope.set_parent_size(w, h);
             self.size = (renderer.0.width, renderer.0.height);

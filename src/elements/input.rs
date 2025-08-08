@@ -14,7 +14,7 @@ impl Element for Input {
     fn render(
         &mut self,
         scope: &mut crate::prelude::RenderScope,
-        _: &crate::extensions::Context,
+        _: &crate::render_scope::RenderContext,
     ) {
         let s = self.state.get();
         scope.draw_text(0, 0, &s);

@@ -27,7 +27,7 @@ impl Element for Heading {
     fn render(
         &mut self,
         scope: &mut crate::prelude::RenderScope,
-        _: &crate::extensions::Context,
+        _: &crate::render_scope::RenderContext,
     ) {
         let mut s = String::new();
         for element in &self.children {
