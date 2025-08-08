@@ -3,8 +3,9 @@ use std::sync::Arc;
 use crossterm::event::{KeyCode, KeyEvent};
 
 use crate::{
+    prelude::DivRenderer,
     widget::{Element, Widget},
-    NoRender, NoRenderRoot,
+    NoRenderRoot,
 };
 
 pub struct Paginator {
@@ -38,38 +39,16 @@ impl Element for Paginator {
         scope: &mut crate::render_scope::RenderScope,
         ctx: &crate::extensions::Context,
     ) {
-        if let Some(elem) = self.children.get(self.index) {
-            if elem.get::<NoRender>().is_some() {
-                return;
-            }
-
+        if let Some(widget) = self.children.get(self.index) {
             let mut transform = scope.get_transform().clone();
+            let mut renderer = DivRenderer(&mut transform);
             let (w, h) = scope.get_parent_size();
-            scope.set_parent_size(transform.width, transform.height);
-            scope.clear();
+            scope.set_parent_size(renderer.0.width, renderer.0.height);
 
-            if let Some(style) = elem.get() {
-                scope.set_style(style);
-            }
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
-            elem.get_elem().render(scope, ctx);
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
-            let t = scope.get_transform_mut();
-            transform.width = transform.width.max(t.x + t.width + (t.px * 2));
-            transform.height = transform.height.max(t.y + t.height + (t.py * 2));
-            t.x += transform.x + transform.px;
-            t.y += transform.y + transform.py;
-
-            scope.draw();
-            elem.get_elem().after_render(scope, ctx);
-            ctx.after_render(elem, scope);
+            scope.render_widget(&mut renderer, ctx, widget);
 
             scope.set_parent_size(w, h);
-            self.size = (transform.width, transform.height);
+            self.size = (renderer.0.width, renderer.0.height);
         }
     }
 

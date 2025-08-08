@@ -1,9 +1,14 @@
 use std::sync::Arc;
 
 use crate::{
+    prelude::ElementRenderer,
+    style::RawTransform,
     widget::{Element, Widget},
-    NoRender, NoRenderRoot,
+    NoRenderRoot,
 };
+
+pub struct RowRenderer<'a>(&'a mut RawTransform, u16, &'a mut u16);
+pub struct ColumnRenderer<'a>(&'a mut RawTransform, u16, &'a mut u16);
 
 pub struct FlexRow {
     pub gap: u16,
@@ -56,43 +61,16 @@ impl Element for FlexRow {
         let transform_before = transform.clone();
         let (w, h) = scope.get_parent_size();
         scope.set_parent_size(transform.width, transform.height);
-
         let mut v = 0;
 
-        for elem in &self.children {
-            if elem.get::<NoRender>().is_some() {
-                continue;
-            }
+        let mut renderer = RowRenderer(&mut transform, self.gap, &mut v);
 
-            scope.clear();
-            if let Some(style) = elem.get() {
-                scope.set_style(style);
-            }
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
-            elem.get_elem().render(scope, ctx);
-            ctx.render(elem, scope);
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
-            let t = scope.get_transform_mut();
-            transform.width = transform.width.max(t.width);
-            transform.height = transform.height.max(v + t.height);
-            t.x += transform.x;
-            t.y += transform.y + v;
-            v += t.height + self.gap + (t.py * 2);
-            t.px += transform.px;
-            t.py += transform.py;
-
-            scope.draw();
-
-            elem.get_elem().after_render(scope, ctx);
-            ctx.after_render(elem, scope);
+        for widget in &self.children {
+            scope.render_widget(&mut renderer, ctx, widget);
         }
         scope.set_parent_size(w, h);
-        self.size = (transform.width, transform.height);
         scope.set_transform_raw(transform_before);
+        self.size = (transform.width, transform.height);
     }
 
     fn draw_child(&mut self, element: &Arc<Widget>) {
@@ -128,39 +106,12 @@ impl Element for FlexCol {
         let transform_before = transform.clone();
         let (w, h) = scope.get_parent_size();
         scope.set_parent_size(transform.width, transform.height);
-
         let mut v = 0;
 
-        for elem in &self.children {
-            if elem.get::<NoRender>().is_some() {
-                continue;
-            }
+        let mut renderer = ColumnRenderer(&mut transform, self.gap, &mut v);
 
-            scope.clear();
-            if let Some(style) = elem.get() {
-                scope.set_style(style);
-            }
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
-            elem.get_elem().render(scope, ctx);
-            ctx.render(elem, scope);
-            if let Some(t) = elem.get() {
-                scope.set_transform(&t);
-            }
-            let t = scope.get_transform_mut();
-            transform.width = transform.width.max(v + t.width + (t.px * 2));
-            transform.height = transform.height.max(t.height + (t.py * 2));
-            t.x += transform.x + v;
-            t.y += transform.y;
-            v += t.width + self.gap + (t.px * 2);
-            t.px += transform.px;
-            t.py += transform.py;
-
-            scope.draw();
-
-            elem.get_elem().after_render(scope, ctx);
-            ctx.after_render(elem, scope);
+        for widget in &self.children {
+            scope.render_widget(&mut renderer, ctx, widget);
         }
         scope.set_parent_size(w, h);
         scope.set_transform_raw(transform_before);
@@ -178,5 +129,35 @@ impl Element for FlexCol {
 
     fn as_any_mut(&mut self) -> &mut dyn std::any::Any {
         self
+    }
+}
+
+impl ElementRenderer for RowRenderer<'_> {
+    fn before_draw(&mut self, scope: &mut crate::prelude::RenderScope, _widget: &Arc<Widget>) {
+        let t = scope.get_transform_mut();
+        self.0.width = self.0.width.max(*self.2 + t.width + (t.px * 2));
+        self.0.height = self.0.height.max(t.height + (t.py * 2));
+
+        t.x += self.0.x;
+        t.y += self.0.y + *self.2;
+        *self.2 += t.height + self.1 + (t.py * 2);
+
+        t.px += self.0.px;
+        t.py += self.0.py;
+    }
+}
+
+impl ElementRenderer for ColumnRenderer<'_> {
+    fn before_draw(&mut self, scope: &mut crate::prelude::RenderScope, _widget: &Arc<Widget>) {
+        let t = scope.get_transform_mut();
+        self.0.width = self.0.width.max(*self.2 + t.width + (t.px * 2));
+        self.0.height = self.0.height.max(t.height + (t.py * 2));
+
+        t.x += self.0.x + *self.2;
+        t.y += self.0.y;
+        *self.2 += t.width + self.1 + (t.px * 2);
+
+        t.px += self.0.px;
+        t.py += self.0.py;
     }
 }
