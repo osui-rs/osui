@@ -55,7 +55,7 @@ impl Element for FlexRow {
     fn after_render(
         &mut self,
         scope: &mut crate::render_scope::RenderScope,
-        ctx: &crate::render_scope::RenderContext,
+        render_context: &crate::render_scope::RenderContext,
     ) {
         let mut transform = scope.get_transform().clone();
         let transform_before = transform.clone();
@@ -66,7 +66,7 @@ impl Element for FlexRow {
         let mut renderer = RowRenderer(&mut transform, self.gap, &mut v);
 
         for widget in &self.children {
-            scope.render_widget(&mut renderer, ctx.get_context(), widget);
+            scope.render_widget(&mut renderer, render_context.get_context(), widget);
         }
         scope.set_parent_size(w, h);
         scope.set_transform_raw(transform_before);
@@ -100,7 +100,7 @@ impl Element for FlexCol {
     fn after_render(
         &mut self,
         scope: &mut crate::render_scope::RenderScope,
-        ctx: &crate::render_scope::RenderContext,
+        render_context: &crate::render_scope::RenderContext,
     ) {
         let mut transform = scope.get_transform().clone();
         let transform_before = transform.clone();
@@ -111,7 +111,7 @@ impl Element for FlexCol {
         let mut renderer = ColumnRenderer(&mut transform, self.gap, &mut v);
 
         for widget in &self.children {
-            scope.render_widget(&mut renderer, ctx.get_context(), widget);
+            scope.render_widget(&mut renderer, render_context.get_context(), widget);
         }
         scope.set_parent_size(w, h);
         scope.set_transform_raw(transform_before);
