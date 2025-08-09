@@ -161,12 +161,8 @@ impl Widget {
 
     pub fn set_focused(&self, f: bool) {
         match self {
-            Self::Dynamic(w) => {
-                *w.focused.lock().unwrap() = f && !w.element.lock().unwrap().is_ghost()
-            }
-            Self::Static(w) => {
-                *w.focused.lock().unwrap() = f && !w.element.lock().unwrap().is_ghost()
-            }
+            Self::Dynamic(w) => *w.focused.lock().unwrap() = f,
+            Self::Static(w) => *w.focused.lock().unwrap() = f,
         }
     }
 

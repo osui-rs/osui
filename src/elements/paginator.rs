@@ -75,6 +75,10 @@ impl Element for Paginator {
         }
     }
 
+    fn is_ghost(&mut self) -> bool {
+        true
+    }
+
     fn draw_child(&mut self, element: &Arc<Widget>) {
         self.children.push(element.clone());
         element.inject(|w| w.component(NoRenderRoot));

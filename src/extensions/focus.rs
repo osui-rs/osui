@@ -118,7 +118,7 @@ impl Extension for RelativeFocusExtension {
                                     for (i, w) in ctx.get_widgets().iter().enumerate() {
                                         if let Some(AlwaysFocused) = w.get() {
                                             w.set_focused(true);
-                                        } else {
+                                        } else if !w.is_ghost() {
                                             w.set_focused(i == self.cursor);
                                         }
                                     }
