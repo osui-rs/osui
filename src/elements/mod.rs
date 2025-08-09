@@ -21,6 +21,10 @@ impl Element for String {
         scope.draw_text(0, 0, self);
     }
 
+    fn is_ghost(&mut self) -> bool {
+        true
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }

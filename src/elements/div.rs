@@ -57,6 +57,10 @@ impl Element for Div {
         element.inject(|w| w.component(NoRenderRoot));
     }
 
+    fn is_ghost(&mut self) -> bool {
+        true
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }

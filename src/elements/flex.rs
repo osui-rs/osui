@@ -78,6 +78,10 @@ impl Element for FlexRow {
         element.inject(|w| w.component(NoRenderRoot));
     }
 
+    fn is_ghost(&mut self) -> bool {
+        true
+    }
+
     fn as_any(&self) -> &dyn std::any::Any {
         self
     }
@@ -121,6 +125,10 @@ impl Element for FlexCol {
     fn draw_child(&mut self, element: &Arc<Widget>) {
         self.children.push(element.clone());
         element.inject(|w| w.component(NoRenderRoot));
+    }
+
+    fn is_ghost(&mut self) -> bool {
+        true
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

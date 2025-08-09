@@ -51,13 +51,23 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
                 %count
                 "This will increment every second: {count}"
 
-                @Transform::new().padding(1, 1).dimensions(40, 1);
-                @Style { foreground: Some(0xffffff), background: Background::RoundedOutline(0xff0000) };
-                Input { }
+                FlexRow
+                {
+                    "Username"
+                    @Transform::new().padding(1, 1).dimensions(40, 1);
+                    @Style { foreground: Some(0xffffff), background: Background::RoundedOutline(0xff0000) };
+                    @Focused;
+                    Input { }
+                }
 
-                @Transform::new().padding(1, 1).dimensions(40, 1);
-                @Style { foreground: Some(0xffffff), background: Background::RoundedOutline(0xffff00) };
-                Input { }
+                @Transform::new().margin(0, 1);
+                FlexRow
+                {
+                    "Password"
+                    @Transform::new().padding(1, 1).dimensions(40, 1);
+                    @Style { foreground: Some(0xffffff), background: Background::RoundedOutline(0xffff00) };
+                    Input { }
+                }
             }
         }
     }
