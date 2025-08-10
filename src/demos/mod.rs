@@ -18,7 +18,7 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
             let screen = screen.clone();
             move |_, e: &crossterm::event::Event| {
                 if let crossterm::event::Event::Key(crossterm::event::KeyEvent { code, .. }) = e {
-                    if *code == crossterm::event::KeyCode::Char('q') {
+                    if *code == crossterm::event::KeyCode::Esc {
                         screen.close();
                     }
                 }
