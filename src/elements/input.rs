@@ -14,14 +14,16 @@ impl Element for Input {
     fn render(
         &mut self,
         scope: &mut crate::prelude::RenderScope,
-        _: &crate::extensions::Context,
+        render_context: &crate::render_scope::RenderContext,
     ) {
         let s = self.state.get();
         scope.draw_text(0, 0, &s);
-        if let Some(c) = s.chars().nth(self.cursor) {
-            scope.draw_text_inverted(self.cursor as u16, 0, &c.to_string());
-        } else {
-            scope.draw_text_inverted(s.len() as u16, 0, " ");
+        if render_context.is_focused() {
+            if let Some(c) = s.chars().nth(self.cursor) {
+                scope.draw_text_inverted(self.cursor as u16, 0, &c.to_string());
+            } else {
+                scope.draw_text_inverted(s.len() as u16, 0, " ");
+            }
         }
     }
 

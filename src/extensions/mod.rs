@@ -119,6 +119,12 @@ impl Context {
         components
     }
 
+    pub fn render_root(&self, scope: &mut RenderScope) {
+        for ext in self.screen.extensions.lock().unwrap().iter() {
+            ext.lock().unwrap().render(self, scope);
+        }
+    }
+
     pub fn render(&self, w: &Arc<Widget>, scope: &mut RenderScope) {
         for ext in self.screen.extensions.lock().unwrap().iter() {
             ext.lock().unwrap().render_widget(self, scope, w);

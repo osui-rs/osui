@@ -7,6 +7,7 @@ use super::Extension;
 use crossterm::event::{Event as CrosstermEvent, KeyCode, KeyModifiers};
 
 component!(AlwaysFocused);
+component!(Focused);
 
 enum Direction {
     Left,
@@ -21,6 +22,14 @@ pub struct RelativeFocusExtension {
 }
 
 impl Extension for RelativeFocusExtension {
+    fn init(&mut self, _ctx: &super::Context) {
+        for widget in _ctx.get_widgets().iter() {
+            if let Some(Focused) = widget.get() {
+                widget.set_focused(true);
+            }
+        }
+    }
+
     fn event(&mut self, ctx: &super::Context, event: &dyn super::Event) {
         if let Some(e) = event.get::<CrosstermEvent>() {
             match e {
@@ -109,7 +118,7 @@ impl Extension for RelativeFocusExtension {
                                     for (i, w) in ctx.get_widgets().iter().enumerate() {
                                         if let Some(AlwaysFocused) = w.get() {
                                             w.set_focused(true);
-                                        } else {
+                                        } else if !w.is_ghost() {
                                             w.set_focused(i == self.cursor);
                                         }
                                     }
@@ -145,7 +154,7 @@ impl Extension for RelativeFocusExtension {
             if let Some(p) = ctx
                 .get_widgets()
                 .iter()
-                .position(|w| Arc::ptr_eq(w, &widget))
+                .position(|w| Arc::ptr_eq(w, &widget) && !w.is_ghost())
             {
                 rendered.lock().unwrap().push((p, t.x, t.y));
             }

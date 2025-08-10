@@ -8,12 +8,21 @@
 //!
 //! Used internally by OSUI's layout and rendering system.
 
-use std::fmt::Debug;
+use std::{fmt::Debug, sync::Arc};
 
 use crate::{
+    prelude::{Context, Handler},
     style::{RawTransform, Style, Transform},
     utils::{self, hex_ansi_bg},
+    widget::Widget,
+    NoRender, RenderWrapperEvent,
 };
+
+pub trait ElementRenderer {
+    /// Called right after the `after_render` function is called
+    #[allow(unused)]
+    fn before_draw(&mut self, scope: &mut RenderScope, widget: &Arc<Widget>) {}
+}
 
 /// Represents a single render instruction.
 #[derive(Clone)]
@@ -39,6 +48,30 @@ pub struct RenderScope {
     parent_width: u16,
     parent_height: u16,
     style: Style,
+}
+
+pub struct RenderContext(Context, bool);
+
+impl RenderContext {
+    pub fn new(c: &Context, focused: bool) -> Self {
+        Self(c.clone(), focused)
+    }
+
+    pub fn is_focused(&self) -> bool {
+        self.1
+    }
+
+    pub fn render(&self, w: &Arc<Widget>, scope: &mut RenderScope) {
+        self.0.render(w, scope);
+    }
+
+    pub fn after_render(&self, w: &Arc<Widget>, scope: &mut RenderScope) {
+        self.0.after_render(w, scope);
+    }
+
+    pub fn get_context(&self) -> &Context {
+        &self.0
+    }
 }
 
 impl RenderScope {
@@ -290,6 +323,51 @@ impl RenderScope {
     /// Gets a mutable reference to the style.
     pub fn get_style(&mut self) -> &mut Style {
         &mut self.style
+    }
+
+    pub fn render_widget(
+        &mut self,
+        renderer: &mut dyn ElementRenderer,
+        ctx: &crate::extensions::Context,
+        widget: &std::sync::Arc<crate::widget::Widget>,
+    ) -> bool {
+        if widget.get::<NoRender>().is_some() {
+            widget.auto_refresh();
+            return false;
+        }
+
+        if let Some(wrapper) = widget.get::<Handler<RenderWrapperEvent>>() {
+            wrapper.call(widget, &RenderWrapperEvent(self));
+        } else {
+            self.clear();
+
+            let render_context = RenderContext::new(ctx, widget.is_focused());
+
+            if let Some(style) = widget.get() {
+                self.set_style(style);
+            }
+            if let Some(t) = widget.get() {
+                self.set_transform(&t);
+            }
+
+            widget.get_elem().render(self, &render_context);
+            ctx.render(widget, self);
+
+            if let Some(t) = widget.get() {
+                self.set_transform(&t);
+            }
+
+            renderer.before_draw(self, widget);
+
+            self.draw();
+
+            widget.get_elem().after_render(self, &render_context);
+            ctx.after_render(widget, self);
+        }
+
+        widget.auto_refresh();
+
+        true
     }
 }
 

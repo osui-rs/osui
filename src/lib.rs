@@ -32,8 +32,8 @@
 use std::sync::{Arc, Mutex};
 
 use crate::{
-    extensions::{Extension, Handler},
-    prelude::Context,
+    extensions::Extension,
+    prelude::{Context, ElementRenderer},
     render_scope::RenderScope,
     widget::{BoxedElement, DynWidget, Element, StaticWidget, Widget, WidgetLoad},
 };
@@ -180,47 +180,19 @@ impl Screen {
     /// This method is called internally by `run`.
     pub fn render(self: &Arc<Self>, ctx: &Context) -> std::io::Result<()> {
         let mut scope = RenderScope::new();
+        let mut renderer = ScreenRenderer;
         let (w, h) = crossterm::terminal::size().unwrap();
         scope.set_parent_size(w, h);
-
-        for ext in self.extensions.lock().unwrap().iter() {
-            ext.lock().unwrap().render(ctx, &mut scope);
-        }
+        ctx.render_root(&mut scope);
 
         utils::clear()?;
-        for elem in self.widgets.lock().unwrap().iter() {
-            if elem.get::<NoRender>().is_some() || elem.get::<NoRenderRoot>().is_some() {
-                elem.auto_refresh();
+        for widget in self.widgets.lock().unwrap().iter() {
+            if widget.get::<NoRenderRoot>().is_some() {
+                widget.auto_refresh();
                 continue;
             }
 
-            if let Some(wrapper) = elem.get::<Handler<RenderWrapperEvent>>() {
-                wrapper.call(elem, &RenderWrapperEvent(&mut scope));
-            } else {
-                scope.clear();
-
-                if let Some(style) = elem.get() {
-                    scope.set_style(style);
-                }
-                if let Some(t) = elem.get() {
-                    scope.set_transform(&t);
-                }
-
-                for ext in self.extensions.lock().unwrap().iter() {
-                    ext.lock().unwrap().render_widget(ctx, &mut scope, elem);
-                }
-
-                elem.get_elem().render(&mut scope, ctx);
-
-                if let Some(t) = elem.get() {
-                    scope.set_transform(&t);
-                }
-                scope.draw();
-
-                elem.get_elem().after_render(&mut scope, ctx);
-            }
-
-            elem.auto_refresh();
+            scope.render_widget(&mut renderer, ctx, widget);
         }
         Ok(())
     }
@@ -228,13 +200,14 @@ impl Screen {
     /// Closes the loop and calls `on_close` in the extensions
     pub fn close(self: &Arc<Self>) {
         *self.running.lock().unwrap() = false;
-
         utils::show_cursor().unwrap();
-
         utils::clear().unwrap();
-
         for ext in self.extensions.lock().unwrap().iter() {
             ext.lock().unwrap().on_close();
         }
     }
 }
+
+struct ScreenRenderer;
+
+impl ElementRenderer for ScreenRenderer {}

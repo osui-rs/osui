@@ -27,7 +27,7 @@ impl Element for Heading {
     fn render(
         &mut self,
         scope: &mut crate::prelude::RenderScope,
-        _: &crate::extensions::Context,
+        _: &crate::render_scope::RenderContext,
     ) {
         let mut s = String::new();
         for element in &self.children {
@@ -55,6 +55,10 @@ impl Element for Heading {
     fn draw_child(&mut self, element: &Arc<Widget>) {
         element.inject(|w| w.component(NoRenderRoot));
         self.children.push(element.clone());
+    }
+
+    fn is_ghost(&mut self) -> bool {
+        true
     }
 
     fn as_any(&self) -> &dyn std::any::Any {

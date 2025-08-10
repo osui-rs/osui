@@ -31,11 +31,21 @@ pub type BoxedComponent = Box<dyn Component + Send + Sync>;
 pub trait Element: Send + Sync {
     /// Called to perform rendering for the element.
     #[allow(unused)]
-    fn render(&mut self, scope: &mut RenderScope, ctx: &crate::extensions::Context) {}
+    fn render(
+        &mut self,
+        scope: &mut RenderScope,
+        render_context: &crate::render_scope::RenderContext,
+    ) {
+    }
 
     /// Called after rendering, for follow-up logic or cleanup.
     #[allow(unused)]
-    fn after_render(&mut self, scope: &mut RenderScope, ctx: &crate::extensions::Context) {}
+    fn after_render(
+        &mut self,
+        scope: &mut RenderScope,
+        render_context: &crate::render_scope::RenderContext,
+    ) {
+    }
 
     /// Called to draw child widgets, if any.
     #[allow(unused)]
@@ -43,6 +53,10 @@ pub trait Element: Send + Sync {
 
     #[allow(unused)]
     fn event(&mut self, event: &dyn Event) {}
+
+    fn is_ghost(&mut self) -> bool {
+        false
+    }
 
     /// Returns a type-erased reference to this object.
     fn as_any(&self) -> &dyn Any;
@@ -135,6 +149,13 @@ impl Widget {
         match self {
             Self::Dynamic(w) => *w.focused.lock().unwrap(),
             Self::Static(w) => *w.focused.lock().unwrap(),
+        }
+    }
+
+    pub fn is_ghost(&self) -> bool {
+        match self {
+            Self::Dynamic(w) => w.element.lock().unwrap().is_ghost(),
+            Self::Static(w) => w.element.lock().unwrap().is_ghost(),
         }
     }
 
