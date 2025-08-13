@@ -240,6 +240,20 @@ macro_rules! rsx {
 /// Would produce a nested `Rsx` tree of static and dynamic widgets.
 #[macro_export]
 macro_rules! rsx_inner {
+    // for loop (iter)
+    ($r:expr, for $n:ident in $state:ident { $($inner:tt)* } $($rest:tt)*) => {
+        $r.iter({
+            let $state = $state.clone();
+            move || {
+                let mut r = $crate::frontend::Rsx(Vec::new());
+                for $n in $state.get().iter() {
+                    r.expand_nr($crate::rsx!{ $($inner)* });
+                }
+                r
+            }}, Box::new($state));
+        $crate::rsx_inner! { $r, $($rest)* };
+    };
+
     // static
     ($r:expr, $(@$comp:expr;)* static $s:literal $($rest:tt)*) => {
         let w = $crate::widget::StaticWidget::new(Box::new(format!($s)));

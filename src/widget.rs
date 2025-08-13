@@ -51,6 +51,10 @@ pub trait Element: Send + Sync {
     #[allow(unused)]
     fn draw_child(&mut self, element: &Arc<Widget>) {}
 
+    /// Called to undraw child widgets, if any.
+    #[allow(unused)]
+    fn undraw_child(&mut self, element: &Arc<Widget>) {}
+
     #[allow(unused)]
     fn event(&mut self, event: &dyn Event) {}
 
@@ -166,7 +170,7 @@ impl Widget {
         }
     }
 
-    pub fn get_elem(&self) -> MutexGuard<BoxedElement> {
+    pub fn get_elem(&'_ self) -> MutexGuard<'_, BoxedElement> {
         match self {
             Widget::Static(w) => w.get_elem(),
             Widget::Dynamic(w) => w.get_elem(),
@@ -284,7 +288,7 @@ impl Widget {
 
 impl StaticWidget {
     fn after_render(&self) {}
-    fn get_elem(&self) -> MutexGuard<BoxedElement> {
+    fn get_elem(&'_ self) -> MutexGuard<'_, BoxedElement> {
         self.element.lock().unwrap()
     }
 }
@@ -325,7 +329,7 @@ impl StaticWidget {
 
 impl DynWidget {
     fn after_render(&self) {}
-    fn get_elem(&self) -> MutexGuard<BoxedElement> {
+    fn get_elem(&'_ self) -> MutexGuard<'_, BoxedElement> {
         self.element.lock().unwrap()
     }
 }

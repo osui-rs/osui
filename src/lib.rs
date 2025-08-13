@@ -35,6 +35,7 @@ use crate::{
     extensions::Extension,
     prelude::{Context, ElementRenderer},
     render_scope::RenderScope,
+    state::DependencyHandler,
     widget::{BoxedElement, DynWidget, Element, StaticWidget, Widget, WidgetLoad},
 };
 
@@ -78,6 +79,13 @@ pub struct Screen {
     extensions: Mutex<Vec<Arc<Mutex<Box<dyn Extension + Send + Sync>>>>>,
     /// If it's still running
     running: Mutex<bool>,
+    /// If it's still running
+    dependencies: Mutex<
+        Vec<(
+            Vec<Box<dyn DependencyHandler>>,
+            Box<dyn FnMut() + Send + Sync>,
+        )>,
+    >,
 }
 
 event!(RenderWrapperEvent(*mut RenderScope));
@@ -104,6 +112,7 @@ impl Screen {
             widgets: Mutex::new(Vec::new()),
             extensions: Mutex::new(Vec::new()),
             running: Mutex::new(true),
+            dependencies: Mutex::new(Vec::new()),
         })
     }
 
@@ -194,6 +203,14 @@ impl Screen {
 
             scope.render_widget(&mut renderer, ctx, widget);
         }
+        for d in self.dependencies.lock().unwrap().iter_mut() {
+            for dh in &d.0 {
+                if dh.check() {
+                    (d.1)();
+                    break;
+                }
+            }
+        }
         Ok(())
     }
 
@@ -205,6 +222,23 @@ impl Screen {
         for ext in self.extensions.lock().unwrap().iter() {
             ext.lock().unwrap().on_close();
         }
+    }
+}
+
+impl Screen {
+    pub fn add_dependency<F: FnMut() + Send + Sync + 'static>(
+        self: &Arc<Self>,
+        dependencies: Vec<Box<dyn DependencyHandler>>,
+        handler: F,
+    ) {
+        for d in &dependencies {
+            d.add();
+        }
+
+        self.dependencies
+            .lock()
+            .unwrap()
+            .push((dependencies, Box::new(handler)));
     }
 }
 
