@@ -164,4 +164,9 @@ impl Rsx {
     pub fn expand(&mut self, other: &mut Rsx) {
         self.0.append(&mut other.0);
     }
+
+    /// Appends the elements from another `Rsx` tree into this one. nr stands for no reference
+    pub fn expand_nr(&mut self, mut other: Rsx) {
+        self.0.append(&mut other.0);
+    }
 }

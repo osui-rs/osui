@@ -21,26 +21,12 @@ pub fn app() -> Rsx {
         }
     });
 
-    Rsx(vec![RsxElement::Element(
-        StaticWidget::new(Box::new(FlexRow::new())),
-        Rsx(vec![RsxElement::Iter(
-            Box::new({
-                let items = items.clone();
-                move || {
-                    Rsx(items
-                        .get_dl()
-                        .iter()
-                        .enumerate()
-                        .map(|(i, _)| {
-                            RsxElement::Element(
-                                StaticWidget::new(Box::new(format!("Item {i}"))),
-                                Rsx(vec![]),
-                            )
-                        })
-                        .collect())
-                }
-            }),
-            Box::new(items),
-        )]),
-    )])
+    rsx! {
+        FlexRow {
+            for item in items {
+                static "{item}"
+                static "Idk {item}"
+            }
+        }
+    }
 }
