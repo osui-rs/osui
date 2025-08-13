@@ -96,7 +96,7 @@ impl Context {
         }
     }
 
-    pub fn get_widgets(&self) -> MutexGuard<Vec<Arc<Widget>>> {
+    pub fn get_widgets(&'_ self) -> MutexGuard<'_, Vec<Arc<Widget>>> {
         self.screen.widgets.lock().unwrap()
     }
 

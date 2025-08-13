@@ -2,6 +2,16 @@ use std::sync::Arc;
 
 use osui::prelude::*;
 
+fn main() -> std::io::Result<()> {
+    let screen = Screen::new();
+    screen.extension(InputExtension);
+    screen.extension(RelativeFocusExtension::new());
+
+    app(screen.clone()).draw(&screen);
+
+    screen.run()
+}
+
 pub fn app(screen: Arc<Screen>) -> Rsx {
     let count = use_state(0);
 

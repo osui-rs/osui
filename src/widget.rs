@@ -166,7 +166,7 @@ impl Widget {
         }
     }
 
-    pub fn get_elem(&self) -> MutexGuard<BoxedElement> {
+    pub fn get_elem(&'_ self) -> MutexGuard<'_, BoxedElement> {
         match self {
             Widget::Static(w) => w.get_elem(),
             Widget::Dynamic(w) => w.get_elem(),
@@ -284,7 +284,7 @@ impl Widget {
 
 impl StaticWidget {
     fn after_render(&self) {}
-    fn get_elem(&self) -> MutexGuard<BoxedElement> {
+    fn get_elem(&'_ self) -> MutexGuard<'_, BoxedElement> {
         self.element.lock().unwrap()
     }
 }
@@ -325,7 +325,7 @@ impl StaticWidget {
 
 impl DynWidget {
     fn after_render(&self) {}
-    fn get_elem(&self) -> MutexGuard<BoxedElement> {
+    fn get_elem(&'_ self) -> MutexGuard<'_, BoxedElement> {
         self.element.lock().unwrap()
     }
 }
