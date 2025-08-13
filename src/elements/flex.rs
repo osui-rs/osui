@@ -78,6 +78,12 @@ impl Element for FlexRow {
         element.inject(|w| w.component(NoRenderRoot));
     }
 
+    fn undraw_child(&mut self, element: &Arc<Widget>) {
+        if let Some(i) = self.children.iter().position(|v| Arc::ptr_eq(v, element)) {
+            self.children.remove(i);
+        }
+    }
+
     fn is_ghost(&mut self) -> bool {
         true
     }

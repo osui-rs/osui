@@ -51,6 +51,10 @@ pub trait Element: Send + Sync {
     #[allow(unused)]
     fn draw_child(&mut self, element: &Arc<Widget>) {}
 
+    /// Called to undraw child widgets, if any.
+    #[allow(unused)]
+    fn undraw_child(&mut self, element: &Arc<Widget>) {}
+
     #[allow(unused)]
     fn event(&mut self, event: &dyn Event) {}
 

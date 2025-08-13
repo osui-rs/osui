@@ -25,6 +25,12 @@ pub enum RsxElement {
         Vec<Box<dyn DependencyHandler>>,
         Rsx,
     ),
+
+    /// A dynamic iteration of widgets, keeping track of their state.
+    Iter(
+        Box<dyn FnMut() -> Rsx + Send + Sync>,
+        Box<dyn DependencyHandler>,
+    ),
 }
 
 /// A container representing a group of RSX elements.
@@ -42,7 +48,13 @@ impl Rsx {
     /// Recursively draws the RSX tree with an optional parent widget.
     ///
     /// Used internally to establish parent-child widget relationships.
-    pub fn draw_parent(self, screen: &Arc<Screen>, parent: Option<Arc<Widget>>) {
+    pub fn draw_parent(
+        self,
+        screen: &Arc<Screen>,
+        parent: Option<Arc<Widget>>,
+    ) -> Option<Arc<Widget>> {
+        let mut first_widget = None;
+
         for rsx_elem in self.0 {
             match rsx_elem {
                 RsxElement::DynElement(f, dep, child) => {
@@ -57,6 +69,9 @@ impl Rsx {
                     }
 
                     child.draw_parent(screen, Some(w.clone()));
+                    if first_widget.is_none() {
+                        first_widget = Some(w)
+                    }
                 }
 
                 RsxElement::Element(ws, child) => {
@@ -68,9 +83,49 @@ impl Rsx {
                     }
 
                     child.draw_parent(screen, Some(w.clone()));
+                    if first_widget.is_none() {
+                        first_widget = Some(w)
+                    }
+                }
+
+                RsxElement::Iter(mut rsx, dep) => {
+                    #[allow(unused)]
+                    let mut rsx_len = 0;
+                    let mut fw = {
+                        let r = rsx();
+                        rsx_len = r.0.len();
+                        r.draw_parent(screen, parent.clone())
+                    };
+                    let parent = parent.clone();
+                    let s = screen.clone();
+
+                    screen.add_dependency(vec![dep], move || {
+                        if let Some(fww) = &fw {
+                            {
+                                let mut widgets = s.widgets.lock().unwrap();
+                                if let Some(i) = widgets.iter().position(|v| Arc::ptr_eq(v, fww)) {
+                                    for v in (i..(i + rsx_len)).rev() {
+                                        if let Some(w) = widgets.get(v) {
+                                            if let Some(p) = &parent {
+                                                p.get_elem().undraw_child(w);
+                                            }
+                                            widgets.remove(v);
+                                        }
+                                    }
+                                }
+                            }
+                            fw = {
+                                let r = rsx();
+                                rsx_len = r.0.len();
+                                r.draw_parent(&s, parent.clone())
+                            };
+                        }
+                    });
                 }
             }
         }
+
+        first_widget
     }
 
     /// Adds a dynamically constructed element to the RSX tree.
@@ -94,6 +149,15 @@ impl Rsx {
     /// Adds a statically defined element to the RSX tree with its children.
     pub fn create_element_static(&mut self, element: StaticWidget, children: Rsx) {
         self.0.push(RsxElement::Element(element, children));
+    }
+
+    /// Adds a statically defined element to the RSX tree with its children.
+    pub fn iter<F: FnMut() -> Rsx + Send + Sync + 'static>(
+        &mut self,
+        rsx: F,
+        dependency: Box<dyn DependencyHandler>,
+    ) {
+        self.0.push(RsxElement::Iter(Box::new(rsx), dependency));
     }
 
     /// Appends the elements from another `Rsx` tree into this one.
