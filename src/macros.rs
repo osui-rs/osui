@@ -206,30 +206,33 @@ macro_rules! transform {
 /// ```
 #[macro_export]
 macro_rules! run {
-    ($(ref $r:ident)* $(use $d:ident)* $code:block) => {
+    (use $($d:ident),+ $(ref $($r:ident),+)? $code:block) => {
         std::thread::spawn({
-            $(let $r = $r.clone();)* $(
-                let $d = $d.clone();
-                $d.add();
-            )*
+            $(let $d = $d.clone();)+
+            $($(let $r = $r.clone();)+)?
             move || {
+                $($d.add();)+
                 $code
                 loop {
                     $(
-                        if $d.check() {
-                            $code
-                        }
-                    )*
+                        if $d.check() $code
+                    )+
                     std::thread::sleep(std::time::Duration::from_millis(50));
                 }
             }
         });
     };
 
-    ($(ref $r:ident)* $code:block) => {
+    (ref $($r:ident),+ $code:block) => {
         std::thread::spawn({
-            $(let $r = $r.clone();)* $(let $d = $d.clone();)*
+            $(let $r = $r.clone();)+
             move || $code
+        });
+    };
+
+    ($($code:tt)*) => {
+        std::thread::spawn({
+            move || {$($code)*}
         });
     };
 }

@@ -10,12 +10,12 @@ fn main() -> std::io::Result<()> {
 
 pub fn app() -> Rsx {
     let items: State<Vec<i32>> = use_state(vec![1, 2]);
+    let count = use_state(3);
 
     run! {
-        use items
-        {
-            std::thread::sleep(std::time::Duration::from_millis(300));
-            items.get().push(3);
+        use count ref items {
+            items.get().push(count.get_dl());
+            **count.get() += 1;
         }
     }
 
