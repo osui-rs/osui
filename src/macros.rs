@@ -197,8 +197,8 @@ macro_rules! transform {
 /// ```rust
 /// let count = use_state(0);
 /// run! {
-///     ref count // ref means that it will only reference the count (clone)
 ///     use count // implement count as a dependency, running this again if it updates
+///     ref count // ref means that it will only reference the count (clone)
 ///     {
 ///          // do something with the count
 ///     }
