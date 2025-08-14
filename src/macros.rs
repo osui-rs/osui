@@ -189,6 +189,54 @@ macro_rules! transform {
     }};
 }
 
+/// Spawns a thread with referencing dependencies.
+///
+/// This macro spawns a thread and clones states and either references them or uses them as a dependency.
+///
+/// # Example
+/// ```rust
+/// let count = use_state(0);
+/// run! {
+///     use count // implement count as a dependency, running this again if it updates
+///     ref count // ref means that it will only reference the count (clone)
+///     {
+///          // do something with the count
+///     }
+/// }
+/// ```
+#[macro_export]
+macro_rules! run {
+    (use $($d:ident),+ $(ref $($r:ident),+)? $code:block) => {
+        std::thread::spawn({
+            $(let $d = $d.clone();)+
+            $($(let $r = $r.clone();)+)?
+            move || {
+                $($d.add();)+
+                $code
+                loop {
+                    $(
+                        if $d.check() $code
+                    )+
+                    std::thread::sleep(std::time::Duration::from_millis(50));
+                }
+            }
+        });
+    };
+
+    (ref $($r:ident),+ $code:block) => {
+        std::thread::spawn({
+            $(let $r = $r.clone();)+
+            move || $code
+        });
+    };
+
+    ($($code:tt)*) => {
+        std::thread::spawn({
+            move || {$($code)*}
+        });
+    };
+}
+
 /// Constructs an `Rsx` tree using declarative syntax.
 ///
 /// This macro is similar to JSX in UI frameworks, allowing you to nest widgets and assign components or dependencies.

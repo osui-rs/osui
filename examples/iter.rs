@@ -10,22 +10,19 @@ fn main() -> std::io::Result<()> {
 
 pub fn app() -> Rsx {
     let items: State<Vec<i32>> = use_state(vec![1, 2]);
+    let count = use_state(3);
 
-    std::thread::spawn({
-        let items = items.clone();
-        move || {
-            std::thread::sleep(std::time::Duration::from_millis(1000));
-            items.get().push(3);
-            std::thread::sleep(std::time::Duration::from_millis(1000));
-            items.get().remove(0);
+    run! {
+        use count ref items {
+            items.get().push(count.get_dl());
+            **count.get() += 1;
         }
-    });
+    }
 
     rsx! {
         FlexRow {
             for item in items {
                 static "{item}"
-                static "Idk {item}"
             }
         }
     }
