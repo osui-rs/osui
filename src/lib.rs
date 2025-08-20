@@ -192,6 +192,7 @@ impl Screen {
         let mut renderer = ScreenRenderer;
         let (w, h) = crossterm::terminal::size().unwrap();
         scope.set_parent_size(w, h);
+        scope.update_render_bounds();
         ctx.render_root(&mut scope);
 
         utils::clear()?;

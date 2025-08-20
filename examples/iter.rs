@@ -21,9 +21,12 @@ pub fn app() -> Rsx {
     }
 
     rsx! {
-        FlexRow, scroll: true, {
-            for item in items {
-                static "{item}"
+        @Transform::new().dimensions(40, 3);
+        Div {
+            FlexRow, scroll: true, {
+                for item in items {
+                    static "{item}"
+                }
             }
         }
     }

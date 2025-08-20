@@ -52,6 +52,7 @@ pub struct RenderScope {
     render_stack: Vec<RenderMethod>,
     parent_width: u16,
     parent_height: u16,
+    render_bounds: u16,
     style: Style,
 }
 
@@ -87,6 +88,7 @@ impl RenderScope {
             render_stack: Vec::new(),
             parent_width: 0,
             parent_height: 0,
+            render_bounds: 0,
             style: Style::new(),
         }
     }
@@ -102,6 +104,16 @@ impl RenderScope {
         transform.use_position(self.parent_width, self.parent_height, &mut self.transform);
         self.transform.px = transform.px;
         self.transform.py = transform.py;
+    }
+
+    pub fn update_render_bounds(&mut self) {
+        if self.parent_height > 0 {
+            self.render_bounds = self.parent_height;
+        }
+    }
+
+    pub fn get_render_bounds(&mut self) -> u16 {
+        self.render_bounds
     }
 
     /// Adds a text draw instruction.
@@ -331,10 +343,15 @@ impl RenderScope {
     }
 
     pub fn scroll(&mut self, offset: u16) {
+        let bounds = if self.parent_width > 0 {
+            self.parent_height
+        } else {
+            self.render_bounds
+        };
         for i in 0..self.render_stack.len() {
             match self.render_stack[i] {
                 RenderMethod::Text(_, y, _) => {
-                    if self.transform.y + y < offset {
+                    if self.transform.y + y < offset || self.transform.y + y - offset >= bounds {
                         self.render_stack.remove(i);
                     }
                 }
