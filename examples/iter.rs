@@ -2,6 +2,7 @@ use osui::prelude::*;
 
 fn main() -> std::io::Result<()> {
     let screen = Screen::new();
+    screen.extension(InputExtension);
 
     app().draw(&screen);
 
@@ -20,7 +21,7 @@ pub fn app() -> Rsx {
     }
 
     rsx! {
-        FlexRow {
+        FlexRow, scroll: true, {
             for item in items {
                 static "{item}"
             }

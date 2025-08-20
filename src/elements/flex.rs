@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use crossterm::event::{KeyCode, KeyEvent};
+
 use crate::{
     prelude::ElementRenderer,
     style::RawTransform,
@@ -7,17 +9,21 @@ use crate::{
     NoRenderRoot,
 };
 
-pub struct RowRenderer<'a>(&'a mut RawTransform, u16, &'a mut u16);
-pub struct ColumnRenderer<'a>(&'a mut RawTransform, u16, &'a mut u16);
+pub struct RowRenderer<'a>(&'a mut RawTransform, u16, &'a mut u16, u16);
+pub struct ColumnRenderer<'a>(&'a mut RawTransform, u16, &'a mut u16, u16);
 
 pub struct FlexRow {
     pub gap: u16,
+    pub scroll: bool,
+    pub scroll_offset: u16,
     children: Vec<Arc<Widget>>,
     size: (u16, u16),
 }
 
 pub struct FlexCol {
     pub gap: u16,
+    pub scroll: bool,
+    pub scroll_offset: u16,
     children: Vec<Arc<Widget>>,
     size: (u16, u16),
 }
@@ -26,6 +32,8 @@ impl FlexRow {
     pub fn new() -> Self {
         Self {
             children: Vec::new(),
+            scroll: false,
+            scroll_offset: 0,
             size: (0, 0),
             gap: 0,
         }
@@ -36,6 +44,8 @@ impl FlexCol {
     pub fn new() -> Self {
         Self {
             children: Vec::new(),
+            scroll: false,
+            scroll_offset: 0,
             size: (0, 0),
             gap: 0,
         }
@@ -63,7 +73,7 @@ impl Element for FlexRow {
         scope.set_parent_size(transform.width, transform.height);
         let mut v = 0;
 
-        let mut renderer = RowRenderer(&mut transform, self.gap, &mut v);
+        let mut renderer = RowRenderer(&mut transform, self.gap, &mut v, self.scroll_offset);
 
         for widget in &self.children {
             scope.render_widget(&mut renderer, render_context.get_context(), widget);
@@ -81,6 +91,24 @@ impl Element for FlexRow {
     fn undraw_child(&mut self, element: &Arc<Widget>) {
         if let Some(i) = self.children.iter().position(|v| Arc::ptr_eq(v, element)) {
             self.children.remove(i);
+        }
+    }
+
+    fn event(&mut self, event: &dyn crate::prelude::Event) {
+        if !self.scroll {
+            return;
+        }
+
+        if let Some(crossterm::event::Event::Key(KeyEvent { code, .. })) = event.get() {
+            match code {
+                KeyCode::PageDown => self.scroll_offset += 1,
+                KeyCode::PageUp => {
+                    if self.scroll_offset > 0 {
+                        self.scroll_offset -= 1
+                    }
+                }
+                _ => {}
+            }
         }
     }
 
@@ -118,7 +146,7 @@ impl Element for FlexCol {
         scope.set_parent_size(transform.width, transform.height);
         let mut v = 0;
 
-        let mut renderer = ColumnRenderer(&mut transform, self.gap, &mut v);
+        let mut renderer = ColumnRenderer(&mut transform, self.gap, &mut v, self.scroll_offset);
 
         for widget in &self.children {
             scope.render_widget(&mut renderer, render_context.get_context(), widget);
@@ -131,6 +159,24 @@ impl Element for FlexCol {
     fn draw_child(&mut self, element: &Arc<Widget>) {
         self.children.push(element.clone());
         element.inject(|w| w.component(NoRenderRoot));
+    }
+
+    fn event(&mut self, event: &dyn crate::prelude::Event) {
+        if !self.scroll {
+            return;
+        }
+
+        if let Some(crossterm::event::Event::Key(KeyEvent { code, .. })) = event.get() {
+            match code {
+                KeyCode::PageDown => self.scroll_offset += 1,
+                KeyCode::PageUp => {
+                    if self.scroll_offset > 0 {
+                        self.scroll_offset -= 1
+                    }
+                }
+                _ => {}
+            }
+        }
     }
 
     fn is_ghost(&mut self) -> bool {
@@ -159,7 +205,7 @@ impl ElementRenderer for RowRenderer<'_> {
         t.px += self.0.px;
         t.py += self.0.py;
 
-        scope.scroll(1);
+        scope.scroll(self.3);
     }
 }
 
@@ -175,5 +221,7 @@ impl ElementRenderer for ColumnRenderer<'_> {
 
         t.px += self.0.px;
         t.py += self.0.py;
+
+        scope.scroll(self.3);
     }
 }
