@@ -22,6 +22,11 @@ pub trait ElementRenderer {
     /// Called right after the `after_render` function is called
     #[allow(unused)]
     fn before_draw(&mut self, scope: &mut RenderScope, widget: &Arc<Widget>) {}
+    /// Called right after the `before_draw` function is called
+    #[allow(unused)]
+    fn should_render(&mut self, scope: &mut RenderScope, widget: &Arc<Widget>) -> bool {
+        true
+    }
 }
 
 /// Represents a single render instruction.
@@ -325,6 +330,37 @@ impl RenderScope {
         &mut self.style
     }
 
+    pub fn scroll(&mut self, offset: u16) {
+        for i in 0..self.render_stack.len() {
+            match self.render_stack[i] {
+                RenderMethod::Text(_, y, _) => {
+                    if self.transform.y + y < offset {
+                        self.render_stack.remove(i);
+                    }
+                }
+                RenderMethod::TextInverted(_, y, _) => {
+                    if self.transform.y + y < offset {
+                        self.render_stack.remove(i);
+                    }
+                }
+                RenderMethod::TextColored(_, y, _, _) => {
+                    if self.transform.y + y < offset {
+                        self.render_stack.remove(i);
+                    }
+                }
+                RenderMethod::Rectangle(_, y, _, _, _) => {
+                    if self.transform.y + y < offset {
+                        self.render_stack.remove(i);
+                    }
+                }
+            }
+        }
+
+        if self.transform.y >= offset {
+            self.transform.y -= offset;
+        }
+    }
+
     pub fn render_widget(
         &mut self,
         renderer: &mut dyn ElementRenderer,
@@ -359,10 +395,11 @@ impl RenderScope {
 
             renderer.before_draw(self, widget);
 
-            self.draw();
-
-            widget.get_elem().after_render(self, &render_context);
-            ctx.after_render(widget, self);
+            if renderer.should_render(self, widget) {
+                self.draw();
+                widget.get_elem().after_render(self, &render_context);
+                ctx.after_render(widget, self);
+            }
         }
 
         widget.auto_refresh();

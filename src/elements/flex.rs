@@ -158,6 +158,8 @@ impl ElementRenderer for RowRenderer<'_> {
 
         t.px += self.0.px;
         t.py += self.0.py;
+
+        scope.scroll(1);
     }
 }
 
