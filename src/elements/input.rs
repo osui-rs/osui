@@ -48,7 +48,7 @@ impl Element for Input {
                     }
                 }
                 KeyCode::Delete => {
-                    if self.cursor > 0 && self.state.get().len() > self.cursor {
+                    if self.state.get().len() > self.cursor {
                         self.state.get().remove(self.cursor);
                     }
                 }
