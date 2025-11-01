@@ -70,7 +70,6 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
                     Input { }
                 }
 
-                @Transform::new().margin(0, 1);
                 FlexRow
                 {
                     "Password"

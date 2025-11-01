@@ -68,6 +68,7 @@ impl Element for FlexRow {
         let mut scope = crate::render_scope::RenderScope::new();
         scope.set_parent_transform(transform.clone());
 
+        transform.height = 0;
         let mut v = 0;
         let mut renderer = RowRenderer(&mut transform, self.gap, &mut v);
         for widget in &self.children {
@@ -127,6 +128,7 @@ impl Element for FlexCol {
         let mut scope = crate::render_scope::RenderScope::new();
         scope.set_parent_transform(transform.clone());
 
+        transform.width = 0;
         let mut v = 0;
         let mut renderer = ColumnRenderer(&mut transform, self.gap, &mut v);
         for widget in &self.children {
@@ -158,7 +160,7 @@ impl ElementRenderer for RowRenderer<'_> {
     fn before_draw(&mut self, scope: &mut crate::prelude::RenderScope, _widget: &Arc<Widget>) {
         let t = scope.get_transform_mut();
         self.0.width = self.0.width.max(*self.2 + t.width + (t.px * 2));
-        self.0.height = self.0.height.max(t.height + (t.py * 2));
+        // self.0.height = self.0.height.max(t.height + (t.py * 2));
 
         t.x += self.0.x;
         t.y += self.0.y + *self.2;
@@ -166,13 +168,15 @@ impl ElementRenderer for RowRenderer<'_> {
 
         t.px += self.0.px;
         t.py += self.0.py;
+
+        self.0.height += t.height + (t.py * 2) + self.1;
     }
 }
 
 impl ElementRenderer for ColumnRenderer<'_> {
     fn before_draw(&mut self, scope: &mut crate::prelude::RenderScope, _widget: &Arc<Widget>) {
         let t = scope.get_transform_mut();
-        self.0.width = self.0.width.max(*self.2 + t.width + (t.px * 2));
+        // self.0.width = self.0.width.max(*self.2 + t.width + (t.px * 2));
         self.0.height = self.0.height.max(t.height + (t.py * 2));
 
         t.x += self.0.x + *self.2;
@@ -181,5 +185,7 @@ impl ElementRenderer for ColumnRenderer<'_> {
 
         t.px += self.0.px;
         t.py += self.0.py;
+
+        self.0.width += t.width + (t.px * 2) + self.1;
     }
 }
