@@ -80,13 +80,25 @@ impl Element for Scroll {
         if let Some(e) = event.get::<crossterm::event::Event>() {
             match e {
                 Event::Key(k) => match k.code {
-                    crossterm::event::KeyCode::Up => {
+                    crossterm::event::KeyCode::PageUp => {
                         self.scroll_offset = self.scroll_offset.saturating_sub(1)
                     }
-                    crossterm::event::KeyCode::Down => {
+                    crossterm::event::KeyCode::PageDown => {
                         if self.scroll_offset + 1 < self.render.1 {
                             self.scroll_offset += 1;
                         }
+                    }
+                    _ => {}
+                },
+
+                Event::Mouse(m) => match m.kind {
+                    crossterm::event::MouseEventKind::ScrollDown => {
+                        if self.scroll_offset + 1 < self.render.1 {
+                            self.scroll_offset += 1;
+                        }
+                    }
+                    crossterm::event::MouseEventKind::ScrollUp => {
+                        self.scroll_offset = self.scroll_offset.saturating_sub(1)
                     }
                     _ => {}
                 },
