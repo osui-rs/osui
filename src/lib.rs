@@ -36,6 +36,7 @@ use crate::{
     prelude::{Context, ElementRenderer},
     render_scope::RenderScope,
     state::DependencyHandler,
+    style::RawTransform,
     widget::{BoxedElement, DynWidget, Element, StaticWidget, Widget, WidgetLoad},
 };
 
@@ -190,8 +191,9 @@ impl Screen {
     pub fn render(self: &Arc<Self>, ctx: &Context) -> std::io::Result<()> {
         let mut scope = RenderScope::new();
         let mut renderer = ScreenRenderer;
-        let (w, h) = crossterm::terminal::size().unwrap();
-        scope.set_parent_size(w, h);
+        let mut transform = RawTransform::new();
+        (transform.width, transform.height) = crossterm::terminal::size().unwrap();
+        scope.set_parent_transform(transform);
         ctx.render_root(&mut scope);
 
         utils::clear()?;

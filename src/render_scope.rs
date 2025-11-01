@@ -44,9 +44,8 @@ enum RenderMethod {
 #[derive(Clone)]
 pub struct RenderScope {
     transform: RawTransform,
+    parent_transform: RawTransform,
     render_stack: Vec<RenderMethod>,
-    parent_width: u16,
-    parent_height: u16,
     style: Style,
 }
 
@@ -79,9 +78,8 @@ impl RenderScope {
     pub fn new() -> RenderScope {
         RenderScope {
             transform: RawTransform::new(),
+            parent_transform: RawTransform::new(),
             render_stack: Vec::new(),
-            parent_width: 0,
-            parent_height: 0,
             style: Style::new(),
         }
     }
@@ -93,8 +91,16 @@ impl RenderScope {
 
     /// Applies a `Transform` to this scope, factoring in parent dimensions.
     pub fn set_transform(&mut self, transform: &Transform) {
-        transform.use_dimensions(self.parent_width, self.parent_height, &mut self.transform);
-        transform.use_position(self.parent_width, self.parent_height, &mut self.transform);
+        transform.use_dimensions(
+            self.parent_transform.width,
+            self.parent_transform.height,
+            &mut self.transform,
+        );
+        transform.use_position(
+            self.parent_transform.width,
+            self.parent_transform.height,
+            &mut self.transform,
+        );
         self.transform.px = transform.px;
         self.transform.py = transform.py;
     }
@@ -164,6 +170,7 @@ impl RenderScope {
                             format!("\n│{}│", " ".repeat(width as usize - 2))
                                 .repeat(height as usize - 2),
                         ),
+                        &self.parent_transform,
                     );
                 }
             }
@@ -181,6 +188,7 @@ impl RenderScope {
                             format!("\n│{}│", " ".repeat(width as usize - 2))
                                 .repeat(height as usize - 2),
                         ),
+                        &self.parent_transform,
                     );
                 }
             }
@@ -192,6 +200,7 @@ impl RenderScope {
                     .take(height as usize)
                     .collect::<Vec<_>>()
                     .join("\n"),
+                &self.parent_transform,
             ),
         }
 
@@ -204,12 +213,14 @@ impl RenderScope {
                             self.transform.y + self.transform.py + y,
                             &utils::hex_ansi(c),
                             t,
+                            &self.parent_transform,
                         );
                     } else {
                         utils::print(
                             self.transform.x + self.transform.px,
                             self.transform.y + self.transform.py,
                             t,
+                            &self.parent_transform,
                         );
                     }
                 }
@@ -220,12 +231,14 @@ impl RenderScope {
                             self.transform.y + self.transform.py + y,
                             &utils::hex_ansi_bg(c),
                             t,
+                            &self.parent_transform,
                         );
                     } else {
                         utils::print(
                             self.transform.x + self.transform.px,
                             self.transform.y + self.transform.py,
                             t,
+                            &self.parent_transform,
                         );
                     }
                 }
@@ -234,18 +247,18 @@ impl RenderScope {
                     self.transform.y + self.transform.py + y,
                     &utils::hex_ansi(*c),
                     t,
+                    &self.parent_transform,
                 ),
-                RenderMethod::Rectangle(x, y, width, height, color) => {
-                    utils::print_liner(
-                        self.transform.x + self.transform.px + x,
-                        self.transform.y + self.transform.py + y,
-                        &hex_ansi_bg(*color),
-                        &std::iter::repeat(" ".repeat(*width as usize))
-                            .take(*height as usize)
-                            .collect::<Vec<_>>()
-                            .join("\n"),
-                    );
-                }
+                RenderMethod::Rectangle(x, y, width, height, color) => utils::print_liner(
+                    self.transform.x + self.transform.px + x,
+                    self.transform.y + self.transform.py + y,
+                    &hex_ansi_bg(*color),
+                    &std::iter::repeat(" ".repeat(*width as usize))
+                        .take(*height as usize)
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                    &self.parent_transform,
+                ),
             }
         }
     }
@@ -282,12 +295,12 @@ impl RenderScope {
     pub fn get_size_or_parent(&self) -> (u16, u16) {
         (
             if self.transform.width == 0 {
-                self.parent_width
+                self.parent_transform.width
             } else {
                 self.transform.width
             },
             if self.transform.height == 0 {
-                self.parent_height
+                self.parent_transform.height
             } else {
                 self.transform.height
             },
@@ -295,14 +308,18 @@ impl RenderScope {
     }
 
     /// Gets the dimensions of the parent container.
-    pub fn get_parent_size(&self) -> (u16, u16) {
-        (self.parent_width, self.parent_height)
+    pub fn get_parent_transform(&self) -> &RawTransform {
+        &self.parent_transform
     }
 
     /// Sets the dimensions of the parent container.
-    pub fn set_parent_size(&mut self, width: u16, height: u16) {
-        self.parent_width = width;
-        self.parent_height = height;
+    // pub fn set_parent_size(&mut self, width: u16, height: u16) {
+    //     self.parent_transform.width = width;
+    //     self.parent_transform.height = height;
+    // }
+
+    pub fn set_parent_transform(&mut self, transform: RawTransform) {
+        self.parent_transform = transform;
     }
 
     /// Returns a mutable reference to the internal raw transform.

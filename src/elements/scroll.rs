@@ -1,5 +1,7 @@
 use std::sync::Arc;
 
+use crossterm::event::Event;
+
 use crate::{
     prelude::ElementRenderer,
     style::RawTransform,
@@ -7,23 +9,25 @@ use crate::{
     NoRenderRoot,
 };
 
-pub struct DivRenderer<'a>(pub &'a mut RawTransform);
+pub struct ScrollRenderer<'a>(&'a mut RawTransform);
 
-pub struct Div {
+pub struct Scroll {
+    pub scroll_offset: u16,
     children: Vec<Arc<Widget>>,
     render: (u16, u16),
 }
 
-impl Div {
+impl Scroll {
     pub fn new() -> Self {
-        Div {
+        Self {
+            scroll_offset: 0,
             children: Vec::new(),
             render: (0, 0),
         }
     }
 }
 
-impl Element for Div {
+impl Element for Scroll {
     fn render(
         &mut self,
         scope: &mut crate::prelude::RenderScope,
@@ -46,12 +50,14 @@ impl Element for Div {
             t
         };
 
+        transform.offset_y = self.scroll_offset;
+
         let mut scope = crate::render_scope::RenderScope::new();
         scope.set_parent_transform(transform.clone());
 
         transform.width = 0;
         transform.height = 0;
-        let mut renderer = DivRenderer(&mut transform);
+        let mut renderer = ScrollRenderer(&mut transform);
         for widget in &self.children {
             scope.render_widget(&mut renderer, render_context.get_context(), widget);
         }
@@ -62,6 +68,43 @@ impl Element for Div {
     fn draw_child(&mut self, element: &Arc<Widget>) {
         self.children.push(element.clone());
         element.inject(|w| w.component(NoRenderRoot));
+    }
+
+    fn undraw_child(&mut self, element: &Arc<Widget>) {
+        if let Some(i) = self.children.iter().position(|v| Arc::ptr_eq(v, element)) {
+            self.children.remove(i);
+        }
+    }
+
+    fn event(&mut self, event: &dyn crate::prelude::Event) {
+        if let Some(e) = event.get::<crossterm::event::Event>() {
+            match e {
+                Event::Key(k) => match k.code {
+                    crossterm::event::KeyCode::PageUp => {
+                        self.scroll_offset = self.scroll_offset.saturating_sub(1)
+                    }
+                    crossterm::event::KeyCode::PageDown => {
+                        if self.scroll_offset + 1 < self.render.1 {
+                            self.scroll_offset += 1;
+                        }
+                    }
+                    _ => {}
+                },
+
+                Event::Mouse(m) => match m.kind {
+                    crossterm::event::MouseEventKind::ScrollDown => {
+                        if self.scroll_offset + 1 < self.render.1 {
+                            self.scroll_offset += 1;
+                        }
+                    }
+                    crossterm::event::MouseEventKind::ScrollUp => {
+                        self.scroll_offset = self.scroll_offset.saturating_sub(1)
+                    }
+                    _ => {}
+                },
+                _ => {}
+            }
+        }
     }
 
     fn is_ghost(&mut self) -> bool {
@@ -77,7 +120,7 @@ impl Element for Div {
     }
 }
 
-impl ElementRenderer for DivRenderer<'_> {
+impl ElementRenderer for ScrollRenderer<'_> {
     fn before_draw(&mut self, scope: &mut crate::prelude::RenderScope, _widget: &Arc<Widget>) {
         let t = scope.get_transform_mut();
         self.0.width = self.0.width.max(t.width + (t.px * 2));

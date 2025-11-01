@@ -7,23 +7,25 @@ use crate::{
     NoRenderRoot,
 };
 
-pub struct DivRenderer<'a>(pub &'a mut RawTransform);
+pub struct ColumnRenderer<'a>(&'a mut RawTransform, u16, &'a mut u16);
 
-pub struct Div {
+pub struct FlexCol {
+    pub gap: u16,
     children: Vec<Arc<Widget>>,
     render: (u16, u16),
 }
 
-impl Div {
+impl FlexCol {
     pub fn new() -> Self {
-        Div {
+        Self {
             children: Vec::new(),
+            gap: 0,
             render: (0, 0),
         }
     }
 }
 
-impl Element for Div {
+impl Element for FlexCol {
     fn render(
         &mut self,
         scope: &mut crate::prelude::RenderScope,
@@ -50,8 +52,8 @@ impl Element for Div {
         scope.set_parent_transform(transform.clone());
 
         transform.width = 0;
-        transform.height = 0;
-        let mut renderer = DivRenderer(&mut transform);
+        let mut v = 0;
+        let mut renderer = ColumnRenderer(&mut transform, self.gap, &mut v);
         for widget in &self.children {
             scope.render_widget(&mut renderer, render_context.get_context(), widget);
         }
@@ -77,13 +79,20 @@ impl Element for Div {
     }
 }
 
-impl ElementRenderer for DivRenderer<'_> {
+impl ElementRenderer for ColumnRenderer<'_> {
     fn before_draw(&mut self, scope: &mut crate::prelude::RenderScope, _widget: &Arc<Widget>) {
         let t = scope.get_transform_mut();
-        self.0.width = self.0.width.max(t.width + (t.px * 2));
+        // self.0.width = self.0.width.max(*self.2 + t.width + (t.px * 2));
         self.0.height = self.0.height.max(t.height + (t.py * 2));
-        t.x += self.0.x + self.0.px;
-        t.y += self.0.y + self.0.py;
+
+        t.x += self.0.x + *self.2;
+        t.y += self.0.y;
+        *self.2 += t.width + self.1 + (t.px * 2);
+
+        t.px += self.0.px;
+        t.py += self.0.py;
+
+        self.0.width += t.width + (t.px * 2) + self.1;
         t.offset_y = self.0.offset_y;
     }
 }

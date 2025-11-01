@@ -3,6 +3,8 @@
 
 use std::io::{self, Write};
 
+use crate::style::RawTransform;
+
 /// Clears the terminal screen and moves the cursor to the top-left corner.
 ///
 /// # Returns
@@ -107,16 +109,40 @@ pub fn hex_ansi_bg(hex: u32) -> String {
     format!("\x1b[48;2;{r};{g};{b}m")
 }
 
-pub(crate) fn print(x: u16, y: u16, text: &str) {
+pub(crate) fn print(x: u16, y: u16, text: &str, parent_transform: &RawTransform) {
     for (i, line) in text.lines().enumerate() {
-        print!("\x1b[{};{}H{line}\x1b[0m", y + i as u16 + 1, x + 1);
+        if parent_transform.offset_y > y + i as u16 {
+            continue;
+        }
+
+        let y = y + i as u16 - parent_transform.offset_y;
+
+        if y >= parent_transform.height + parent_transform.y + parent_transform.py {
+            break;
+        }
+        print!("\x1b[{};{}H{line}\x1b[0m", y + 1, x + 1);
         flush().unwrap();
     }
 }
 
-pub(crate) fn print_liner(x: u16, y: u16, liner: &str, text: &str) {
+pub(crate) fn print_liner(
+    x: u16,
+    y: u16,
+    liner: &str,
+    text: &str,
+    parent_transform: &RawTransform,
+) {
     for (i, line) in text.lines().enumerate() {
-        print!("\x1b[{};{}H{liner}{line}\x1b[0m", y + i as u16 + 1, x + 1);
+        if parent_transform.offset_y > y + i as u16 {
+            continue;
+        }
+
+        let y = y + i as u16 - parent_transform.offset_y;
+
+        if y >= parent_transform.height + parent_transform.y + parent_transform.py {
+            break;
+        }
+        print!("\x1b[{};{}H{liner}{line}\x1b[0m", y + 1, x + 1);
         flush().unwrap();
     }
 }

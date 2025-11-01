@@ -10,16 +10,16 @@ use crate::{
 
 pub struct Paginator {
     children: Vec<Arc<Widget>>,
-    size: (u16, u16),
     index: usize,
+    render: (u16, u16),
 }
 
 impl Paginator {
     pub fn new() -> Self {
         Self {
             children: Vec::new(),
-            size: (0, 0),
             index: 0,
+            render: (0, 0),
         }
     }
 }
@@ -27,28 +27,35 @@ impl Paginator {
 impl Element for Paginator {
     fn render(
         &mut self,
-        scope: &mut crate::render_scope::RenderScope,
+        scope: &mut crate::prelude::RenderScope,
         _: &crate::render_scope::RenderContext,
     ) {
-        let (width, height) = scope.get_size_or(self.size.0, self.size.1);
-        scope.use_area(width, height);
+        scope.use_area(self.render.0, self.render.1);
     }
 
     fn after_render(
         &mut self,
-        scope: &mut crate::render_scope::RenderScope,
+        parent_scope: &mut crate::render_scope::RenderScope,
         render_context: &crate::render_scope::RenderContext,
     ) {
         if let Some(widget) = self.children.get(self.index) {
-            let mut transform = scope.get_transform().clone();
-            let mut renderer = DivRenderer(&mut transform);
-            let (w, h) = scope.get_parent_size();
-            scope.set_parent_size(renderer.0.width, renderer.0.height);
+            let mut transform = {
+                let (width, height) = parent_scope.get_size_or_parent();
+                let mut t = parent_scope.get_transform().clone();
+                t.width = width;
+                t.height = height;
+                t.transform_parent(parent_scope.get_parent_transform());
+                t
+            };
 
+            let mut scope = crate::render_scope::RenderScope::new();
+            scope.set_parent_transform(transform.clone());
+
+            transform.height = 0;
+            let mut renderer = DivRenderer(&mut transform);
             scope.render_widget(&mut renderer, render_context.get_context(), widget);
 
-            scope.set_parent_size(w, h);
-            self.size = (renderer.0.width, renderer.0.height);
+            self.render = (transform.width, transform.height);
         }
     }
 

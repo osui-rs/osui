@@ -19,6 +19,7 @@ pub struct RawTransform {
     pub height: u16,
     pub px: u16,
     pub py: u16,
+    pub offset_y: u16,
 }
 
 /// Horizontal or vertical position relative to a parent container.
@@ -169,6 +170,31 @@ impl RawTransform {
             height: 0,
             px: 0,
             py: 0,
+            offset_y: 0,
+        }
+    }
+
+    pub fn transform_parent(&mut self, parent: &Self) {
+        let child_bottom = self.y + self.height;
+        let parent_bottom = parent.y + parent.height;
+
+        let child_right = self.x + self.width;
+        let parent_right = parent.x + parent.width;
+
+        if child_bottom > parent_bottom {
+            if parent_bottom > self.y {
+                self.height = parent_bottom - self.y;
+            } else {
+                self.height = 0;
+            }
+        }
+
+        if child_right > parent_right {
+            if parent_right > self.x {
+                self.width = parent_right - self.x;
+            } else {
+                self.width = 0;
+            }
         }
     }
 }
