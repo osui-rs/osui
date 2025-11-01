@@ -16,20 +16,12 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
     let count = use_state(1);
 
     run! {
-        ref count {
+        ref count, items {
             loop {
-                if count.get_dl() == 20 {
-                    break;
-                }
-                std::thread::sleep(std::time::Duration::from_millis(200));
+                items.get().push(count.get_dl());
                 **count.get() += 1;
+                std::thread::sleep(std::time::Duration::from_millis(100));
             }
-        }
-    }
-
-    run! {
-        use count ref items {
-            items.get().push(count.get_dl());
         }
     }
 
