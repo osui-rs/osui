@@ -20,13 +20,42 @@ pub fn app() -> Rsx {
     }
 
     rsx! {
+        // @transform! {
+        //     height: 3
+        // };
+        // FlexRow {
+        //     for item in items {
+        //         static "{item}"
+        //     }
+        // }
+
         @transform! {
             height: 3
         };
         FlexRow {
-            for item in items {
-                static "{item}"
-            }
+            @transform! {
+                height: 1
+            };
+            @Style { foreground: None, background: Background::Solid(0xff0000) };
+            Div { "yo" }
+
+            @transform! {
+                height: 1
+            };
+            @Style { foreground: None, background: Background::Solid(0x00ff00) };
+            Div { "gurt" }
+
+            @transform! {
+                height: 1
+            };
+            @Style { foreground: None, background: Background::Solid(0x0000ff) };
+            Div { "67" }
+
+            @transform! {
+                height: 1
+            };
+            @Style { foreground: None, background: Background::Solid(0x0000ff) };
+            Div { "41" }
         }
     }
 }

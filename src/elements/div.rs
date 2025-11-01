@@ -11,12 +11,14 @@ pub struct DivRenderer<'a>(pub &'a mut RawTransform);
 
 pub struct Div {
     children: Vec<Arc<Widget>>,
+    render: (u16, u16),
 }
 
 impl Div {
     pub fn new() -> Self {
         Div {
             children: Vec::new(),
+            render: (0, 0),
         }
     }
 }
@@ -24,21 +26,30 @@ impl Div {
 impl Element for Div {
     fn render(
         &mut self,
+        scope: &mut crate::prelude::RenderScope,
+        _: &crate::render_scope::RenderContext,
+    ) {
+        scope.use_area(self.render.0, self.render.1);
+    }
+
+    fn after_render(
+        &mut self,
         parent_scope: &mut crate::render_scope::RenderScope,
         render_context: &crate::render_scope::RenderContext,
     ) {
         let mut transform = parent_scope.get_transform().clone();
-        let (w, h) = parent_scope.get_size_or_parent();
+        let mut transform2 = transform.clone();
+        (transform2.width, transform2.height) = parent_scope.get_size_or_parent();
 
         let mut scope = crate::render_scope::RenderScope::new();
-        scope.set_parent_size(w, h);
+        scope.set_parent_transform(transform2.clone());
 
         let mut renderer = DivRenderer(&mut transform);
         for widget in &self.children {
             scope.render_widget(&mut renderer, render_context.get_context(), widget);
         }
 
-        parent_scope.use_area(w, h);
+        self.render = (transform2.width, transform2.height);
     }
 
     fn draw_child(&mut self, element: &Arc<Widget>) {
