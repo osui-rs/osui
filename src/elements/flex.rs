@@ -170,6 +170,7 @@ impl ElementRenderer for RowRenderer<'_> {
         t.py += self.0.py;
 
         self.0.height += t.height + (t.py * 2) + self.1;
+        t.offset_y = self.0.offset_y;
     }
 }
 
@@ -187,5 +188,6 @@ impl ElementRenderer for ColumnRenderer<'_> {
         t.py += self.0.py;
 
         self.0.width += t.width + (t.px * 2) + self.1;
+        t.offset_y = self.0.offset_y;
     }
 }

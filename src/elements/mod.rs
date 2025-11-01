@@ -3,12 +3,14 @@ pub mod flex;
 pub mod heading;
 pub mod input;
 pub mod paginator;
+pub mod scroll;
 
 pub use div::*;
 pub use flex::*;
 pub use heading::*;
 pub use input::*;
 pub use paginator::*;
+pub use scroll::*;
 
 use crate::Element;
 

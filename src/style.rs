@@ -19,6 +19,7 @@ pub struct RawTransform {
     pub height: u16,
     pub px: u16,
     pub py: u16,
+    pub offset_y: u16,
 }
 
 /// Horizontal or vertical position relative to a parent container.
@@ -169,6 +170,7 @@ impl RawTransform {
             height: 0,
             px: 0,
             py: 0,
+            offset_y: 0,
         }
     }
 
