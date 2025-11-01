@@ -9,53 +9,32 @@ fn main() -> std::io::Result<()> {
 }
 
 pub fn app() -> Rsx {
-    let items: State<Vec<i32>> = use_state(vec![1, 2]);
-    let count = use_state(3);
+    let items: State<Vec<i32>> = use_state(Vec::new());
+    let count = use_state(1);
+
+    run! {
+        ref count {
+            loop {
+                if count.get_dl() == 5 {
+                    break;
+                }
+                std::thread::sleep(std::time::Duration::from_millis(300));
+                **count.get() += 1;
+            }
+        }
+    }
 
     run! {
         use count ref items {
             items.get().push(count.get_dl());
-            **count.get() += 1;
         }
     }
 
     rsx! {
-        // @transform! {
-        //     height: 3
-        // };
-        // FlexRow {
-        //     for item in items {
-        //         static "{item}"
-        //     }
-        // }
-
-        @transform! {
-            height: 3
-        };
         FlexRow {
-            @transform! {
-                height: 1
-            };
-            @Style { foreground: None, background: Background::Solid(0xff0000) };
-            Div { "yo" }
-
-            @transform! {
-                height: 1
-            };
-            @Style { foreground: None, background: Background::Solid(0x00ff00) };
-            Div { "gurt" }
-
-            @transform! {
-                height: 1
-            };
-            @Style { foreground: None, background: Background::Solid(0x0000ff) };
-            Div { "67" }
-
-            @transform! {
-                height: 1
-            };
-            @Style { foreground: None, background: Background::Solid(0x0000ff) };
-            Div { "41" }
+            for item in items {
+                static "{item}"
+            }
         }
     }
 }

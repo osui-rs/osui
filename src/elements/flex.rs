@@ -56,12 +56,17 @@ impl Element for FlexRow {
         parent_scope: &mut crate::render_scope::RenderScope,
         render_context: &crate::render_scope::RenderContext,
     ) {
-        let mut transform = parent_scope.get_transform().clone();
-        let mut transform2 = transform.clone();
-        (transform2.width, transform2.height) = parent_scope.get_size_or_parent();
+        let mut transform = {
+            let (width, height) = parent_scope.get_size_or_parent();
+            let mut t = parent_scope.get_transform().clone();
+            t.width = width;
+            t.height = height;
+            t.transform_parent(parent_scope.get_parent_transform());
+            t
+        };
 
         let mut scope = crate::render_scope::RenderScope::new();
-        scope.set_parent_transform(transform2.clone());
+        scope.set_parent_transform(transform.clone());
 
         let mut v = 0;
         let mut renderer = RowRenderer(&mut transform, self.gap, &mut v);
@@ -69,7 +74,7 @@ impl Element for FlexRow {
             scope.render_widget(&mut renderer, render_context.get_context(), widget);
         }
 
-        self.render = (transform2.width, transform2.height);
+        self.render = (transform.width, transform.height);
     }
 
     fn draw_child(&mut self, element: &Arc<Widget>) {
@@ -110,12 +115,17 @@ impl Element for FlexCol {
         parent_scope: &mut crate::render_scope::RenderScope,
         render_context: &crate::render_scope::RenderContext,
     ) {
-        let mut transform = parent_scope.get_transform().clone();
-        let mut transform2 = transform.clone();
-        (transform2.width, transform2.height) = parent_scope.get_size_or_parent();
+        let mut transform = {
+            let (width, height) = parent_scope.get_size_or_parent();
+            let mut t = parent_scope.get_transform().clone();
+            t.width = width;
+            t.height = height;
+            t.transform_parent(parent_scope.get_parent_transform());
+            t
+        };
 
         let mut scope = crate::render_scope::RenderScope::new();
-        scope.set_parent_transform(transform2.clone());
+        scope.set_parent_transform(transform.clone());
 
         let mut v = 0;
         let mut renderer = ColumnRenderer(&mut transform, self.gap, &mut v);
@@ -123,7 +133,7 @@ impl Element for FlexCol {
             scope.render_widget(&mut renderer, render_context.get_context(), widget);
         }
 
-        self.render = (transform2.width, transform2.height);
+        self.render = (transform.width, transform.height);
     }
 
     fn draw_child(&mut self, element: &Arc<Widget>) {

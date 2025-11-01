@@ -171,6 +171,19 @@ impl RawTransform {
             py: 0,
         }
     }
+
+    pub fn transform_parent(&mut self, parent: &Self) {
+        let child_bottom = self.y + self.height;
+        let parent_bottom = parent.y + parent.height;
+
+        if child_bottom > parent_bottom {
+            if parent_bottom > self.y {
+                self.height = parent_bottom - self.y;
+            } else {
+                self.height = 0;
+            }
+        }
+    }
 }
 
 impl Dimension {
