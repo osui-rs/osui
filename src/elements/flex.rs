@@ -13,20 +13,17 @@ pub struct ColumnRenderer<'a>(&'a mut RawTransform, u16, &'a mut u16);
 pub struct FlexRow {
     pub gap: u16,
     children: Vec<Arc<Widget>>,
-    size: (u16, u16),
 }
 
 pub struct FlexCol {
     pub gap: u16,
     children: Vec<Arc<Widget>>,
-    size: (u16, u16),
 }
 
 impl FlexRow {
     pub fn new() -> Self {
         Self {
             children: Vec::new(),
-            size: (0, 0),
             gap: 0,
         }
     }
@@ -36,7 +33,6 @@ impl FlexCol {
     pub fn new() -> Self {
         Self {
             children: Vec::new(),
-            size: (0, 0),
             gap: 0,
         }
     }
@@ -45,32 +41,22 @@ impl FlexCol {
 impl Element for FlexRow {
     fn render(
         &mut self,
-        scope: &mut crate::render_scope::RenderScope,
-        _: &crate::render_scope::RenderContext,
-    ) {
-        let (width, height) = scope.get_size_or(self.size.0, self.size.1);
-        scope.use_area(width, height);
-    }
-
-    fn after_render(
-        &mut self,
-        scope: &mut crate::render_scope::RenderScope,
+        parent_scope: &mut crate::render_scope::RenderScope,
         render_context: &crate::render_scope::RenderContext,
     ) {
-        let mut transform = scope.get_transform().clone();
-        let transform_before = transform.clone();
-        let (w, h) = scope.get_parent_size();
-        scope.set_parent_size(transform.width, transform.height);
+        let mut transform = parent_scope.get_transform().clone();
+        let (w, h) = parent_scope.get_size_or_parent();
+
+        let mut scope = crate::render_scope::RenderScope::new();
+        scope.set_parent_size(w, h);
+
         let mut v = 0;
-
         let mut renderer = RowRenderer(&mut transform, self.gap, &mut v);
-
         for widget in &self.children {
             scope.render_widget(&mut renderer, render_context.get_context(), widget);
         }
-        scope.set_parent_size(w, h);
-        scope.set_transform_raw(transform_before);
-        self.size = (transform.width, transform.height);
+
+        parent_scope.use_area(w, h);
     }
 
     fn draw_child(&mut self, element: &Arc<Widget>) {
@@ -100,32 +86,22 @@ impl Element for FlexRow {
 impl Element for FlexCol {
     fn render(
         &mut self,
-        scope: &mut crate::render_scope::RenderScope,
-        _: &crate::render_scope::RenderContext,
-    ) {
-        let (width, height) = scope.get_size_or(self.size.0, self.size.1);
-        scope.use_area(width, height);
-    }
-
-    fn after_render(
-        &mut self,
-        scope: &mut crate::render_scope::RenderScope,
+        parent_scope: &mut crate::render_scope::RenderScope,
         render_context: &crate::render_scope::RenderContext,
     ) {
-        let mut transform = scope.get_transform().clone();
-        let transform_before = transform.clone();
-        let (w, h) = scope.get_parent_size();
-        scope.set_parent_size(transform.width, transform.height);
+        let mut transform = parent_scope.get_transform().clone();
+        let (w, h) = parent_scope.get_size_or_parent();
+
+        let mut scope = crate::render_scope::RenderScope::new();
+        scope.set_parent_size(w, h);
+
         let mut v = 0;
-
         let mut renderer = ColumnRenderer(&mut transform, self.gap, &mut v);
-
         for widget in &self.children {
             scope.render_widget(&mut renderer, render_context.get_context(), widget);
         }
-        scope.set_parent_size(w, h);
-        scope.set_transform_raw(transform_before);
-        self.size = (transform.width, transform.height);
+
+        parent_scope.use_area(w, h);
     }
 
     fn draw_child(&mut self, element: &Arc<Widget>) {

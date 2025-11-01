@@ -20,6 +20,9 @@ pub fn app() -> Rsx {
     }
 
     rsx! {
+        @transform! {
+            height: 3
+        };
         FlexRow {
             for item in items {
                 static "{item}"

@@ -164,6 +164,7 @@ impl RenderScope {
                             format!("\n│{}│", " ".repeat(width as usize - 2))
                                 .repeat(height as usize - 2),
                         ),
+                        (self.parent_width, self.parent_height),
                     );
                 }
             }
@@ -181,6 +182,7 @@ impl RenderScope {
                             format!("\n│{}│", " ".repeat(width as usize - 2))
                                 .repeat(height as usize - 2),
                         ),
+                        (self.parent_width, self.parent_height),
                     );
                 }
             }
@@ -192,24 +194,30 @@ impl RenderScope {
                     .take(height as usize)
                     .collect::<Vec<_>>()
                     .join("\n"),
+                (self.parent_width, self.parent_height),
             ),
         }
 
         for m in &self.render_stack {
             match m {
                 RenderMethod::Text(x, y, t) => {
+                    if *y + self.transform.y >= self.parent_height {
+                        continue;
+                    }
                     if let Some(c) = self.style.foreground {
                         utils::print_liner(
                             self.transform.x + self.transform.px + x,
                             self.transform.y + self.transform.py + y,
                             &utils::hex_ansi(c),
                             t,
+                            (self.parent_width, self.parent_height),
                         );
                     } else {
                         utils::print(
                             self.transform.x + self.transform.px,
                             self.transform.y + self.transform.py,
                             t,
+                            (self.parent_width, self.parent_height),
                         );
                     }
                 }
@@ -220,12 +228,14 @@ impl RenderScope {
                             self.transform.y + self.transform.py + y,
                             &utils::hex_ansi_bg(c),
                             t,
+                            (self.parent_width, self.parent_height),
                         );
                     } else {
                         utils::print(
                             self.transform.x + self.transform.px,
                             self.transform.y + self.transform.py,
                             t,
+                            (self.parent_width, self.parent_height),
                         );
                     }
                 }
@@ -234,18 +244,18 @@ impl RenderScope {
                     self.transform.y + self.transform.py + y,
                     &utils::hex_ansi(*c),
                     t,
+                    (self.parent_width, self.parent_height),
                 ),
-                RenderMethod::Rectangle(x, y, width, height, color) => {
-                    utils::print_liner(
-                        self.transform.x + self.transform.px + x,
-                        self.transform.y + self.transform.py + y,
-                        &hex_ansi_bg(*color),
-                        &std::iter::repeat(" ".repeat(*width as usize))
-                            .take(*height as usize)
-                            .collect::<Vec<_>>()
-                            .join("\n"),
-                    );
-                }
+                RenderMethod::Rectangle(x, y, width, height, color) => utils::print_liner(
+                    self.transform.x + self.transform.px + x,
+                    self.transform.y + self.transform.py + y,
+                    &hex_ansi_bg(*color),
+                    &std::iter::repeat(" ".repeat(*width as usize))
+                        .take(*height as usize)
+                        .collect::<Vec<_>>()
+                        .join("\n"),
+                    (self.parent_width, self.parent_height),
+                ),
             }
         }
     }
