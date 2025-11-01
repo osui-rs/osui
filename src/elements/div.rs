@@ -49,6 +49,7 @@ impl Element for Div {
         let mut scope = crate::render_scope::RenderScope::new();
         scope.set_parent_transform(transform.clone());
 
+        transform.width = 0;
         transform.height = 0;
         let mut renderer = DivRenderer(&mut transform);
         for widget in &self.children {

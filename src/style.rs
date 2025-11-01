@@ -176,11 +176,22 @@ impl RawTransform {
         let child_bottom = self.y + self.height;
         let parent_bottom = parent.y + parent.height;
 
+        let child_right = self.x + self.width;
+        let parent_right = parent.x + parent.width;
+
         if child_bottom > parent_bottom {
             if parent_bottom > self.y {
                 self.height = parent_bottom - self.y;
             } else {
                 self.height = 0;
+            }
+        }
+
+        if child_right > parent_right {
+            if parent_right > self.x {
+                self.width = parent_right - self.x;
+            } else {
+                self.width = 0;
             }
         }
     }
