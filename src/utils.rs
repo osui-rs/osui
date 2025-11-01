@@ -139,7 +139,7 @@ pub(crate) fn print_liner(
 
         let y = y + i as u16 - parent_transform.offset_y;
 
-        if y + i as u16 >= parent_transform.height + parent_transform.y + parent_transform.py {
+        if y >= parent_transform.height + parent_transform.y + parent_transform.py {
             break;
         }
         print!("\x1b[{};{}H{liner}{line}\x1b[0m", y + 1, x + 1);
