@@ -10,7 +10,6 @@ use crate::{
 
 pub struct Paginator {
     children: Vec<Arc<Widget>>,
-    size: (u16, u16),
     index: usize,
 }
 
@@ -18,7 +17,6 @@ impl Paginator {
     pub fn new() -> Self {
         Self {
             children: Vec::new(),
-            size: (0, 0),
             index: 0,
         }
     }
@@ -27,28 +25,20 @@ impl Paginator {
 impl Element for Paginator {
     fn render(
         &mut self,
-        scope: &mut crate::render_scope::RenderScope,
-        _: &crate::render_scope::RenderContext,
-    ) {
-        let (width, height) = scope.get_size_or(self.size.0, self.size.1);
-        scope.use_area(width, height);
-    }
-
-    fn after_render(
-        &mut self,
-        scope: &mut crate::render_scope::RenderScope,
+        parent_scope: &mut crate::render_scope::RenderScope,
         render_context: &crate::render_scope::RenderContext,
     ) {
         if let Some(widget) = self.children.get(self.index) {
-            let mut transform = scope.get_transform().clone();
-            let mut renderer = DivRenderer(&mut transform);
-            let (w, h) = scope.get_parent_size();
-            scope.set_parent_size(renderer.0.width, renderer.0.height);
+            let mut transform = parent_scope.get_transform().clone();
+            let (w, h) = parent_scope.get_size_or_parent();
 
+            let mut scope = crate::render_scope::RenderScope::new();
+            scope.set_parent_size(w, h);
+
+            let mut renderer = DivRenderer(&mut transform);
             scope.render_widget(&mut renderer, render_context.get_context(), widget);
 
-            scope.set_parent_size(w, h);
-            self.size = (renderer.0.width, renderer.0.height);
+            parent_scope.use_area(w, h);
         }
     }
 
