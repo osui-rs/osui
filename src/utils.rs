@@ -111,7 +111,7 @@ pub fn hex_ansi_bg(hex: u32) -> String {
 
 pub(crate) fn print(x: u16, y: u16, text: &str, parent_transform: &RawTransform) {
     for (i, line) in text.lines().enumerate() {
-        if y + i as u16 >= parent_transform.height + parent_transform.y {
+        if y + i as u16 >= parent_transform.height + parent_transform.y + parent_transform.py {
             break;
         }
         print!("\x1b[{};{}H{line}\x1b[0m", y + i as u16 + 1, x + 1);
@@ -127,7 +127,7 @@ pub(crate) fn print_liner(
     parent_transform: &RawTransform,
 ) {
     for (i, line) in text.lines().enumerate() {
-        if y + i as u16 >= parent_transform.height + parent_transform.y {
+        if y + i as u16 >= parent_transform.height + parent_transform.y + parent_transform.py {
             break;
         }
         print!("\x1b[{};{}H{liner}{line}\x1b[0m", y + i as u16 + 1, x + 1);
