@@ -139,9 +139,16 @@ impl Transform {
     }
 
     /// Sets constant dimensions.
-    pub fn dimensions(mut self, width: u16, height: u16) -> Self {
+    pub fn dimensions_const(mut self, width: u16, height: u16) -> Self {
         self.width = Dimension::Const(width);
         self.height = Dimension::Const(height);
+        self
+    }
+
+    /// Sets constant dimensions.
+    pub fn dimensions(mut self, width: Dimension, height: Dimension) -> Self {
+        self.width = width;
+        self.height = height;
         self
     }
 

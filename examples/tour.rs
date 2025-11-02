@@ -64,7 +64,7 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
                 FlexRow
                 {
                     "Username"
-                    @Transform::new().padding(1, 1).dimensions(40, 1);
+                    @Transform::new().padding(1, 1).dimensions_const(40, 1);
                     @Style { foreground: Some(0xffffff), background: Background::RoundedOutline(0xff0000) };
                     @Focused;
                     Input { }
@@ -73,7 +73,7 @@ pub fn app(screen: Arc<Screen>) -> Rsx {
                 FlexRow
                 {
                     "Password"
-                    @Transform::new().padding(1, 1).dimensions(40, 1);
+                    @Transform::new().padding(1, 1).dimensions_const(40, 1);
                     @Style { foreground: Some(0xffffff), background: Background::RoundedOutline(0xffff00) };
                     Input { }
                 }
