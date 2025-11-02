@@ -4,6 +4,7 @@ pub mod heading;
 pub mod input;
 pub mod paginator;
 pub mod scroll;
+pub mod velocity_handler;
 
 pub use div::*;
 pub use flex::*;
@@ -11,6 +12,7 @@ pub use heading::*;
 pub use input::*;
 pub use paginator::*;
 pub use scroll::*;
+pub use velocity_handler::*;
 
 use crate::Element;
 
