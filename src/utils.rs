@@ -117,13 +117,14 @@ pub(crate) fn print(
     text: &str,
 ) {
     let x = transform.x + transform.px + x;
+    let y = transform.y + transform.py + y;
 
     for (i, line) in text.lines().enumerate() {
         if parent_transform.offset_y > y + i as u16 {
             continue;
         }
 
-        let y = transform.y + transform.py + y + i as u16 - parent_transform.offset_y;
+        let y = y + i as u16 - parent_transform.offset_y;
 
         if y >= parent_transform.height + parent_transform.y + parent_transform.py {
             break;
