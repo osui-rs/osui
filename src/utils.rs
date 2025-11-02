@@ -109,7 +109,16 @@ pub fn hex_ansi_bg(hex: u32) -> String {
     format!("\x1b[48;2;{r};{g};{b}m")
 }
 
-pub(crate) fn print(x: u16, y: u16, text: &str, parent_transform: &RawTransform) {
+pub(crate) fn print(
+    x: u16,
+    y: u16,
+    transform: &RawTransform,
+    parent_transform: &RawTransform,
+    text: &str,
+) {
+    let x = transform.x + transform.px + x;
+    let y = transform.y + transform.py + y;
+
     for (i, line) in text.lines().enumerate() {
         if parent_transform.offset_y > y + i as u16 {
             continue;
@@ -128,10 +137,14 @@ pub(crate) fn print(x: u16, y: u16, text: &str, parent_transform: &RawTransform)
 pub(crate) fn print_liner(
     x: u16,
     y: u16,
+    transform: &RawTransform,
+    parent_transform: &RawTransform,
     liner: &str,
     text: &str,
-    parent_transform: &RawTransform,
 ) {
+    let x = transform.x + transform.px + x;
+    let y = transform.y + transform.py + y;
+
     for (i, line) in text.lines().enumerate() {
         if parent_transform.offset_y > y + i as u16 {
             continue;
@@ -143,6 +156,27 @@ pub(crate) fn print_liner(
             break;
         }
         print!("\x1b[{};{}H{liner}{line}\x1b[0m", y + 1, x + 1);
+        flush().unwrap();
+    }
+}
+
+pub(crate) fn print_liner_nopad(
+    transform: &RawTransform,
+    parent_transform: &RawTransform,
+    liner: &str,
+    text: &str,
+) {
+    for (i, line) in text.lines().enumerate() {
+        if parent_transform.offset_y > transform.y + i as u16 {
+            continue;
+        }
+
+        let y = transform.y + i as u16 - parent_transform.offset_y;
+
+        if y >= parent_transform.height + parent_transform.y + parent_transform.py {
+            break;
+        }
+        print!("\x1b[{};{}H{liner}{line}\x1b[0m", y + 1, transform.x + 1);
         flush().unwrap();
     }
 }

@@ -84,23 +84,10 @@ impl RenderScope {
         }
     }
 
-    /// Directly sets the raw transform (position and size) for this scope.
-    pub fn set_transform_raw(&mut self, transform: RawTransform) {
-        self.transform = transform;
-    }
-
     /// Applies a `Transform` to this scope, factoring in parent dimensions.
-    pub fn set_transform(&mut self, transform: &Transform) {
-        transform.use_dimensions(
-            self.parent_transform.width,
-            self.parent_transform.height,
-            &mut self.transform,
-        );
-        transform.use_position(
-            self.parent_transform.width,
-            self.parent_transform.height,
-            &mut self.transform,
-        );
+    pub fn apply_transform(&mut self, transform: &Transform) {
+        transform.use_dimensions(&self.parent_transform, &mut self.transform);
+        transform.use_position(&self.parent_transform, &mut self.transform);
         self.transform.px = transform.px;
         self.transform.py = transform.py;
     }
@@ -114,7 +101,7 @@ impl RenderScope {
         self.transform.height = self.transform.height.max(h);
     }
 
-    /// Adds a text draw instruction.
+    /// Adds a text draw instruction (inverted colors).
     pub fn draw_text_inverted(&mut self, x: u16, y: u16, text: &str) {
         self.render_stack
             .push(RenderMethod::TextInverted(x, y, text.to_string()));
@@ -161,16 +148,15 @@ impl RenderScope {
                 let height = height + self.transform.py * 2;
                 if width > 1 && height > 1 {
                     let d = "─".repeat(width as usize - 2);
-                    utils::print_liner(
-                        self.transform.x,
-                        self.transform.y,
+                    utils::print_liner_nopad(
+                        &self.transform,
+                        &self.parent_transform,
                         &utils::hex_ansi(c),
                         &format!(
                             "┌{d}┐{}\n└{d}┘",
                             format!("\n│{}│", " ".repeat(width as usize - 2))
                                 .repeat(height as usize - 2),
                         ),
-                        &self.parent_transform,
                     );
                 }
             }
@@ -179,28 +165,26 @@ impl RenderScope {
                 let height = height + self.transform.py * 2;
                 if width > 1 && height > 1 {
                     let d = "─".repeat(width as usize - 2);
-                    utils::print_liner(
-                        self.transform.x,
-                        self.transform.y,
+                    utils::print_liner_nopad(
+                        &self.transform,
+                        &self.parent_transform,
                         &utils::hex_ansi(c),
                         &format!(
                             "╭{d}╮{}\n╰{d}╯",
                             format!("\n│{}│", " ".repeat(width as usize - 2))
                                 .repeat(height as usize - 2),
                         ),
-                        &self.parent_transform,
                     );
                 }
             }
-            crate::style::Background::Solid(c) => utils::print_liner(
-                self.transform.x,
-                self.transform.y,
+            crate::style::Background::Solid(c) => utils::print_liner_nopad(
+                &self.transform,
+                &self.parent_transform,
                 &hex_ansi_bg(c),
                 &std::iter::repeat(" ".repeat(width as usize))
                     .take(height as usize)
                     .collect::<Vec<_>>()
                     .join("\n"),
-                &self.parent_transform,
             ),
         }
 
@@ -209,55 +193,49 @@ impl RenderScope {
                 RenderMethod::Text(x, y, t) => {
                     if let Some(c) = self.style.foreground {
                         utils::print_liner(
-                            self.transform.x + self.transform.px + x,
-                            self.transform.y + self.transform.py + y,
+                            *x,
+                            *y,
+                            &self.transform,
+                            &self.parent_transform,
                             &utils::hex_ansi(c),
                             t,
-                            &self.parent_transform,
                         );
                     } else {
-                        utils::print(
-                            self.transform.x + self.transform.px,
-                            self.transform.y + self.transform.py,
-                            t,
-                            &self.parent_transform,
-                        );
+                        utils::print(*x, *y, &self.transform, &self.parent_transform, t);
                     }
                 }
                 RenderMethod::TextInverted(x, y, t) => {
                     if let Some(c) = self.style.foreground {
                         utils::print_liner(
-                            self.transform.x + self.transform.px + x,
-                            self.transform.y + self.transform.py + y,
+                            *x,
+                            *y,
+                            &self.transform,
+                            &self.parent_transform,
                             &utils::hex_ansi_bg(c),
                             t,
-                            &self.parent_transform,
                         );
                     } else {
-                        utils::print(
-                            self.transform.x + self.transform.px,
-                            self.transform.y + self.transform.py,
-                            t,
-                            &self.parent_transform,
-                        );
+                        utils::print(*x, *y, &self.transform, &self.parent_transform, t);
                     }
                 }
                 RenderMethod::TextColored(x, y, t, c) => utils::print_liner(
-                    self.transform.x + self.transform.px + x,
-                    self.transform.y + self.transform.py + y,
+                    *x,
+                    *y,
+                    &self.transform,
+                    &self.parent_transform,
                     &utils::hex_ansi(*c),
                     t,
-                    &self.parent_transform,
                 ),
-                RenderMethod::Rectangle(x, y, width, height, color) => utils::print_liner(
-                    self.transform.x + self.transform.px + x,
-                    self.transform.y + self.transform.py + y,
-                    &hex_ansi_bg(*color),
+                RenderMethod::Rectangle(x, y, width, height, c) => utils::print_liner(
+                    *x,
+                    *y,
+                    &self.transform,
+                    &self.parent_transform,
+                    &utils::hex_ansi_bg(*c),
                     &std::iter::repeat(" ".repeat(*width as usize))
                         .take(*height as usize)
                         .collect::<Vec<_>>()
                         .join("\n"),
-                    &self.parent_transform,
                 ),
             }
         }
@@ -306,20 +284,25 @@ impl RenderScope {
             },
         )
     }
+    /// Returns parent size.
+    pub fn get_parent_size(&self) -> (u16, u16) {
+        (self.parent_transform.width, self.parent_transform.height)
+    }
 
     /// Gets the dimensions of the parent container.
     pub fn get_parent_transform(&self) -> &RawTransform {
         &self.parent_transform
     }
 
-    /// Sets the dimensions of the parent container.
-    // pub fn set_parent_size(&mut self, width: u16, height: u16) {
-    //     self.parent_transform.width = width;
-    //     self.parent_transform.height = height;
-    // }
-
+    /// Sets the transform of the parent container.
     pub fn set_parent_transform(&mut self, transform: RawTransform) {
         self.parent_transform = transform;
+    }
+
+    /// Sets the transform of the parent container.
+    pub fn set_parent_size(&mut self, width: u16, height: u16) {
+        self.parent_transform.width = width;
+        self.parent_transform.height = height;
     }
 
     /// Returns a mutable reference to the internal raw transform.
@@ -364,14 +347,14 @@ impl RenderScope {
                 self.set_style(style);
             }
             if let Some(t) = widget.get() {
-                self.set_transform(&t);
+                self.apply_transform(&t);
             }
 
             widget.get_elem().render(self, &render_context);
             ctx.render(widget, self);
 
             if let Some(t) = widget.get() {
-                self.set_transform(&t);
+                self.apply_transform(&t);
             }
 
             renderer.before_draw(self, widget);

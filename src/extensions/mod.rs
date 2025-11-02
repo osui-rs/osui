@@ -2,13 +2,11 @@ pub mod focus;
 pub mod id;
 pub mod input_handling;
 pub mod tick;
-pub mod velocity;
 
 pub use focus::*;
 pub use id::*;
 pub use input_handling::*;
 pub use tick::*;
-pub use velocity::*;
 
 use std::{
     any::{type_name, Any},
