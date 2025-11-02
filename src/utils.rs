@@ -142,18 +142,40 @@ pub(crate) fn print_liner(
     text: &str,
 ) {
     let x = transform.x + transform.px + x;
+    let y = transform.y + transform.py + y;
 
     for (i, line) in text.lines().enumerate() {
         if parent_transform.offset_y > y + i as u16 {
             continue;
         }
 
-        let y = transform.y + transform.py + y + i as u16 - parent_transform.offset_y;
+        let y = y + i as u16 - parent_transform.offset_y;
 
         if y >= parent_transform.height + parent_transform.y + parent_transform.py {
             break;
         }
         print!("\x1b[{};{}H{liner}{line}\x1b[0m", y + 1, x + 1);
+        flush().unwrap();
+    }
+}
+
+pub(crate) fn print_liner_nopad(
+    transform: &RawTransform,
+    parent_transform: &RawTransform,
+    liner: &str,
+    text: &str,
+) {
+    for (i, line) in text.lines().enumerate() {
+        if parent_transform.offset_y > transform.y + i as u16 {
+            continue;
+        }
+
+        let y = transform.y + i as u16 - parent_transform.offset_y;
+
+        if y >= parent_transform.height + parent_transform.y + parent_transform.py {
+            break;
+        }
+        print!("\x1b[{};{}H{liner}{line}\x1b[0m", y + 1, transform.x + 1);
         flush().unwrap();
     }
 }

@@ -148,9 +148,7 @@ impl RenderScope {
                 let height = height + self.transform.py * 2;
                 if width > 1 && height > 1 {
                     let d = "─".repeat(width as usize - 2);
-                    utils::print_liner(
-                        self.transform.x,
-                        self.transform.y,
+                    utils::print_liner_nopad(
                         &self.transform,
                         &self.parent_transform,
                         &utils::hex_ansi(c),
@@ -167,9 +165,7 @@ impl RenderScope {
                 let height = height + self.transform.py * 2;
                 if width > 1 && height > 1 {
                     let d = "─".repeat(width as usize - 2);
-                    utils::print_liner(
-                        self.transform.x,
-                        self.transform.y,
+                    utils::print_liner_nopad(
                         &self.transform,
                         &self.parent_transform,
                         &utils::hex_ansi(c),
@@ -181,9 +177,7 @@ impl RenderScope {
                     );
                 }
             }
-            crate::style::Background::Solid(c) => utils::print_liner(
-                self.transform.x,
-                self.transform.y,
+            crate::style::Background::Solid(c) => utils::print_liner_nopad(
                 &self.transform,
                 &self.parent_transform,
                 &hex_ansi_bg(c),
