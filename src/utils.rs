@@ -109,13 +109,21 @@ pub fn hex_ansi_bg(hex: u32) -> String {
     format!("\x1b[48;2;{r};{g};{b}m")
 }
 
-pub(crate) fn print(x: u16, y: u16, text: &str, parent_transform: &RawTransform) {
+pub(crate) fn print(
+    x: u16,
+    y: u16,
+    transform: &RawTransform,
+    parent_transform: &RawTransform,
+    text: &str,
+) {
+    let x = transform.x + transform.px + x;
+
     for (i, line) in text.lines().enumerate() {
         if parent_transform.offset_y > y + i as u16 {
             continue;
         }
 
-        let y = y + i as u16 - parent_transform.offset_y;
+        let y = transform.y + transform.py + y + i as u16 - parent_transform.offset_y;
 
         if y >= parent_transform.height + parent_transform.y + parent_transform.py {
             break;
@@ -128,16 +136,19 @@ pub(crate) fn print(x: u16, y: u16, text: &str, parent_transform: &RawTransform)
 pub(crate) fn print_liner(
     x: u16,
     y: u16,
+    transform: &RawTransform,
+    parent_transform: &RawTransform,
     liner: &str,
     text: &str,
-    parent_transform: &RawTransform,
 ) {
+    let x = transform.x + transform.px + x;
+
     for (i, line) in text.lines().enumerate() {
         if parent_transform.offset_y > y + i as u16 {
             continue;
         }
 
-        let y = y + i as u16 - parent_transform.offset_y;
+        let y = transform.y + transform.py + y + i as u16 - parent_transform.offset_y;
 
         if y >= parent_transform.height + parent_transform.y + parent_transform.py {
             break;

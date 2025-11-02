@@ -146,17 +146,19 @@ impl Transform {
     }
 
     /// Resolves `Dimension` rules into absolute values for the given parent size.
-    pub fn use_dimensions(&self, parent_width: u16, parent_height: u16, raw: &mut RawTransform) {
-        self.width.use_dimension(parent_width, &mut raw.width);
-        self.height.use_dimension(parent_height, &mut raw.height);
+    pub fn use_dimensions(&self, parent_transform: &RawTransform, raw: &mut RawTransform) {
+        self.width
+            .use_dimension(parent_transform.width, &mut raw.width);
+        self.height
+            .use_dimension(parent_transform.height, &mut raw.height);
     }
 
     /// Resolves `Position` rules into absolute positions for the given parent size.
-    pub fn use_position(&self, parent_width: u16, parent_height: u16, raw: &mut RawTransform) {
+    pub fn use_position(&self, parent_transform: &RawTransform, raw: &mut RawTransform) {
         self.x
-            .use_position(raw.width, parent_width, self.mx, &mut raw.x);
+            .use_position(raw.width, parent_transform.width, self.mx, &mut raw.x);
         self.y
-            .use_position(raw.height, parent_height, self.my, &mut raw.y);
+            .use_position(raw.height, parent_transform.height, self.my, &mut raw.y);
     }
 }
 
