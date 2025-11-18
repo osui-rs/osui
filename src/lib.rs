@@ -5,34 +5,35 @@ pub mod renderer;
 
 pub use error::Result;
 
-pub trait Component {
-    fn render(&mut self, renderer: &mut dyn Renderer);
-}
+pub type Node = Box<dyn Fn(&mut dyn Renderer)>;
+pub type Component = Box<dyn Fn() -> Node>;
 
 pub struct Osui {
-    component: Box<dyn Component>,
+    node: Node,
     renderer: Option<Box<dyn Renderer>>,
 }
 
 impl Osui {
-    pub fn new(component: Box<dyn Component>) -> Self {
+    pub fn new(component: Component) -> Self {
         Osui {
-            component,
+            node: component(),
             renderer: None,
         }
     }
-    pub fn with_renderer(component: Box<dyn Component>, renderer: Box<dyn Renderer>) -> Self {
+    pub fn with_renderer(component: Component, renderer: Box<dyn Renderer>) -> Self {
         Osui {
-            component,
+            node: component(),
             renderer: Some(renderer),
         }
     }
 
-    pub fn render(&mut self) {
+    pub fn render(&mut self) -> Result<()> {
+        renderer::utils::clear()?;
         if let Some(renderer) = &mut self.renderer {
-            self.component.render(renderer.as_mut());
+            (self.node)(renderer.as_mut());
         } else {
-            self.component.render(&mut OsuiRenderer);
+            (self.node)(&mut OsuiRenderer);
         }
+        Ok(())
     }
 }
