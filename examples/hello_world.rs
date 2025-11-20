@@ -1,6 +1,12 @@
-use osui::Node;
+use osui::{Context, Node};
 
-fn app() -> Node {
+fn app(cx: &mut Context) -> Node {
+    // Hooks
+    // Event handlers
+    // cx.event(|e: &ClickEvent| {
+        
+    // });
+
     Box::new(|renderer| {
         renderer.draw_text("Hello, World!", 0, 0).unwrap();
     })

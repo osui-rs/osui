@@ -6,7 +6,9 @@ pub mod renderer;
 pub use error::Result;
 
 pub type Node = Box<dyn Fn(&mut dyn Renderer)>;
-pub type Component = Box<dyn Fn() -> Node>;
+pub type Component = Box<dyn Fn(&mut Context) -> Node>;
+
+pub struct Context {}
 
 pub struct Osui {
     node: Node,
@@ -15,14 +17,16 @@ pub struct Osui {
 
 impl Osui {
     pub fn new(component: Component) -> Self {
+        let mut cx = Context {};
         Osui {
-            node: component(),
+            node: component(&mut cx),
             renderer: None,
         }
     }
     pub fn with_renderer(component: Component, renderer: Box<dyn Renderer>) -> Self {
+        let mut cx = Context {};
         Osui {
-            node: component(),
+            node: component(&mut cx),
             renderer: Some(renderer),
         }
     }
