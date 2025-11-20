@@ -1,11 +1,16 @@
-use osui::{Context, Node};
+use osui::{Context, Event, Node};
+
+pub struct ClickEvent;
+
+impl Event for ClickEvent {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
 
 fn app(cx: &mut Context) -> Node {
     // Hooks
-    // Event handlers
-    // cx.event(|e: &ClickEvent| {
-        
-    // });
+    cx.event(|_: &ClickEvent| {});
 
     Box::new(|renderer| {
         renderer.draw_text("Hello, World!", 0, 0).unwrap();
