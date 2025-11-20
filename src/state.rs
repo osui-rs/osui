@@ -1,100 +1,103 @@
 use std::{
     fmt::{Debug, Display, Formatter, Result as FmtResult},
-    ops::{Deref, DerefMut},
+    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
     sync::{Arc, Mutex, MutexGuard},
 };
 
-/// Trait for tracking dependencies and reactivity.
-pub trait DependencyHandler: std::fmt::Debug + Send + Sync {
-    /// Called when a dependent is registered.
-    fn add(&self);
-    /// Returns `true` if the state has changed since the last check.
-    fn check(&self) -> bool;
-}
-
 #[derive(Debug, Clone)]
 pub struct State<T> {
-    inner: Arc<Mutex<Inner<T>>>,
-}
-
-#[derive(Debug)]
-pub struct Inner<T> {
-    value: T,
-    dependencies: usize,
-    changed: usize,
+    inner: Arc<Mutex<T>>,
 }
 
 pub fn use_state<T>(v: T) -> State<T> {
     State {
-        inner: Arc::new(Mutex::new(Inner {
-            value: v,
-            dependencies: 0,
-            changed: 0,
-        })),
+        inner: Arc::new(Mutex::new(v)),
     }
 }
 
 impl<T: Clone> State<T> {
     /// Gets the cloned value, recommended for preventing deadlocks
     pub fn get_dl(&self) -> T {
-        self.inner.lock().unwrap().value.clone()
+        self.inner.lock().unwrap().clone()
     }
 }
 
 impl<T> State<T> {
     /// Gets a lock on the state for read/write access.
-    pub fn get(&self) -> MutexGuard<'_, Inner<T>> {
+    pub fn get(&self) -> MutexGuard<'_, T> {
         self.inner.lock().unwrap()
     }
 
     /// Sets the value and marks it as changed.
     pub fn set(&self, v: T) {
-        let mut inner = self.inner.lock().unwrap();
-        inner.value = v;
-        inner.changed = inner.dependencies;
-    }
-
-    /// Marks the state as updated.
-    pub fn update(&self) {
-        let mut inner = self.inner.lock().unwrap();
-        inner.changed = inner.dependencies;
-    }
-}
-
-impl<T: Debug + Send + Sync> DependencyHandler for State<T> {
-    fn check(&self) -> bool {
-        let mut inner = self.inner.lock().unwrap();
-        let i = inner.changed > 0;
-        if i {
-            inner.changed -= 1;
-        }
-        i
-    }
-
-    fn add(&self) {
-        let mut inner = self.inner.lock().unwrap();
-        inner.dependencies += 1;
+        *self.inner.lock().unwrap() = v;
     }
 }
 
 impl<T: Display> Display for State<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        let inner = self.inner.lock().unwrap();
-        write!(f, "{}", inner.value)
+        write!(f, "{}", self.inner.lock().unwrap())
     }
 }
 
-impl<T> Deref for Inner<T> {
-    type Target = T;
+impl<T: Add<Output = T> + Clone> Add<T> for State<T> {
+    type Output = T;
 
-    fn deref(&self) -> &Self::Target {
-        &self.value
+    fn add(self, rhs: T) -> Self::Output {
+        let v = self.inner.lock().unwrap().clone();
+        v.add(rhs)
     }
 }
 
-impl<T> DerefMut for Inner<T> {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        self.changed = self.dependencies;
-        &mut self.value
+impl<T: Sub<Output = T> + Clone> Sub<T> for State<T> {
+    type Output = T;
+
+    fn sub(self, rhs: T) -> Self::Output {
+        let v = self.inner.lock().unwrap().clone();
+        v.sub(rhs)
+    }
+}
+
+impl<T: Mul<Output = T> + Clone> Mul<T> for State<T> {
+    type Output = T;
+
+    fn mul(self, rhs: T) -> Self::Output {
+        let v = self.inner.lock().unwrap().clone();
+        v.mul(rhs)
+    }
+}
+
+impl<T: Div<Output = T> + Clone> Div<T> for State<T> {
+    type Output = T;
+
+    fn div(self, rhs: T) -> Self::Output {
+        let v = self.inner.lock().unwrap().clone();
+        v.div(rhs)
+    }
+}
+
+// Assign
+
+impl<T: AddAssign> AddAssign<T> for State<T> {
+    fn add_assign(&mut self, rhs: T) {
+        self.get().add_assign(rhs);
+    }
+}
+
+impl<T: SubAssign> SubAssign<T> for State<T> {
+    fn sub_assign(&mut self, rhs: T) {
+        self.get().sub_assign(rhs);
+    }
+}
+
+impl<T: MulAssign> MulAssign<T> for State<T> {
+    fn mul_assign(&mut self, rhs: T) {
+        self.get().mul_assign(rhs);
+    }
+}
+
+impl<T: DivAssign> DivAssign<T> for State<T> {
+    fn div_assign(&mut self, rhs: T) {
+        self.get().div_assign(rhs);
     }
 }

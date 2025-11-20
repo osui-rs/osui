@@ -1,34 +1,15 @@
-use osui::{state::use_state, Context, Event, Node};
+use std::sync::Arc;
 
-pub struct ClickEvent;
-
-impl Event for ClickEvent {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-}
-
-fn app(cx: &mut Context) -> Node {
-    // Hooks
-    let count = use_state(0);
-    cx.event({
-        let count = count.clone();
-        move |_: &ClickEvent| {
-            **count.get() += 1;
-        }
-    });
-
-    Box::new(move |renderer| {
-        renderer
-            .draw_text(&format!("Count: {count}"), 0, 0)
-            .unwrap();
-    })
-}
+use osui::prelude::*;
 
 fn main() {
-    let mut osui = osui::Osui::new(Box::new(app));
-    loop {
-        osui.render().unwrap();
-        std::thread::sleep(std::time::Duration::from_millis(10));
-    }
+    let mut cx = Context::new(app);
+    cx.refresh();
+    // println!("{:?}", cx.get_nodes());
+}
+
+fn app(cx: &mut Context) -> Vec<Node> {
+    let count = use_state(0);
+
+    vec![Node::String(Arc::new(move || format!("{count}")))]
 }
