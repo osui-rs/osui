@@ -14,3 +14,16 @@ pub enum Node {
     String(Arc<dyn Fn() -> String>),
     Component(component::Component),
 }
+
+impl std::fmt::Debug for Node {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Component(_) => format!("Component"),
+                Self::String(v) => format!("String({})", v()),
+            }
+        )
+    }
+}
