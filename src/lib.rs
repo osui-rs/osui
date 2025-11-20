@@ -4,6 +4,7 @@ use crate::renderer::{OsuiRenderer, Renderer};
 
 pub mod error;
 pub mod renderer;
+pub mod state;
 
 pub use error::Result;
 
