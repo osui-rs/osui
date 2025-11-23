@@ -5,7 +5,7 @@ use std::{
 };
 
 #[derive(Clone)]
-pub struct HookEffect(Arc<Mutex<dyn Fn() + Send + Sync>>);
+pub struct HookEffect(Arc<Mutex<dyn FnMut() + Send + Sync>>);
 
 #[derive(Debug, Clone)]
 pub struct State<T> {
@@ -99,5 +99,23 @@ impl<T> DerefMut for Inner<'_, T> {
     fn deref_mut(&mut self) -> &mut Self::Target {
         self.updated = true;
         &mut self.value
+    }
+}
+
+pub trait HookDependency {
+    fn on_update(&self, hook: HookEffect);
+}
+
+impl<T> HookDependency for State<T> {
+    fn on_update(&self, hook: HookEffect) {
+        self.dependents.lock().unwrap().push(hook);
+    }
+}
+
+pub fn use_effect<F: FnMut() + Send + Sync + 'static>(f: F, dependencies: &[&dyn HookDependency]) {
+    let hook = HookEffect(Arc::new(Mutex::new(f)));
+
+    for d in dependencies {
+        d.on_update(hook.clone());
     }
 }

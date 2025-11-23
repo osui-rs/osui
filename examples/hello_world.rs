@@ -30,6 +30,17 @@ fn main() {
 
 fn app(cx: &Arc<Context>) -> Vec<Node> {
     let count = use_state(0);
+    let count2 = use_state(0);
+
+    use_effect(
+        {
+            let count2 = count2.clone();
+            move || {
+                *count2.get() += 1;
+            }
+        },
+        &[&count],
+    );
 
     cx.on_event({
         let count = count.clone();
@@ -40,5 +51,5 @@ fn app(cx: &Arc<Context>) -> Vec<Node> {
         }
     });
 
-    vec![Node::String(Arc::new(move || format!("{count}")))]
+    vec![Node::String(Arc::new(move || format!("{count} {count2}")))]
 }
