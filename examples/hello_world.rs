@@ -2,13 +2,24 @@ use std::sync::Arc;
 
 use osui::prelude::*;
 
+pub struct KeyPress;
+
+impl Event for KeyPress {
+    fn as_any(&self) -> &dyn std::any::Any {
+        self
+    }
+}
+
 fn main() {
-    let mut cx = Context::new(app);
+    let cx = Context::new(app);
     cx.refresh();
 
     std::thread::spawn({
         let cx = cx.clone();
-        move || {}
+        move || loop {
+            crossterm::event::read().unwrap();
+            cx.event(&KeyPress);
+        }
     });
 
     loop {
@@ -19,6 +30,13 @@ fn main() {
 
 fn app(cx: &Arc<Context>) -> Vec<Node> {
     let count = use_state(0);
+
+    cx.on_event({
+        let count = count.clone();
+        move |_cx, _event: &KeyPress| {
+            *count.get() += 1;
+        }
+    });
 
     vec![Node::String(Arc::new(move || format!("{count}")))]
 }

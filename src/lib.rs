@@ -11,7 +11,7 @@ pub mod prelude {
 
 #[derive(Clone)]
 pub enum Node {
-    String(Arc<dyn Fn() -> String>),
+    String(Arc<dyn Fn() -> String + Send + Sync>),
     Component(component::Component),
 }
 
