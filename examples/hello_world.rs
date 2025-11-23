@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use osui::prelude::*;
 
+#[derive(Debug, Clone)]
 pub struct KeyPress;
 
 impl Event for KeyPress {
@@ -18,7 +19,7 @@ fn main() {
         let cx = cx.clone();
         move || loop {
             crossterm::event::read().unwrap();
-            cx.event(&KeyPress);
+            cx.emit_event_threaded(&KeyPress);
         }
     });
 

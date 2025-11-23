@@ -63,10 +63,26 @@ impl Context {
             )));
     }
 
-    pub fn event<E: Event + 'static>(self: &Arc<Context>, event: &E) {
+    pub fn emit_event<E: Event + 'static>(self: &Arc<Context>, event: &E) {
         if let Some(v) = self.event_handlers.lock().unwrap().get(&TypeId::of::<E>()) {
             for i in v {
-                (i.lock().unwrap())(&self.clone(), event);
+                (i.lock().unwrap())(self, event);
+            }
+        }
+    }
+
+    pub fn emit_event_threaded<E: Event + Send + Sync + Clone + 'static>(
+        self: &Arc<Context>,
+        event: &E,
+    ) {
+        if let Some(v) = self.event_handlers.lock().unwrap().get(&TypeId::of::<E>()) {
+            for i in v {
+                let i = i.clone();
+                let event = event.clone();
+                let s = self.clone();
+                std::thread::spawn(move || {
+                    (i.lock().unwrap())(&s, &event);
+                });
             }
         }
     }
