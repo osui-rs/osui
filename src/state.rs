@@ -1,103 +1,103 @@
 use std::{
     fmt::{Debug, Display, Formatter, Result as FmtResult},
-    ops::{Add, AddAssign, Div, DivAssign, Mul, MulAssign, Sub, SubAssign},
+    ops::{Deref, DerefMut},
     sync::{Arc, Mutex, MutexGuard},
 };
 
+#[derive(Clone)]
+pub struct HookEffect(Arc<Mutex<dyn Fn() + Send + Sync>>);
+
 #[derive(Debug, Clone)]
 pub struct State<T> {
-    inner: Arc<Mutex<T>>,
+    value: Arc<Mutex<T>>,
+    dependents: Arc<Mutex<Vec<HookEffect>>>,
+}
+
+pub struct Inner<'a, T> {
+    value: MutexGuard<'a, T>,
+    dependents: Arc<Mutex<Vec<HookEffect>>>,
+    updated: bool,
 }
 
 pub fn use_state<T>(v: T) -> State<T> {
     State {
-        inner: Arc::new(Mutex::new(v)),
+        value: Arc::new(Mutex::new(v)),
+        dependents: Arc::new(Mutex::new(Vec::new())),
     }
 }
 
 impl<T: Clone> State<T> {
     /// Gets the cloned value, recommended for preventing deadlocks
     pub fn get_dl(&self) -> T {
-        self.inner.lock().unwrap().clone()
+        self.value.lock().unwrap().clone()
     }
 }
 
 impl<T> State<T> {
     /// Gets a lock on the state for read/write access.
-    pub fn get(&self) -> MutexGuard<'_, T> {
-        self.inner.lock().unwrap()
+    pub fn get(&self) -> Inner<'_, T> {
+        Inner {
+            value: self.value.lock().unwrap(),
+            dependents: self.dependents.clone(),
+            updated: false,
+        }
     }
 
     /// Sets the value and marks it as changed.
     pub fn set(&self, v: T) {
-        *self.inner.lock().unwrap() = v;
+        *self.value.lock().unwrap() = v;
+        self.update();
+    }
+
+    pub fn update(&self) {
+        for d in self.dependents.lock().unwrap().iter() {
+            d.call();
+        }
     }
 }
 
 impl<T: Display> Display for State<T> {
     fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
-        write!(f, "{}", self.inner.lock().unwrap())
+        write!(f, "{}", self.value.lock().unwrap())
     }
 }
 
-impl<T: Add<Output = T> + Clone> Add<T> for State<T> {
-    type Output = T;
-
-    fn add(self, rhs: T) -> Self::Output {
-        let v = self.inner.lock().unwrap().clone();
-        v.add(rhs)
+impl Debug for HookEffect {
+    fn fmt(&self, f: &mut Formatter<'_>) -> FmtResult {
+        write!(f, "HookEffect")
     }
 }
 
-impl<T: Sub<Output = T> + Clone> Sub<T> for State<T> {
-    type Output = T;
+impl HookEffect {
+    pub fn new<F: Fn() + Send + Sync + 'static>(f: F) -> Self {
+        Self(Arc::new(Mutex::new(f)))
+    }
 
-    fn sub(self, rhs: T) -> Self::Output {
-        let v = self.inner.lock().unwrap().clone();
-        v.sub(rhs)
+    pub fn call(&self) {
+        (self.0.lock().unwrap())()
     }
 }
 
-impl<T: Mul<Output = T> + Clone> Mul<T> for State<T> {
-    type Output = T;
-
-    fn mul(self, rhs: T) -> Self::Output {
-        let v = self.inner.lock().unwrap().clone();
-        v.mul(rhs)
+impl<T> Drop for Inner<'_, T> {
+    fn drop(&mut self) {
+        if self.updated {
+            for d in self.dependents.lock().unwrap().iter() {
+                d.call();
+            }
+        }
     }
 }
 
-impl<T: Div<Output = T> + Clone> Div<T> for State<T> {
-    type Output = T;
-
-    fn div(self, rhs: T) -> Self::Output {
-        let v = self.inner.lock().unwrap().clone();
-        v.div(rhs)
+impl<T> Deref for Inner<'_, T> {
+    type Target = T;
+    fn deref(&self) -> &Self::Target {
+        &self.value
     }
 }
 
-// Assign
-
-impl<T: AddAssign> AddAssign<T> for State<T> {
-    fn add_assign(&mut self, rhs: T) {
-        self.get().add_assign(rhs);
-    }
-}
-
-impl<T: SubAssign> SubAssign<T> for State<T> {
-    fn sub_assign(&mut self, rhs: T) {
-        self.get().sub_assign(rhs);
-    }
-}
-
-impl<T: MulAssign> MulAssign<T> for State<T> {
-    fn mul_assign(&mut self, rhs: T) {
-        self.get().mul_assign(rhs);
-    }
-}
-
-impl<T: DivAssign> DivAssign<T> for State<T> {
-    fn div_assign(&mut self, rhs: T) {
-        self.get().div_assign(rhs);
+impl<T> DerefMut for Inner<'_, T> {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.updated = true;
+        &mut self.value
     }
 }

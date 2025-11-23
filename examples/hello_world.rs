@@ -34,7 +34,9 @@ fn app(cx: &Arc<Context>) -> Vec<Node> {
     cx.on_event({
         let count = count.clone();
         move |_cx, _event: &KeyPress| {
-            *count.get() += 1;
+            #[allow(unused_mut)]
+            let mut count = count.get();
+            *count += 1;
         }
     });
 
