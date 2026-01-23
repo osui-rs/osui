@@ -24,24 +24,13 @@ fn main() {
     });
 
     loop {
-        println!("{:?}", cx.get_nodes());
+        cx.get_view()(&mut DrawContext {});
         std::thread::sleep(std::time::Duration::from_millis(16));
     }
 }
 
-fn app(cx: &Arc<Context>) -> Vec<Node> {
+fn app(cx: &Arc<Context>) -> View {
     let count = use_state(0);
-    let count2 = use_state(0);
-
-    use_effect(
-        {
-            let count2 = count2.clone();
-            move || {
-                *count2.get() += 1;
-            }
-        },
-        &[&count],
-    );
 
     cx.on_event({
         let count = count.clone();
@@ -52,5 +41,7 @@ fn app(cx: &Arc<Context>) -> Vec<Node> {
         }
     });
 
-    vec![Node::String(Arc::new(move || format!("{count} {count2}")))]
+    Arc::new(move |_| {
+        println!("Count: {count}");
+    })
 }

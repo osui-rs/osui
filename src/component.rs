@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::Node;
+use crate::View;
 
 pub trait Event {
     fn as_any(&self) -> &dyn Any;
@@ -16,33 +16,31 @@ impl<'a> dyn Event + 'a {
     }
 }
 
-pub type Component = Arc<dyn Fn(&Arc<Context>) -> Vec<Node> + Send + Sync>;
+pub type Component = Arc<dyn Fn(&Arc<Context>) -> View + Send + Sync>;
 pub type EventHandler = Arc<Mutex<dyn FnMut(&Arc<Context>, &dyn Event) + Send + Sync>>;
 
 pub struct Context {
     component: Mutex<Component>,
-    nodes: Mutex<Vec<Node>>,
     event_handlers: Mutex<HashMap<TypeId, Vec<EventHandler>>>,
+    view: Mutex<View>,
 }
 
 impl Context {
-    pub fn new<F: Fn(&Arc<Context>) -> Vec<Node> + Send + Sync + 'static>(
-        component: F,
-    ) -> Arc<Self> {
+    pub fn new<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(component: F) -> Arc<Self> {
         Arc::new(Self {
             component: Mutex::new(Arc::new(component)),
-            nodes: Mutex::new(Vec::new()),
             event_handlers: Mutex::new(HashMap::new()),
+            view: Mutex::new(Arc::new(|_| {})),
         })
     }
 
     pub fn refresh(self: &Arc<Context>) {
         let c = self.component.lock().unwrap().clone();
-        *self.nodes.lock().unwrap() = (c)(self);
+        *self.view.lock().unwrap() = (c)(self);
     }
 
-    pub fn get_nodes(self: &Arc<Context>) -> Vec<Node> {
-        self.nodes.lock().unwrap().clone()
+    pub fn get_view(self: &Arc<Context>) -> View {
+        self.view.lock().unwrap().clone()
     }
 
     pub fn on_event<T: Event + 'static, F: Fn(&Arc<Context>, &T) + Send + Sync + 'static>(

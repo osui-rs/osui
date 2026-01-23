@@ -6,24 +6,9 @@ pub mod state;
 pub mod prelude {
     pub use crate::component::*;
     pub use crate::state::*;
-    pub use crate::Node;
+    pub use crate::{DrawContext, View};
 }
 
-#[derive(Clone)]
-pub enum Node {
-    String(Arc<dyn Fn() -> String + Send + Sync>),
-    Component(component::Component),
-}
+pub type View = Arc<dyn Fn(&mut DrawContext) + Send + Sync>;
 
-impl std::fmt::Debug for Node {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::Component(_) => format!("Component"),
-                Self::String(v) => format!("String({})", v()),
-            }
-        )
-    }
-}
+pub struct DrawContext {}
