@@ -23,8 +23,10 @@ fn main() {
         }
     });
 
+    let (width, height) = crossterm::terminal::size().unwrap();
+
     loop {
-        cx.get_view()(&mut DrawContext {});
+        cx.get_view()(&mut DrawContext::new(width, height));
         std::thread::sleep(std::time::Duration::from_millis(16));
     }
 }
@@ -35,13 +37,12 @@ fn app(cx: &Arc<Context>) -> View {
     cx.on_event({
         let count = count.clone();
         move |_cx, _event: &KeyPress| {
-            #[allow(unused_mut)]
             let mut count = count.get();
             *count += 1;
         }
     });
 
-    Arc::new(move |_| {
-        println!("Count: {count}");
+    Arc::new(move |ctx| {
+        println!("Count: {count}, size: {:?}", ctx.available());
     })
 }
