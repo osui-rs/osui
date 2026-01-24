@@ -3,7 +3,7 @@ use std::sync::{Arc, Mutex};
 use crate::{prelude::Context, DrawContext, View};
 
 pub trait Engine {
-    fn render_view(&self, ctx: &DrawContext, view: View);
+    fn render_view(&self, ctx: &DrawContext, view: &View);
     fn draw_context(&self, ctx: &DrawContext);
 }
 
@@ -38,17 +38,19 @@ impl Console {
         loop {
             let (width, height) = crossterm::terminal::size().unwrap();
             let mut ctx = DrawContext::new(width, height);
-            self.render_view(&mut ctx, cx.get_view());
+
+            self.render_view(&mut ctx, &cx.get_view());
+            self.draw_context(&ctx);
+
             std::thread::sleep(std::time::Duration::from_millis(16));
         }
     }
 }
 
 impl Engine for Console {
-    fn render_view(&self, ctx: &DrawContext, view: View) {
+    fn render_view(&self, ctx: &DrawContext, view: &View) {
         let mut context = DrawContext::new(ctx.allocated.width, ctx.allocated.height);
         view(&mut context);
-        self.draw_context(&context);
     }
 
     fn draw_context(&self, ctx: &DrawContext) {
@@ -56,6 +58,7 @@ impl Engine for Console {
             match inst {
                 crate::render::DrawInstruction::Text(point, text) => println!("{text}"),
                 crate::render::DrawInstruction::Child(point, child) => self.draw_context(child),
+                crate::render::DrawInstruction::View(point, view) => self.render_view(ctx, view),
             }
         }
     }
