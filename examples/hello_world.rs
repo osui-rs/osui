@@ -23,6 +23,24 @@ fn main() {
 }
 
 fn app(cx: &Arc<Context>) -> View {
+    let mc_cx = Context::new(my_component);
+
+    cx.on_event({
+        let mc_cx = mc_cx.clone();
+        move |_, &KeyPress| {
+            mc_cx.emit_event(&KeyPress);
+        }
+    });
+
+    mc_cx.refresh();
+
+    Arc::new(move |ctx| {
+        let area = ctx.allocate(0, 0, 10, 10);
+        ctx.draw_view(area, mc_cx.get_view());
+    })
+}
+
+fn my_component(cx: &Arc<Context>) -> View {
     let count = use_state(0);
 
     cx.on_event({
@@ -39,13 +57,5 @@ fn app(cx: &Arc<Context>) -> View {
 
     Arc::new(move |ctx| {
         ctx.draw_text(Point { x: 0, y: 0 }, &format!("Count: {count}"));
-        let area = ctx.allocate(0, 0, 10, 10);
-        ctx.draw_view(area, Arc::new(my_view));
     })
-}
-
-fn my_view(ctx: &mut DrawContext) {
-    let count = 67;
-
-    ctx.draw_text(Point { x: 0, y: 0 }, &format!("Count: {count}"));
 }

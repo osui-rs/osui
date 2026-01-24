@@ -35,10 +35,32 @@ impl Context {
     }
 
     pub fn refresh(self: &Arc<Context>) {
-        self.event_handlers.lock().unwrap().clear();
+        let s = self.clone();
 
-        let c = self.component.lock().unwrap().clone();
-        *self.view.lock().unwrap() = (c)(self);
+        std::thread::spawn({
+            move || {
+                s.event_handlers.lock().unwrap().clear();
+                let c = s.component.lock().unwrap().clone();
+                *s.view.lock().unwrap() = (c)(&s);
+            }
+        });
+    }
+
+    pub fn refresh_atomic(self: &Arc<Context>) -> Arc<Mutex<bool>> {
+        let s = self.clone();
+        let done = Arc::new(Mutex::new(false));
+
+        std::thread::spawn({
+            let done = done.clone();
+            move || {
+                s.event_handlers.lock().unwrap().clear();
+                let c = s.component.lock().unwrap().clone();
+                *s.view.lock().unwrap() = (c)(&s);
+                *done.lock().unwrap() = true;
+            }
+        });
+
+        done
     }
 
     pub fn get_view(self: &Arc<Context>) -> View {
