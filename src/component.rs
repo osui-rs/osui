@@ -93,6 +93,10 @@ impl Context {
                 (i.lock().unwrap())(self, event);
             }
         }
+
+        for (child, _) in self.children.lock().unwrap().iter() {
+            child.emit_event(event);
+        }
     }
 
     pub fn emit_event_threaded<E: Event + Send + Sync + Clone + 'static>(
@@ -108,6 +112,10 @@ impl Context {
                     (i.lock().unwrap())(&s, &event);
                 });
             }
+        }
+
+        for (child, _) in self.children.lock().unwrap().iter() {
+            child.emit_event_threaded(event);
         }
     }
 
