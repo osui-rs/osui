@@ -35,6 +35,8 @@ impl Context {
     }
 
     pub fn refresh(self: &Arc<Context>) {
+        self.event_handlers.lock().unwrap().clear();
+
         let c = self.component.lock().unwrap().clone();
         *self.view.lock().unwrap() = (c)(self);
     }

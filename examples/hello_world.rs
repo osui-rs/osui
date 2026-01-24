@@ -29,8 +29,11 @@ fn app(cx: &Arc<Context>) -> View {
         let count = count.clone();
         move |_cx, _event: &KeyPress| {
             let mut count = count.get();
+            if *count > 5 {
+                _cx.refresh();
+                return;
+            }
             *count += 1;
-            cx.refresh();
         }
     });
 
