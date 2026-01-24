@@ -23,6 +23,8 @@ fn main() {
 }
 
 fn app(cx: &Arc<Context>) -> View {
+    let count = use_state(0);
+
     {
         let scope = cx.scope();
 
@@ -34,13 +36,28 @@ fn app(cx: &Arc<Context>) -> View {
             })),
         );
 
-        scope.child(
-            my_component,
-            Some(Arc::new(|ctx, view| {
-                let area = ctx.allocate(0, 1, 0, 0);
-                ctx.draw_view(area, view)
-            })),
-        );
+        cx.on_event({
+            let count = count.clone();
+            move |_, _: &KeyPress| {
+                let mut count = count.get();
+
+                if *count > 5 {
+                    if scope.children.lock().unwrap().len() == 1 {
+                        scope.child(
+                            my_component,
+                            Some(Arc::new(|ctx, view| {
+                                let area = ctx.allocate(0, 1, 0, 0);
+                                ctx.draw_view(area, view)
+                            })),
+                        );
+                    }
+
+                    *count = 0;
+                }
+
+                *count += 1;
+            }
+        });
     }
 
     Arc::new({
@@ -53,7 +70,7 @@ fn app(cx: &Arc<Context>) -> View {
 }
 
 fn my_component(cx: &Arc<Context>) -> View {
-    let count = use_state(0);
+    let count = use_state(1);
 
     cx.on_event({
         let count = count.clone();
