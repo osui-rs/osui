@@ -23,20 +23,14 @@ fn main() {
 }
 
 fn app(cx: &Arc<Context>) -> View {
-    let mc_cx = Context::new(my_component);
+    cx.child(my_component, None);
 
-    cx.on_event({
-        let mc_cx = mc_cx.clone();
-        move |_, &KeyPress| {
-            mc_cx.emit_event(&KeyPress);
+    Arc::new({
+        let cx = cx.clone();
+
+        move |ctx| {
+            cx.draw_children(ctx);
         }
-    });
-
-    mc_cx.refresh();
-
-    Arc::new(move |ctx| {
-        let area = ctx.allocate(0, 0, 10, 10);
-        ctx.draw_view(area, mc_cx.get_view());
     })
 }
 

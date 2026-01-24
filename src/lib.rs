@@ -16,3 +16,4 @@ pub mod prelude {
 }
 
 pub type View = Arc<dyn Fn(&mut DrawContext) + Send + Sync>;
+pub type ViewWrapper = Arc<dyn Fn(&mut DrawContext, View) + Send + Sync>;

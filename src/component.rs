@@ -4,7 +4,7 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::View;
+use crate::{render::DrawContext, View, ViewWrapper};
 
 pub trait Event {
     fn as_any(&self) -> &dyn Any;
@@ -23,6 +23,7 @@ pub struct Context {
     component: Mutex<Component>,
     event_handlers: Mutex<HashMap<TypeId, Vec<EventHandler>>>,
     view: Mutex<View>,
+    children: Mutex<Vec<(Arc<Context>, Option<ViewWrapper>)>>,
 }
 
 impl Context {
@@ -31,6 +32,7 @@ impl Context {
             component: Mutex::new(Arc::new(component)),
             event_handlers: Mutex::new(HashMap::new()),
             view: Mutex::new(Arc::new(|_| {})),
+            children: Mutex::new(Vec::new()),
         })
     }
 
@@ -105,6 +107,30 @@ impl Context {
                 std::thread::spawn(move || {
                     (i.lock().unwrap())(&s, &event);
                 });
+            }
+        }
+    }
+
+    pub fn child<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
+        self: &Arc<Context>,
+        child: F,
+        view_wrapper: Option<ViewWrapper>,
+    ) {
+        let ctx = Context::new(child);
+
+        ctx.refresh();
+
+        self.children.lock().unwrap().push((ctx, view_wrapper));
+    }
+
+    pub fn draw_children(self: &Arc<Context>, ctx: &mut DrawContext) {
+        for (child, view_wrapper) in self.children.lock().unwrap().iter() {
+            let view = child.get_view();
+
+            if let Some(view_wrapper) = view_wrapper {
+                view_wrapper(ctx, view)
+            } else {
+                ctx.draw_view(ctx.allocated.clone(), view);
             }
         }
     }
