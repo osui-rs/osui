@@ -23,21 +23,25 @@ fn main() {
 }
 
 fn app(cx: &Arc<Context>) -> View {
-    cx.child(
-        my_component,
-        Some(Arc::new(|ctx, view| {
-            let area = ctx.allocate(0, 0, 0, 0);
-            ctx.draw_view(area, view)
-        })),
-    );
+    {
+        let scope = cx.scope();
 
-    cx.child(
-        my_component,
-        Some(Arc::new(|ctx, view| {
-            let area = ctx.allocate(0, 1, 0, 0);
-            ctx.draw_view(area, view)
-        })),
-    );
+        scope.child(
+            my_component,
+            Some(Arc::new(|ctx, view| {
+                let area = ctx.allocate(0, 0, 0, 0);
+                ctx.draw_view(area, view)
+            })),
+        );
+
+        scope.child(
+            my_component,
+            Some(Arc::new(|ctx, view| {
+                let area = ctx.allocate(0, 1, 0, 0);
+                ctx.draw_view(area, view)
+            })),
+        );
+    }
 
     Arc::new({
         let cx = cx.clone();
