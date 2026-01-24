@@ -30,7 +30,7 @@ pub struct Area {
 #[derive(Clone)]
 pub struct DrawContext {
     pub area: Area,
-    pub allocated: Size,
+    pub allocated: Area,
     pub drawing: Vec<DrawInstruction>,
 }
 
@@ -38,7 +38,9 @@ impl DrawContext {
     pub fn new(area: Area) -> Self {
         Self {
             area,
-            allocated: Size {
+            allocated: Area {
+                x: u16::MAX,
+                y: u16::MAX,
                 width: 0,
                 height: 0,
             },
@@ -46,9 +48,18 @@ impl DrawContext {
         }
     }
 
-    pub fn allocate(&mut self, width: u16, height: u16) {
-        self.allocated.width += width;
-        self.allocated.height += height;
+    pub fn allocate(&mut self, x: u16, y: u16, width: u16, height: u16) -> Area {
+        self.allocated.x = self.allocated.x.min(x);
+        self.allocated.y = self.allocated.y.min(y);
+        self.allocated.width = self.allocated.width.max(width);
+        self.allocated.height = self.allocated.height.max(height);
+
+        Area {
+            x,
+            y,
+            width,
+            height,
+        }
     }
 
     pub fn draw(&mut self, inst: DrawInstruction) {

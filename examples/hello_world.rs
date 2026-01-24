@@ -35,5 +35,13 @@ fn app(cx: &Arc<Context>) -> View {
 
     Arc::new(move |ctx| {
         ctx.draw_text(Point { x: 0, y: 0 }, &format!("Count: {count}"));
+        let area = ctx.allocate(0, 0, 10, 10);
+        ctx.draw_view(area, Arc::new(my_view));
     })
+}
+
+fn my_view(ctx: &mut DrawContext) {
+    let count = 67;
+
+    ctx.draw_text(Point { x: 0, y: 0 }, &format!("Count: {count}"));
 }
