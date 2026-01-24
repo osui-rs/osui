@@ -1,4 +1,9 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    io::{stdout, Write},
+    sync::{Arc, Mutex},
+};
+
+use crossterm::{cursor::MoveTo, execute, terminal::Clear};
 
 use crate::{prelude::Context, render::Area, DrawContext, View};
 
@@ -37,6 +42,10 @@ impl Console {
 
         loop {
             let (width, height) = crossterm::terminal::size().unwrap();
+
+            execute!(stdout(), Clear(crossterm::terminal::ClearType::Purge)).unwrap();
+            execute!(stdout(), Clear(crossterm::terminal::ClearType::All)).unwrap();
+
             self.draw_context(&self.render_view(
                 &Area {
                     x: 0,
@@ -62,7 +71,12 @@ impl Engine for Console {
     fn draw_context(&self, ctx: &DrawContext) {
         for inst in &ctx.drawing {
             match inst {
-                crate::render::DrawInstruction::Text(_point, text) => println!("{text}"),
+                crate::render::DrawInstruction::Text(point, text) => {
+                    let (x, y) = (ctx.area.x + point.x, ctx.area.y + point.y);
+                    execute!(stdout(), MoveTo(x, y),).unwrap();
+                    print!("{text}");
+                    stdout().flush().unwrap();
+                }
                 crate::render::DrawInstruction::Child(_point, child) => self.draw_context(child),
                 crate::render::DrawInstruction::View(area, view) => {
                     self.draw_context(&self.render_view(area, view))

@@ -138,7 +138,7 @@ impl Context {
             if let Some(view_wrapper) = view_wrapper {
                 view_wrapper(ctx, view)
             } else {
-                ctx.draw_view(ctx.allocated.clone(), view);
+                ctx.draw_view(ctx.area.clone(), view);
             }
         }
     }
