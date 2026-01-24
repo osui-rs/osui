@@ -1,6 +1,10 @@
-use std::{fmt::Debug, sync::Arc};
+use std::fmt::Debug;
 
-pub trait DrawInstruction: Debug {}
+#[derive(Debug, Clone)]
+pub enum DrawInstruction {
+    Text(Point, String),
+    Child(Point, DrawContext),
+}
 
 #[derive(Debug, Clone)]
 pub struct Size {
@@ -9,33 +13,43 @@ pub struct Size {
 }
 
 #[derive(Debug, Clone)]
-pub struct DrawContext {
-    pub available: Size,
-    pub used: Size,
-    pub drawing: Vec<Arc<dyn DrawInstruction>>,
+pub struct Point {
+    pub x: u16,
+    pub y: u16,
 }
 
 #[derive(Debug, Clone)]
-pub struct RenderContext {}
+pub struct DrawContext {
+    pub available: Size,
+    pub allocated: Size,
+    pub parent: Point,
+    pub drawing: Vec<DrawInstruction>,
+}
 
 impl DrawContext {
     pub fn new(width: u16, height: u16) -> Self {
         Self {
             available: Size { width, height },
-            used: Size {
+            allocated: Size {
                 width: 0,
                 height: 0,
             },
+            parent: Point { x: 0, y: 0 },
             drawing: Vec::new(),
         }
     }
 
     pub fn allocate(&mut self, width: u16, height: u16) {
-        self.used.width += width;
-        self.used.height += height;
+        self.allocated.width += width;
+        self.allocated.height += height;
     }
 
-    pub fn draw<I: DrawInstruction + 'static>(&mut self, inst: I) {
-        self.drawing.push(Arc::new(inst));
+    pub fn draw(&mut self, inst: DrawInstruction) {
+        self.drawing.push(inst);
+    }
+
+    pub fn draw_text(&mut self, point: Point, text: &str) {
+        self.drawing
+            .push(DrawInstruction::Text(point, text.to_string()));
     }
 }

@@ -34,6 +34,6 @@ fn app(cx: &Arc<Context>) -> View {
     });
 
     Arc::new(move |ctx| {
-        println!("Count: {count}, size: {:?}", ctx.available);
+        ctx.draw_text(Point { x: 0, y: 0 }, &format!("Count: {count}"));
     })
 }

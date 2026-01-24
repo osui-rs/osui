@@ -3,8 +3,8 @@ use std::sync::{Arc, Mutex};
 use crate::{prelude::Context, DrawContext, View};
 
 pub trait Engine {
-    fn render(&self, ctx: &mut DrawContext, view: View);
-    fn draw_text(&self, ctx: &mut DrawContext, text: &str);
+    fn render_view(&self, ctx: &DrawContext, view: View);
+    fn draw_context(&self, ctx: &DrawContext);
 }
 
 pub struct Console {
@@ -35,24 +35,28 @@ impl Console {
             });
         }
 
-        let (width, height) = crossterm::terminal::size().unwrap();
-
         loop {
-            cx.get_view()(&mut DrawContext::new(width, height));
+            let (width, height) = crossterm::terminal::size().unwrap();
+            let mut ctx = DrawContext::new(width, height);
+            self.render_view(&mut ctx, cx.get_view());
             std::thread::sleep(std::time::Duration::from_millis(16));
         }
     }
 }
 
 impl Engine for Console {
-    fn render(&self, ctx: &mut DrawContext, view: View) {
-        view(&mut DrawContext::new(
-            ctx.available.width,
-            ctx.available.height,
-        ));
+    fn render_view(&self, ctx: &DrawContext, view: View) {
+        let mut context = DrawContext::new(ctx.allocated.width, ctx.allocated.height);
+        view(&mut context);
+        self.draw_context(&context);
     }
 
-    fn draw_text(&self, _ctx: &mut DrawContext, text: &str) {
-        println!("{}", text);
+    fn draw_context(&self, ctx: &DrawContext) {
+        for inst in &ctx.drawing {
+            match inst {
+                crate::render::DrawInstruction::Text(point, text) => println!("{text}"),
+                crate::render::DrawInstruction::Child(point, child) => self.draw_context(child),
+            }
+        }
     }
 }
