@@ -30,6 +30,7 @@ fn app(cx: &Arc<Context>) -> View {
         move |_cx, _event: &KeyPress| {
             let mut count = count.get();
             *count += 1;
+            cx.refresh();
         }
     });
 
