@@ -1,10 +1,12 @@
 use std::sync::Arc;
 
 pub mod component;
+pub mod engine;
 pub mod state;
 
 pub mod prelude {
     pub use crate::component::*;
+    pub use crate::engine::*;
     pub use crate::state::*;
     pub use crate::{DrawContext, View};
 }
@@ -22,6 +24,9 @@ pub struct DrawContext {
     available: Size,
     used: Size,
 }
+
+#[derive(Debug, Clone)]
+pub struct RenderContext {}
 
 impl DrawContext {
     pub fn new(width: u16, height: u16) -> Self {

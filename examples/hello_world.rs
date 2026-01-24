@@ -12,23 +12,14 @@ impl Event for KeyPress {
 }
 
 fn main() {
-    let cx = Context::new(app);
-    cx.refresh();
+    let console = Console::new();
 
-    std::thread::spawn({
-        let cx = cx.clone();
-        move || loop {
-            crossterm::event::read().unwrap();
-            cx.emit_event_threaded(&KeyPress);
-        }
+    console.thread(move |ctx| loop {
+        crossterm::event::read().unwrap();
+        ctx.emit_event_threaded(&KeyPress);
     });
 
-    let (width, height) = crossterm::terminal::size().unwrap();
-
-    loop {
-        cx.get_view()(&mut DrawContext::new(width, height));
-        std::thread::sleep(std::time::Duration::from_millis(16));
-    }
+    console.run(app);
 }
 
 fn app(cx: &Arc<Context>) -> View {
