@@ -34,6 +34,6 @@ fn app(cx: &Arc<Context>) -> View {
     });
 
     Arc::new(move |ctx| {
-        println!("Count: {count}, size: {:?}", ctx.available());
+        println!("Count: {count}, size: {:?}", ctx.available);
     })
 }

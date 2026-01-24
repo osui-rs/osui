@@ -1,54 +1,18 @@
 use std::sync::Arc;
 
+use crate::render::DrawContext;
+
 pub mod component;
 pub mod engine;
+pub mod render;
 pub mod state;
 
 pub mod prelude {
     pub use crate::component::*;
     pub use crate::engine::*;
+    pub use crate::render::*;
     pub use crate::state::*;
-    pub use crate::{DrawContext, View};
+    pub use crate::View;
 }
 
 pub type View = Arc<dyn Fn(&mut DrawContext) + Send + Sync>;
-
-#[derive(Debug, Clone)]
-pub struct Size {
-    pub width: u16,
-    pub height: u16,
-}
-
-#[derive(Debug, Clone)]
-pub struct DrawContext {
-    available: Size,
-    used: Size,
-}
-
-#[derive(Debug, Clone)]
-pub struct RenderContext {}
-
-impl DrawContext {
-    pub fn new(width: u16, height: u16) -> Self {
-        Self {
-            available: Size { width, height },
-            used: Size {
-                width: 0,
-                height: 0,
-            },
-        }
-    }
-
-    pub fn available(&self) -> &Size {
-        &self.available
-    }
-
-    pub fn used(&self) -> &Size {
-        &self.used
-    }
-
-    pub fn allocate(&mut self, width: u16, height: u16) {
-        self.used.width += width;
-        self.used.height += height;
-    }
-}
