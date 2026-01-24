@@ -3,7 +3,7 @@ use crate::View;
 #[derive(Clone)]
 pub enum DrawInstruction {
     Text(Point, String),
-    View(Point, View),
+    View(Area, View),
     Child(Point, DrawContext),
 }
 
@@ -20,22 +20,28 @@ pub struct Point {
 }
 
 #[derive(Clone)]
+pub struct Area {
+    pub x: u16,
+    pub y: u16,
+    pub width: u16,
+    pub height: u16,
+}
+
+#[derive(Clone)]
 pub struct DrawContext {
-    pub available: Size,
+    pub area: Area,
     pub allocated: Size,
-    pub parent: Point,
     pub drawing: Vec<DrawInstruction>,
 }
 
 impl DrawContext {
-    pub fn new(width: u16, height: u16) -> Self {
+    pub fn new(area: Area) -> Self {
         Self {
-            available: Size { width, height },
+            area,
             allocated: Size {
                 width: 0,
                 height: 0,
             },
-            parent: Point { x: 0, y: 0 },
             drawing: Vec::new(),
         }
     }
@@ -54,8 +60,7 @@ impl DrawContext {
             .push(DrawInstruction::Text(point, text.to_string()));
     }
 
-    pub fn draw_view(&mut self, point: Point, view: View) {
-        let ctx = DrawContext::new(self.allocated.width, self.allocated.height);
-        self.drawing.push(DrawInstruction::Child(point, ctx));
+    pub fn draw_view(&mut self, area: Area, view: View) {
+        self.drawing.push(DrawInstruction::View(area, view));
     }
 }
