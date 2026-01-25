@@ -17,6 +17,8 @@ macro_rules! rsx {
 macro_rules! rsx_scope {
     ($rsx:expr, for $(%$($dep:ident $(as $dp:pat,)?),+)? ($p:pat in $v:expr) {$($inner:tt)*} $($rest:tt)*) => {
         {
+            $($($crate::rsx_dep!($dep);)+)?
+
             $rsx.dynamic_scope({
                 $($($crate::rsx_dep!($dep $(as $dp)?);)+)?
                 move |scope| {
@@ -32,6 +34,8 @@ macro_rules! rsx_scope {
 
     ($rsx:expr, if $(%$($dep:ident $(as $dp:pat,)?),+)? ($st:expr) {$($inner:tt)*} $($rest:tt)*) => {
         {
+            $($($crate::rsx_dep!($dep);)+)?
+
             $rsx.dynamic_scope({
                 $($($crate::rsx_dep!($dep $(as $dp)?);)+)?
                 move |scope| {

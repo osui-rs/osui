@@ -48,9 +48,9 @@ fn app(cx: &Arc<Context>) -> View {
             }
         }
 
-        // for %count, mount as _, (i in 0..count.get_dl()) {
-        //     "{i}"
-        // }
+        for %count, mount as _, (i in 0..count.get_dl()) {
+            "{i}"
+        }
     }
     .view(cx.clone())
 }
