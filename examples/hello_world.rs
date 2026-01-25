@@ -56,7 +56,7 @@ fn app(cx: &Arc<Context>) -> View {
 
         // Dynamic scope
         for %count (i in 0..count.get_dl()) {
-            "{i}"
+            "{i}" @Point { x: 0, y: i };
         }
     }
     .view(cx.clone())

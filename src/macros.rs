@@ -53,6 +53,20 @@ macro_rules! rsx_scope {
         $crate::rsx_scope!($rsx, $($rest)*);
     };
 
+    ($rsx:expr, $(%$($dep:ident $(as $dp:pat,)?),+)? $text:literal @$d:expr; $($rest:tt)*) => {
+        {
+            let scope = $crate::component::Scope::new();
+
+            $($($crate::rsx_dep!($dep $(as $dp)?);)+)?
+
+            $crate::rsx_child!(scope, $text @$d;);
+
+            $rsx.static_scope(scope);
+        }
+
+        $crate::rsx_scope!($rsx, $($rest)*);
+    };
+
     ($rsx:expr, $(%$($dep:ident $(as $dp:pat,)?),+)? $text:literal $($rest:tt)*) => {
         {
             let scope = $crate::component::Scope::new();
@@ -96,6 +110,14 @@ macro_rules! rsx_scope {
 
 #[macro_export]
 macro_rules! rsx_child {
+    ($scope:expr, $text:literal @$d:expr; $($rest:tt)*) => {
+        {
+            $scope.view(Arc::new(move |ctx| ctx.draw_text($d, &format!($text))));
+        }
+
+        $crate::rsx_child!($scope, $($rest)*);
+    };
+
     ($scope:expr, $text:literal $($rest:tt)*) => {
         {
             $scope.view(Arc::new(move |ctx| ctx.draw_text(Point { x: 0, y: 0 }, &format!($text))));
