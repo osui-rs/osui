@@ -83,10 +83,14 @@ fn app(cx: &Arc<Context>) -> View {
     // }
 
     rsx! {
-        my_component (ctx, view) {
-            let area = ctx.allocate(0, 0, 10, 10);
-            ctx.draw_view(area, view);
+        if %count (*count.get() > 0) {
+            my_component (ctx, view) {
+                let area = ctx.allocate(0, 1, 10, 10);
+                ctx.draw_view(area, view);
+            }
         }
+
+        %count "{count}"
     }
     .view(cx.clone())
 }
