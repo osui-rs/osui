@@ -150,6 +150,8 @@ impl Context {
         });
         self.scopes.lock().unwrap().push(scope.clone());
 
+        drawer(&scope);
+
         use_effect(
             {
                 let scope = scope.clone();
