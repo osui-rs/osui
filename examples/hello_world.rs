@@ -1,6 +1,6 @@
 use std::sync::Arc;
 
-use osui::prelude::*;
+use osui::{prelude::*, rsx};
 
 #[derive(Debug, Clone)]
 pub struct KeyPress;
@@ -94,13 +94,7 @@ fn app(cx: &Arc<Context>) -> View {
         );
     }
 
-    Arc::new({
-        let cx = cx.clone();
-
-        move |ctx| {
-            cx.draw_children(ctx);
-        }
-    })
+    rsx! {}.view(cx.clone())
 }
 
 fn my_component(cx: &Arc<Context>) -> View {

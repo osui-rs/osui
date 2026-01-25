@@ -31,7 +31,7 @@ pub struct Context {
     component: Mutex<Component>,
     event_handlers: Mutex<HashMap<TypeId, Vec<EventHandler>>>,
     view: Mutex<View>,
-    scopes: Mutex<Vec<Arc<Scope>>>,
+    pub(crate) scopes: Mutex<Vec<Arc<Scope>>>,
 }
 
 impl Context {

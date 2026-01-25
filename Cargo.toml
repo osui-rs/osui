@@ -6,11 +6,10 @@ license = "Apache-2.0"
 description = "A TUI library for advanced uis"
 repository = "https://github.com/osui-rs/osui"
 homepage = "https://osui.netlify.app"
-documentation = "https://osui.netlify.app/docs/" 
+documentation = "https://osui.netlify.app/docs/"
 
 [features]
-no_rsx = []
-no_elem = []
+rsx = []
 
 [lib]
 name = "osui"
