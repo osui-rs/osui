@@ -46,7 +46,7 @@ fn app(cx: &Arc<Context>) -> View {
         scope.child(
             my_component,
             Some(Arc::new(|ctx, view| {
-                let area = ctx.allocate(0, 0, 0, 0);
+                let area = ctx.allocate(5, 0, 0, 0);
                 ctx.draw_view(area, view)
             })),
         );
@@ -62,13 +62,34 @@ fn app(cx: &Arc<Context>) -> View {
                             scope.child(
                                 my_component,
                                 Some(Arc::new(|ctx, view| {
-                                    let area = ctx.allocate(0, 2, 0, 0);
+                                    let area = ctx.allocate(5, 2, 0, 0);
                                     ctx.draw_view(area, view)
                                 })),
                             );
                         }
                     } else {
                         scope.children.lock().unwrap().clear();
+                    }
+                }
+            },
+            &[&count],
+        );
+    }
+
+    {
+        cx.dyn_scope(
+            {
+                let count = count.clone();
+                move |scope| {
+                    scope.children.lock().unwrap().clear();
+
+                    for i in 0..count.get_dl() {
+                        scope.child(
+                            my_component,
+                            Some(Arc::new(move |ctx, _| {
+                                ctx.draw_text(Point { x: 0, y: i }, &format!("{i}"));
+                            })),
+                        );
                     }
                 }
             },
