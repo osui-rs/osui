@@ -113,7 +113,14 @@ impl<T> HookDependency for State<T> {
 }
 
 pub fn use_effect<F: FnMut() + Send + Sync + 'static>(f: F, dependencies: &[&dyn HookDependency]) {
-    let hook = HookEffect(Arc::new(Mutex::new(f)));
+    let f = Arc::new(Mutex::new(f));
+    let hook = HookEffect(Arc::new(Mutex::new({
+        let f = f.clone();
+        move || {
+            let f = f.clone();
+            std::thread::spawn(move || (f.lock().unwrap())());
+        }
+    })));
 
     for d in dependencies {
         d.on_update(hook.clone());

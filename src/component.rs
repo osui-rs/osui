@@ -4,7 +4,11 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::{render::DrawContext, View, ViewWrapper};
+use crate::{
+    render::DrawContext,
+    state::{use_effect, HookDependency},
+    View, ViewWrapper,
+};
 
 pub trait Event {
     fn as_any(&self) -> &dyn Any;
@@ -21,7 +25,6 @@ pub type EventHandler = Arc<Mutex<dyn FnMut(&Arc<Context>, &dyn Event) + Send + 
 
 pub struct Scope {
     pub children: Mutex<Vec<(Arc<Context>, Option<ViewWrapper>)>>,
-    pub scope: Mutex<usize>,
 }
 
 pub struct Context {
@@ -131,9 +134,31 @@ impl Context {
     pub fn scope(self: &Arc<Self>) -> Arc<Scope> {
         let scope = Arc::new(Scope {
             children: Mutex::new(Vec::new()),
-            scope: Mutex::new(0),
         });
         self.scopes.lock().unwrap().push(scope.clone());
+
+        scope
+    }
+
+    pub fn dyn_scope<F: Fn(&Arc<Scope>) + Send + Sync + 'static>(
+        self: &Arc<Self>,
+        drawer: F,
+        dependencies: &[&dyn HookDependency],
+    ) -> Arc<Scope> {
+        let scope = Arc::new(Scope {
+            children: Mutex::new(Vec::new()),
+        });
+        self.scopes.lock().unwrap().push(scope.clone());
+
+        use_effect(
+            {
+                let scope = scope.clone();
+                move || {
+                    drawer(&scope);
+                }
+            },
+            dependencies,
+        );
 
         scope
     }

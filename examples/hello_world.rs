@@ -25,6 +25,21 @@ fn main() {
 fn app(cx: &Arc<Context>) -> View {
     let count = use_state(0);
 
+    cx.on_event({
+        let count = count.clone();
+        move |_, _: &KeyPress| {
+            let mut count = count.get();
+
+            if *count > 5 {
+                *count = 0;
+
+                return;
+            }
+
+            *count += 1;
+        }
+    });
+
     {
         let scope = cx.scope();
 
@@ -35,29 +50,30 @@ fn app(cx: &Arc<Context>) -> View {
                 ctx.draw_view(area, view)
             })),
         );
+    }
 
-        cx.on_event({
-            let count = count.clone();
-            move |_, _: &KeyPress| {
-                let mut count = count.get();
-
-                if *count > 5 {
-                    if scope.children.lock().unwrap().len() == 1 {
-                        scope.child(
-                            my_component,
-                            Some(Arc::new(|ctx, view| {
-                                let area = ctx.allocate(0, 1, 0, 0);
-                                ctx.draw_view(area, view)
-                            })),
-                        );
+    {
+        cx.dyn_scope(
+            {
+                let count = count.clone();
+                move |scope| {
+                    if *count.get() != 0 {
+                        if scope.children.lock().unwrap().len() == 0 {
+                            scope.child(
+                                my_component,
+                                Some(Arc::new(|ctx, view| {
+                                    let area = ctx.allocate(0, 2, 0, 0);
+                                    ctx.draw_view(area, view)
+                                })),
+                            );
+                        }
+                    } else {
+                        scope.children.lock().unwrap().clear();
                     }
-
-                    *count = 0;
                 }
-
-                *count += 1;
-            }
-        });
+            },
+            &[&count],
+        );
     }
 
     Arc::new({
