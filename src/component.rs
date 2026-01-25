@@ -179,6 +179,12 @@ impl Context {
 }
 
 impl Scope {
+    pub fn new() -> Arc<Self> {
+        Arc::new(Self {
+            children: Mutex::new(Vec::new()),
+        })
+    }
+
     pub fn child<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
         self: &Arc<Self>,
         child: F,
