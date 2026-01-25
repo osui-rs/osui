@@ -19,6 +19,8 @@ pub struct Inner<'a, T> {
     updated: bool,
 }
 
+pub struct Mount;
+
 pub fn use_state<T>(v: T) -> State<T> {
     State {
         value: Arc::new(Mutex::new(v)),
@@ -112,6 +114,12 @@ impl<T> HookDependency for State<T> {
     }
 }
 
+impl HookDependency for Mount {
+    fn on_update(&self, hook: HookEffect) {
+        hook.call();
+    }
+}
+
 pub fn use_effect<F: FnMut() + Send + Sync + 'static>(f: F, dependencies: &[&dyn HookDependency]) {
     let f = Arc::new(Mutex::new(f));
     let hook = HookEffect(Arc::new(Mutex::new({
@@ -125,4 +133,8 @@ pub fn use_effect<F: FnMut() + Send + Sync + 'static>(f: F, dependencies: &[&dyn
     for d in dependencies {
         d.on_update(hook.clone());
     }
+}
+
+pub fn use_mount() -> Mount {
+    Mount
 }
