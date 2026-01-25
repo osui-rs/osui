@@ -1,10 +1,15 @@
-use std::sync::{Arc, Mutex};
+use std::{
+    io::{stdout, Write},
+    sync::{Arc, Mutex},
+};
 
-use crate::{prelude::Context, DrawContext, View};
+use crossterm::{cursor::MoveTo, execute, terminal::Clear};
+
+use crate::{prelude::Context, render::Area, DrawContext, View};
 
 pub trait Engine {
-    fn render(&self, ctx: &mut DrawContext, view: View);
-    fn draw_text(&self, ctx: &mut DrawContext, text: &str);
+    fn render_view(&self, area: &Area, view: &View) -> DrawContext;
+    fn draw_context(&self, ctx: &DrawContext);
 }
 
 pub struct Console {
@@ -35,24 +40,48 @@ impl Console {
             });
         }
 
-        let (width, height) = crossterm::terminal::size().unwrap();
-
         loop {
-            cx.get_view()(&mut DrawContext::new(width, height));
+            let (width, height) = crossterm::terminal::size().unwrap();
+
+            execute!(stdout(), Clear(crossterm::terminal::ClearType::Purge)).unwrap();
+            execute!(stdout(), Clear(crossterm::terminal::ClearType::All)).unwrap();
+
+            self.draw_context(&self.render_view(
+                &Area {
+                    x: 0,
+                    y: 0,
+                    width,
+                    height,
+                },
+                &cx.get_view(),
+            ));
+
             std::thread::sleep(std::time::Duration::from_millis(16));
         }
     }
 }
 
 impl Engine for Console {
-    fn render(&self, ctx: &mut DrawContext, view: View) {
-        view(&mut DrawContext::new(
-            ctx.available.width,
-            ctx.available.height,
-        ));
+    fn render_view(&self, area: &Area, view: &View) -> DrawContext {
+        let mut context = DrawContext::new(area.clone());
+        view(&mut context);
+        context
     }
 
-    fn draw_text(&self, _ctx: &mut DrawContext, text: &str) {
-        println!("{}", text);
+    fn draw_context(&self, ctx: &DrawContext) {
+        for inst in &ctx.drawing {
+            match inst {
+                crate::render::DrawInstruction::Text(point, text) => {
+                    let (x, y) = (ctx.area.x + point.x, ctx.area.y + point.y);
+                    execute!(stdout(), MoveTo(x, y),).unwrap();
+                    print!("{text}");
+                    stdout().flush().unwrap();
+                }
+                crate::render::DrawInstruction::Child(_point, child) => self.draw_context(child),
+                crate::render::DrawInstruction::View(area, view) => {
+                    self.draw_context(&self.render_view(area, view))
+                }
+            }
+        }
     }
 }
