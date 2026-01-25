@@ -84,12 +84,9 @@ fn app(cx: &Arc<Context>) -> View {
                     scope.children.lock().unwrap().clear();
 
                     for i in 0..count.get_dl() {
-                        scope.child(
-                            my_component,
-                            Some(Arc::new(move |ctx, _| {
-                                ctx.draw_text(Point { x: 0, y: i }, &format!("{i}"));
-                            })),
-                        );
+                        scope.view(Arc::new(move |ctx| {
+                            ctx.draw_text(Point { x: 0, y: i }, &format!("{i}"));
+                        }));
                     }
                 }
             },

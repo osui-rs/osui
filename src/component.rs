@@ -190,4 +190,12 @@ impl Scope {
 
         self.children.lock().unwrap().push((ctx, view_wrapper));
     }
+
+    pub fn view(self: &Arc<Self>, view: View) {
+        let ctx = Context::new(move |_| view.clone());
+
+        ctx.refresh();
+
+        self.children.lock().unwrap().push((ctx, None));
+    }
 }
