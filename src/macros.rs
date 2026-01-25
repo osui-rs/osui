@@ -22,6 +22,7 @@ macro_rules! rsx_scope {
             $rsx.dynamic_scope({
                 $($($crate::rsx_dep!($dep $(as $dp)?);)+)?
                 move |scope| {
+                    scope.children.lock().unwrap().clear();
                     for $p in $v {
                         $crate::rsx_child!(scope, $($inner)*);
                     }
