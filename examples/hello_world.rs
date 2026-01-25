@@ -40,57 +40,17 @@ fn app(cx: &Arc<Context>) -> View {
         }
     });
 
-    // {
-    //     cx.dyn_scope(
-    //         {
-    //             let count = count.clone();
-    //             move |scope| {
-    //                 if *count.get() != 0 {
-    //                     if scope.children.lock().unwrap().len() == 0 {
-    //                         scope.child(
-    //                             my_component,
-    //                             Some(Arc::new(|ctx, view| {
-    //                                 let area = ctx.allocate(5, 2, 0, 0);
-    //                                 ctx.draw_view(area, view)
-    //                             })),
-    //                         );
-    //                     }
-    //                 } else {
-    //                     scope.children.lock().unwrap().clear();
-    //                 }
-    //             }
-    //         },
-    //         &[&count],
-    //     );
-    // }
-
-    // {
-    //     cx.dyn_scope(
-    //         {
-    //             let count = count.clone();
-    //             move |scope| {
-    //                 scope.children.lock().unwrap().clear();
-
-    //                 for i in 0..count.get_dl() {
-    //                     scope.view(Arc::new(move |ctx| {
-    //                         ctx.draw_text(Point { x: 0, y: i }, &format!("{i}"));
-    //                     }));
-    //                 }
-    //             }
-    //         },
-    //         &[&count],
-    //     );
-    // }
-
     rsx! {
         if %count (*count.get() > 0) {
             my_component (ctx, view) {
-                let area = ctx.allocate(0, 1, 10, 10);
+                let area = ctx.allocate(10, 0, 10, 10);
                 ctx.draw_view(area, view);
             }
         }
 
-        %count "{count}"
+        for %count (i in 0..count.get_dl()) {
+            "{i}"
+        }
     }
     .view(cx.clone())
 }

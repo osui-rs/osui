@@ -15,6 +15,23 @@ macro_rules! rsx {
 
 #[macro_export]
 macro_rules! rsx_scope {
+    ($rsx:expr, for $(%$($dep:ident)+)? ($p:pat in $v:expr) {$($inner:tt)*} $($rest:tt)*) => {
+        {
+            $($(let $dep = $dep.clone();)+)?
+
+            $rsx.dynamic_scope({
+                $($(let $dep = $dep.clone();)+)?
+                move |scope| {
+                    for $p in $v {
+                        $crate::rsx_child!(scope, $($inner)*);
+                    }
+                }
+            }, vec![$($(Box::new($dep)),+)?]);
+        }
+
+        $crate::rsx_scope!($rsx, $($rest)*);
+    };
+
     ($rsx:expr, if $(%$($dep:ident)+)? ($st:expr) {$($inner:tt)*} $($rest:tt)*) => {
         {
             $($(let $dep = $dep.clone();)+)?
@@ -66,7 +83,7 @@ macro_rules! rsx_scope {
         {
             let scope = $crate::component::Scope::new();
 
-            $crate::rsx_child!(scope, $component $body);
+            $crate::rsx_child!(scope, $component);
 
             $rsx.static_scope(scope);
         }
