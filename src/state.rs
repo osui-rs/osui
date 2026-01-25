@@ -19,6 +19,7 @@ pub struct Inner<'a, T> {
     updated: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
 pub struct Mount;
 
 pub fn use_state<T>(v: T) -> State<T> {

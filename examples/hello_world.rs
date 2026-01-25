@@ -24,6 +24,7 @@ fn main() {
 
 fn app(cx: &Arc<Context>) -> View {
     let count = use_state(0);
+    let mount = use_mount();
 
     cx.on_event({
         let count = count.clone();
@@ -32,7 +33,6 @@ fn app(cx: &Arc<Context>) -> View {
 
             if *count > 5 {
                 *count = 0;
-
                 return;
             }
 
@@ -41,16 +41,16 @@ fn app(cx: &Arc<Context>) -> View {
     });
 
     rsx! {
-        if %count (*count.get() > 0) {
+        if %count, mount as _, (*count.get() > 0) {
             my_component (ctx, view) {
                 let area = ctx.allocate(10, 0, 10, 10);
                 ctx.draw_view(area, view);
             }
         }
 
-        for %count (i in 0..count.get_dl()) {
-            "{i}"
-        }
+        // for %count, mount as _, (i in 0..count.get_dl()) {
+        //     "{i}"
+        // }
     }
     .view(cx.clone())
 }

@@ -15,12 +15,10 @@ macro_rules! rsx {
 
 #[macro_export]
 macro_rules! rsx_scope {
-    ($rsx:expr, for $(%$($dep:ident)+)? ($p:pat in $v:expr) {$($inner:tt)*} $($rest:tt)*) => {
+    ($rsx:expr, for $(%$($dep:ident $(as $dp:pat,)?),+)? ($p:pat in $v:expr) {$($inner:tt)*} $($rest:tt)*) => {
         {
-            $($(let $dep = $dep.clone();)+)?
-
             $rsx.dynamic_scope({
-                $($(let $dep = $dep.clone();)+)?
+                $($($crate::rsx_dep!($dep $(as $dp)?);)+)?
                 move |scope| {
                     for $p in $v {
                         $crate::rsx_child!(scope, $($inner)*);
@@ -32,12 +30,10 @@ macro_rules! rsx_scope {
         $crate::rsx_scope!($rsx, $($rest)*);
     };
 
-    ($rsx:expr, if $(%$($dep:ident)+)? ($st:expr) {$($inner:tt)*} $($rest:tt)*) => {
+    ($rsx:expr, if $(%$($dep:ident $(as $dp:pat,)?),+)? ($st:expr) {$($inner:tt)*} $($rest:tt)*) => {
         {
-            $($(let $dep = $dep.clone();)+)?
-
             $rsx.dynamic_scope({
-                $($(let $dep = $dep.clone();)+)?
+                $($($crate::rsx_dep!($dep $(as $dp)?);)+)?
                 move |scope| {
                     if $st {
                         if scope.children.lock().unwrap().len() == 0 {
@@ -53,11 +49,11 @@ macro_rules! rsx_scope {
         $crate::rsx_scope!($rsx, $($rest)*);
     };
 
-    ($rsx:expr, $(%$($dep:ident)+)? $text:literal $($rest:tt)*) => {
+    ($rsx:expr, $(%$($dep:ident $(as $dp:pat,)?),+)? $text:literal $($rest:tt)*) => {
         {
             let scope = $crate::component::Scope::new();
 
-            $($(let $dep = $dep.clone();)+)?
+            $($($crate::rsx_dep!($dep $(as $dp)?);)+)?
 
             $crate::rsx_child!(scope, $text);
 
@@ -120,4 +116,15 @@ macro_rules! rsx_child {
     };
 
     ($rsx:expr,) => {};
+}
+
+#[macro_export]
+macro_rules! rsx_dep {
+    ($dep:ident as $dp:pat) => {
+        let $dp = $dep.clone();
+    };
+
+    ($dep:ident) => {
+        let $dep = $dep.clone();
+    };
 }
