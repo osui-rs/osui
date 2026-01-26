@@ -189,3 +189,25 @@ pub fn use_sync_state<
 
     state
 }
+
+pub fn use_sync_effect<
+    T: Send + Sync + 'static,
+    Ev: 'static,
+    E: Fn(&State<T>) -> Ev + Send + Sync + 'static,
+>(
+    cx: &Arc<Context>,
+    state: &State<T>,
+    encoder: E,
+    deps: &[&dyn HookDependency],
+) {
+    use_effect(
+        {
+            let state = state.clone();
+            let cx = cx.clone();
+            move || {
+                cx.emit_event(&encoder(&state));
+            }
+        },
+        deps,
+    );
+}

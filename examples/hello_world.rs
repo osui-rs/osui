@@ -13,6 +13,9 @@ fn app(cx: &Arc<Context>) -> View {
     let count = use_state(0);
     let mount = use_mount_manual();
 
+    // Sync state with children
+    use_sync_effect(cx, &count, |v| Count(v.clone()), &[&mount, &count]);
+
     use_effect(
         {
             let count = count.clone();
@@ -24,18 +27,6 @@ fn app(cx: &Arc<Context>) -> View {
                     continue;
                 }
                 *count += 1;
-            }
-        },
-        &[&mount],
-    );
-
-    // Pass the count to the children
-    use_effect(
-        {
-            let count = count.clone();
-            let cx = cx.clone();
-            move || {
-                cx.emit_event(&Count(count.clone()));
             }
         },
         &[&mount],
@@ -67,24 +58,8 @@ fn app(cx: &Arc<Context>) -> View {
 }
 
 fn my_component(cx: &Arc<Context>) -> View {
-    let mount = use_mount();
+    // Sync state with parent
     let count = use_sync_state(cx, 0, |Count(v)| v.get_dl());
-
-    use_effect(
-        {
-            let count = count.clone();
-            move || loop {
-                std::thread::sleep(std::time::Duration::from_millis(500));
-                let mut count = count.get();
-                if *count > 5 {
-                    *count = 0;
-                    continue;
-                }
-                *count += 1;
-            }
-        },
-        &[&mount],
-    );
 
     rsx! {
         "Count: {count}"
