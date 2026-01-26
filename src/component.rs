@@ -10,18 +10,8 @@ use crate::{
     View, ViewWrapper,
 };
 
-pub trait Event {
-    fn as_any(&self) -> &dyn Any;
-}
-
-impl<'a> dyn Event + 'a {
-    pub fn get<T: Event + 'static>(&self) -> Option<&T> {
-        self.as_any().downcast_ref()
-    }
-}
-
 pub type Component = Arc<dyn Fn(&Arc<Context>) -> View + Send + Sync>;
-pub type EventHandler = Arc<Mutex<dyn FnMut(&Arc<Context>, &dyn Event) + Send + Sync>>;
+pub type EventHandler = Arc<Mutex<dyn FnMut(&Arc<Context>, &dyn Any) + Send + Sync>>;
 
 pub struct Scope {
     pub children: Mutex<Vec<(Arc<Context>, Option<ViewWrapper>)>>,
@@ -77,7 +67,7 @@ impl Context {
         self.view.lock().unwrap().clone()
     }
 
-    pub fn on_event<T: Event + 'static, F: Fn(&Arc<Self>, &T) + Send + Sync + 'static>(
+    pub fn on_event<T: Any + 'static, F: Fn(&Arc<Self>, &T) + Send + Sync + 'static>(
         self: &Arc<Self>,
         handler: F,
     ) {
@@ -87,15 +77,15 @@ impl Context {
             .entry(TypeId::of::<T>())
             .or_insert_with(|| Vec::new())
             .push(Arc::new(Mutex::new(
-                move |ctx: &Arc<Self>, event: &dyn Event| {
-                    if let Some(e) = event.get::<T>() {
+                move |ctx: &Arc<Self>, event: &dyn Any| {
+                    if let Some(e) = event.downcast_ref::<T>() {
                         (handler)(ctx, e);
                     }
                 },
             )));
     }
 
-    pub fn emit_event<E: Event + 'static>(self: &Arc<Self>, event: &E) {
+    pub fn emit_event<E: Any + 'static>(self: &Arc<Self>, event: &E) {
         if let Some(v) = self.event_handlers.lock().unwrap().get(&TypeId::of::<E>()) {
             for i in v {
                 (i.lock().unwrap())(self, event);
@@ -109,7 +99,7 @@ impl Context {
         }
     }
 
-    pub fn emit_event_threaded<E: Event + Send + Sync + Clone + 'static>(
+    pub fn emit_event_threaded<E: Any + Send + Sync + Clone + 'static>(
         self: &Arc<Self>,
         event: &E,
     ) {
