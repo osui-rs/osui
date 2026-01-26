@@ -2,42 +2,30 @@ use std::sync::Arc;
 
 use osui::{prelude::*, rsx};
 
-#[derive(Debug, Clone)]
-pub struct KeyPress;
-
-impl Event for KeyPress {
-    fn as_any(&self) -> &dyn std::any::Any {
-        self
-    }
-}
-
 fn main() {
     let console = Console::new();
-
-    console.thread(move |ctx| loop {
-        crossterm::event::read().unwrap();
-        ctx.emit_event_threaded(&KeyPress);
-    });
-
     console.run(app);
 }
 
 fn app(cx: &Arc<Context>) -> View {
     let count = use_state(0);
+    let mount = use_mount();
 
-    cx.on_event({
-        let count = count.clone();
-        move |_, _: &KeyPress| {
-            let mut count = count.get();
-
-            if *count > 5 {
-                *count = 0;
-                return;
+    use_effect(
+        {
+            let count = count.clone();
+            move || loop {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                let mut count = count.get();
+                if *count > 5 {
+                    *count = 0;
+                    continue;
+                }
+                *count += 1;
             }
-
-            *count += 1;
-        }
-    });
+        },
+        &[&mount],
+    );
 
     rsx! {
         // Static scope
@@ -63,19 +51,24 @@ fn app(cx: &Arc<Context>) -> View {
 }
 
 fn my_component(cx: &Arc<Context>) -> View {
-    let count = use_state(1);
+    let count = use_state(0);
+    let mount = use_mount();
 
-    cx.on_event({
-        let count = count.clone();
-        move |_cx, _event: &KeyPress| {
-            let mut count = count.get();
-            if *count > 5 {
-                _cx.refresh();
-                return;
+    use_effect(
+        {
+            let count = count.clone();
+            move || loop {
+                std::thread::sleep(std::time::Duration::from_millis(500));
+                let mut count = count.get();
+                if *count > 5 {
+                    *count = 0;
+                    continue;
+                }
+                *count += 1;
             }
-            *count += 1;
-        }
-    });
+        },
+        &[&mount],
+    );
 
     rsx! {
         "Count: {count}"
