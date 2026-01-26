@@ -1,13 +1,16 @@
 use std::{
+    any::Any,
     fmt::{Debug, Display, Formatter, Result as FmtResult},
     ops::{Deref, DerefMut},
     sync::{Arc, Mutex, MutexGuard},
 };
 
+use crate::prelude::Context;
+
 #[derive(Clone)]
 pub struct HookEffect(Arc<Mutex<dyn FnMut() + Send + Sync>>);
 
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct State<T> {
     value: Arc<Mutex<T>>,
     dependents: Arc<Mutex<Vec<HookEffect>>>,
@@ -19,8 +22,8 @@ pub struct Inner<'a, T> {
     updated: bool,
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct Mount;
+#[derive(Debug, Clone)]
+pub struct Mount(Arc<Mutex<bool>>, Arc<Mutex<Vec<HookEffect>>>);
 
 pub fn use_state<T>(v: T) -> State<T> {
     State {
@@ -55,6 +58,13 @@ impl<T> State<T> {
     pub fn update(&self) {
         for d in self.dependents.lock().unwrap().iter() {
             d.call();
+        }
+    }
+
+    pub fn clone(&self) -> Self {
+        Self {
+            dependents: self.dependents.clone(),
+            value: self.value.clone(),
         }
     }
 }
@@ -117,7 +127,21 @@ impl<T> HookDependency for State<T> {
 
 impl HookDependency for Mount {
     fn on_update(&self, hook: HookEffect) {
-        hook.call();
+        if *self.0.lock().unwrap() {
+            hook.call();
+        } else {
+            self.1.lock().unwrap().push(hook);
+        }
+    }
+}
+
+impl Mount {
+    pub fn mount(&self) {
+        *self.0.lock().unwrap() = true;
+        for hook_effect in self.1.lock().unwrap().iter() {
+            hook_effect.call();
+        }
+        self.1.lock().unwrap().clear();
     }
 }
 
@@ -137,5 +161,31 @@ pub fn use_effect<F: FnMut() + Send + Sync + 'static>(f: F, dependencies: &[&dyn
 }
 
 pub fn use_mount() -> Mount {
-    Mount
+    Mount(Arc::new(Mutex::new(true)), Arc::new(Mutex::new(Vec::new())))
+}
+
+pub fn use_mount_manual() -> Mount {
+    Mount(
+        Arc::new(Mutex::new(false)),
+        Arc::new(Mutex::new(Vec::new())),
+    )
+}
+
+pub fn use_sync_state<
+    T: Send + Sync + 'static,
+    E: Any + 'static,
+    D: Fn(&E) -> T + Send + Sync + 'static,
+>(
+    cx: &Arc<Context>,
+    v: T,
+    decoder: D,
+) -> State<T> {
+    let state = use_state(v);
+
+    cx.on_event({
+        let state = state.clone();
+        move |_, v: &E| state.set(decoder(v))
+    });
+
+    state
 }

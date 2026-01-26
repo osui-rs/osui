@@ -2,6 +2,8 @@ use std::sync::Arc;
 
 use osui::{prelude::*, rsx};
 
+pub struct Count(pub State<u16>);
+
 fn main() {
     let console = Console::new();
     console.run(app);
@@ -9,7 +11,7 @@ fn main() {
 
 fn app(cx: &Arc<Context>) -> View {
     let count = use_state(0);
-    let mount = use_mount();
+    let mount = use_mount_manual();
 
     use_effect(
         {
@@ -22,6 +24,18 @@ fn app(cx: &Arc<Context>) -> View {
                     continue;
                 }
                 *count += 1;
+            }
+        },
+        &[&mount],
+    );
+
+    // Pass the count to the children
+    use_effect(
+        {
+            let count = count.clone();
+            let cx = cx.clone();
+            move || {
+                cx.emit_event(&Count(count.clone()));
             }
         },
         &[&mount],
@@ -46,13 +60,15 @@ fn app(cx: &Arc<Context>) -> View {
         for %count (i in 0..count.get_dl()) {
             "{i}" @Point { x: 0, y: i };
         }
+
+        !mount mount
     }
     .view(cx.clone())
 }
 
 fn my_component(cx: &Arc<Context>) -> View {
-    let count = use_state(0);
     let mount = use_mount();
+    let count = use_sync_state(cx, 0, |Count(v)| v.get_dl());
 
     use_effect(
         {

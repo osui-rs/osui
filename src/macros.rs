@@ -106,6 +106,14 @@ macro_rules! rsx_scope {
         $crate::rsx_scope!($rsx, $($rest)*);
     };
 
+    ($rsx:expr, !mount $mount:ident $($rest:tt)*) => {
+        {
+            $mount.mount();
+        }
+
+        $crate::rsx_scope!($rsx, $($rest)*);
+    };
+
     ($rsx:expr,) => {};
 }
 
