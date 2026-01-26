@@ -4,6 +4,8 @@ use crate::render::DrawContext;
 
 pub mod component;
 pub mod engine;
+pub mod frontend;
+pub mod macros;
 pub mod render;
 pub mod state;
 
