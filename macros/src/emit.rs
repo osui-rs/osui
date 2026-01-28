@@ -28,21 +28,15 @@ fn emit_deps(deps: &[Dep]) -> TokenStream {
 fn emit_node(node: &RsxNode) -> TokenStream {
     match node {
         RsxNode::Text(text) => quote! {
-            {
-                let scope = osui::component::Scope::new();
-                scope.view(Arc::new(move |ctx| {
-                    ctx.draw_text(Point { x: 0, y: 0 }, &format!(#text))
-                }));
-                r.static_scope(scope);
-            }
+            r.static_scope(|scope| scope.view(Arc::new(move |ctx| {
+                ctx.draw_text(Point { x: 0, y: 0 }, &format!(#text))
+            })));
         },
 
         RsxNode::Component(name) => quote! {
-            {
-                let scope = osui::component::Scope::new();
-                scope.child(#name, None);
-                r.static_scope(scope);
-            }
+            r.static_scope(|scope| scope.view(Arc::new(move |ctx| {
+                scope.child(#name, None)
+            })));
         },
 
         RsxNode::Mount(m) => quote! {

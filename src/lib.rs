@@ -19,3 +19,6 @@ pub mod prelude {
 
 pub type View = Arc<dyn Fn(&mut DrawContext) + Send + Sync>;
 pub type ViewWrapper = Arc<dyn Fn(&mut DrawContext, View) + Send + Sync>;
+pub type Result<T> = std::result::Result<T, Error>;
+
+pub enum Error {}

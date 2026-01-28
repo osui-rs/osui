@@ -4,7 +4,7 @@ pub mod console;
 pub use benchmark::*;
 pub use console::*;
 
-use std::sync::Arc;
+use std::{any::Any, sync::Arc};
 
 use crate::{prelude::Context, render::Area, DrawContext, View};
 
@@ -29,4 +29,12 @@ pub trait Engine {
 
     fn render_view(&self, area: &Area, view: &View) -> DrawContext;
     fn draw_context(&self, ctx: &DrawContext);
+}
+
+pub trait Command {
+    fn as_any(&self) -> &dyn Any;
+}
+
+pub trait CommandExecutor {
+    fn execute_command(&self, command: &Arc<dyn Command>) -> crate::Result<()>;
 }
