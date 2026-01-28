@@ -5,7 +5,6 @@ use crate::render::DrawContext;
 pub mod component;
 pub mod engine;
 pub mod frontend;
-pub mod macros;
 pub mod render;
 pub mod state;
 
@@ -15,7 +14,20 @@ pub mod prelude {
     pub use crate::render::*;
     pub use crate::state::*;
     pub use crate::View;
+    pub use osui_macros::rsx;
 }
 
 pub type View = Arc<dyn Fn(&mut DrawContext) + Send + Sync>;
 pub type ViewWrapper = Arc<dyn Fn(&mut DrawContext, View) + Send + Sync>;
+pub type Result<T> = std::result::Result<T, Error>;
+
+#[derive(Debug, Clone)]
+pub enum Error {
+    PoisonError,
+}
+
+impl From<std::sync::PoisonError<std::sync::MutexGuard<'_, bool>>> for Error {
+    fn from(_value: std::sync::PoisonError<std::sync::MutexGuard<'_, bool>>) -> Self {
+        Error::PoisonError
+    }
+}

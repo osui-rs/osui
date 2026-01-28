@@ -25,6 +25,7 @@ cc = "1.0"
 [dependencies]
 crossterm = "0.28.1"
 figlet-rs = "0.1.5"
+osui-macros = { path = "macros" }
 
 [profile.dev]
 opt-level = 1
@@ -42,3 +43,6 @@ overflow-checks = false
 lto = true
 panic = 'abort'
 codegen-units = 1
+
+[workspace]
+members = [".", "macros"]

@@ -7,7 +7,7 @@ use crate::{
 };
 
 pub enum RsxScope {
-    Static(Arc<Scope>),
+    Static(Box<dyn Fn(&Arc<Scope>) + Send + Sync>),
     Dynamic(
         Arc<dyn Fn(&Arc<Scope>) + Send + Sync>,
         Vec<Box<dyn HookDependency>>,
@@ -21,8 +21,8 @@ impl Rsx {
         Self(Vec::new())
     }
 
-    pub fn static_scope(&mut self, scope: Arc<Scope>) {
-        self.0.push(RsxScope::Static(scope));
+    pub fn static_scope<F: Fn(&Arc<Scope>) + Send + Sync + 'static>(&mut self, scope: F) {
+        self.0.push(RsxScope::Static(Box::new(scope)));
     }
 
     pub fn dynamic_scope<F: Fn(&Arc<Scope>) + Send + Sync + 'static>(
@@ -35,9 +35,15 @@ impl Rsx {
     }
 
     pub fn view(&self, context: Arc<Context>) -> View {
+        let executor = context.get_executor();
+
         for scope in &self.0 {
             match scope {
-                RsxScope::Static(scope) => context.scopes.lock().unwrap().push(scope.clone()),
+                RsxScope::Static(scope_fn) => {
+                    let scope = Scope::new(executor.clone());
+                    (scope_fn)(&scope);
+                    context.scopes.lock().unwrap().push(scope)
+                }
                 RsxScope::Dynamic(drawer, dependencies) => {
                     let drawer = drawer.clone();
                     context.dyn_scope(

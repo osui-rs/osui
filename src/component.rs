@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::{
+    engine::{Command, CommandExecutor},
     render::DrawContext,
     state::{use_effect, HookDependency},
     View, ViewWrapper,
@@ -15,6 +16,7 @@ pub type EventHandler = Arc<Mutex<dyn FnMut(&Arc<Context>, &dyn Any) + Send + Sy
 
 pub struct Scope {
     pub children: Mutex<Vec<(Arc<Context>, Option<ViewWrapper>)>>,
+    executor: Arc<dyn CommandExecutor>,
 }
 
 pub struct Context {
@@ -22,15 +24,20 @@ pub struct Context {
     event_handlers: Mutex<HashMap<TypeId, Vec<EventHandler>>>,
     view: Mutex<View>,
     pub(crate) scopes: Mutex<Vec<Arc<Scope>>>,
+    executor: Arc<dyn CommandExecutor>,
 }
 
 impl Context {
-    pub fn new<F: Fn(&Arc<Self>) -> View + Send + Sync + 'static>(component: F) -> Arc<Self> {
+    pub fn new<F: Fn(&Arc<Self>) -> View + Send + Sync + 'static>(
+        component: F,
+        executor: Arc<dyn CommandExecutor>,
+    ) -> Arc<Self> {
         Arc::new(Self {
             component: Mutex::new(Arc::new(component)),
             event_handlers: Mutex::new(HashMap::new()),
             view: Mutex::new(Arc::new(|_| {})),
             scopes: Mutex::new(Vec::new()),
+            executor,
         })
     }
 
@@ -122,9 +129,7 @@ impl Context {
     }
 
     pub fn scope(self: &Arc<Self>) -> Arc<Scope> {
-        let scope = Arc::new(Scope {
-            children: Mutex::new(Vec::new()),
-        });
+        let scope = Scope::new(self.executor.clone());
         self.scopes.lock().unwrap().push(scope.clone());
 
         scope
@@ -135,9 +140,7 @@ impl Context {
         drawer: F,
         dependencies: &[&dyn HookDependency],
     ) -> Arc<Scope> {
-        let scope = Arc::new(Scope {
-            children: Mutex::new(Vec::new()),
-        });
+        let scope = Scope::new(self.executor.clone());
         self.scopes.lock().unwrap().push(scope.clone());
 
         drawer(&scope);
@@ -168,12 +171,26 @@ impl Context {
             }
         }
     }
+
+    pub fn get_executor(self: &Arc<Self>) -> Arc<dyn CommandExecutor> {
+        self.executor.clone()
+    }
+
+    pub fn execute<T: Command + 'static>(self: &Arc<Self>, command: T) -> crate::Result<()> {
+        self.executor
+            .execute_command(&(Arc::new(command) as Arc<dyn Command>))
+    }
+
+    pub fn stop(self: &Arc<Self>) -> crate::Result<()> {
+        self.execute(crate::engine::commands::Stop)
+    }
 }
 
 impl Scope {
-    pub fn new() -> Arc<Self> {
+    pub fn new(executor: Arc<dyn CommandExecutor>) -> Arc<Self> {
         Arc::new(Self {
             children: Mutex::new(Vec::new()),
+            executor,
         })
     }
 
@@ -182,7 +199,7 @@ impl Scope {
         child: F,
         view_wrapper: Option<ViewWrapper>,
     ) {
-        let ctx = Context::new(child);
+        let ctx = Context::new(child, self.executor.clone());
 
         ctx.refresh();
 
@@ -190,7 +207,7 @@ impl Scope {
     }
 
     pub fn view(self: &Arc<Self>, view: View) {
-        let ctx = Context::new(move |_| view.clone());
+        let ctx = Context::new(move |_| view.clone(), self.executor.clone());
 
         ctx.refresh();
 
