@@ -1,4 +1,5 @@
 pub mod benchmark;
+pub mod commands;
 pub mod console;
 
 pub use benchmark::*;
@@ -29,6 +30,7 @@ pub trait Engine {
 
     fn render_view(&self, area: &Area, view: &View) -> DrawContext;
     fn draw_context(&self, ctx: &DrawContext);
+    fn executor(&self) -> Arc<dyn CommandExecutor>;
 }
 
 pub trait Command {

@@ -21,4 +21,12 @@ pub type View = Arc<dyn Fn(&mut DrawContext) + Send + Sync>;
 pub type ViewWrapper = Arc<dyn Fn(&mut DrawContext, View) + Send + Sync>;
 pub type Result<T> = std::result::Result<T, Error>;
 
-pub enum Error {}
+pub enum Error {
+    PoisonError,
+}
+
+impl From<std::sync::PoisonError<std::sync::MutexGuard<'_, bool>>> for Error {
+    fn from(_value: std::sync::PoisonError<std::sync::MutexGuard<'_, bool>>) -> Self {
+        Error::PoisonError
+    }
+}

@@ -87,4 +87,8 @@ impl<T: Engine> Engine for Benchmark<T> {
     fn render_delay(&self) {
         self.0.render_delay();
     }
+
+    fn executor(&self) -> Arc<dyn super::CommandExecutor> {
+        self.0.executor()
+    }
 }

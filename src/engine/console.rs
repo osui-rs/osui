@@ -5,18 +5,31 @@ use std::{
 
 use crossterm::{cursor::MoveTo, execute, terminal::Clear};
 
-use crate::{prelude::Context, render::Area, DrawContext, View};
+use crate::{
+    engine::{commands, CommandExecutor},
+    prelude::Context,
+    render::Area,
+    DrawContext, View,
+};
 
 use super::Engine;
 
+pub struct ConsoleExecutor {
+    running: Mutex<bool>,
+}
+
 pub struct Console {
     threads: Mutex<Vec<Arc<dyn Fn(Arc<Context>) + Send + Sync>>>,
+    executor: Arc<ConsoleExecutor>,
 }
 
 impl Console {
     pub fn new() -> Self {
         Self {
             threads: Mutex::new(Vec::new()),
+            executor: Arc::new(ConsoleExecutor {
+                running: Mutex::new(true),
+            }),
         }
     }
 
@@ -83,5 +96,41 @@ impl Engine for Console {
         }
 
         cx
+    }
+
+    fn executor(&self) -> Arc<dyn super::CommandExecutor> {
+        self.executor.clone()
+    }
+
+    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(&self, component: F) {
+        let cx = self.init(component);
+
+        while self.executor.is_running() {
+            self.render(&cx);
+            self.render_delay();
+        }
+    }
+}
+
+impl ConsoleExecutor {
+    pub fn is_running(self: &Arc<ConsoleExecutor>) -> bool {
+        *self.running.lock().unwrap()
+    }
+
+    pub fn stop(&self) -> crate::Result<()> {
+        *self.running.lock()? = false;
+        Ok(())
+    }
+}
+
+impl CommandExecutor for ConsoleExecutor {
+    fn execute_command(&self, command: &Arc<dyn super::Command>) -> crate::Result<()> {
+        let command = command.as_any();
+
+        if let Some(commands::Stop) = command.downcast_ref() {
+            self.stop()?;
+        }
+
+        Ok(())
     }
 }

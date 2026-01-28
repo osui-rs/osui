@@ -5,6 +5,7 @@ use std::{
 };
 
 use crate::{
+    engine::CommandExecutor,
     render::DrawContext,
     state::{use_effect, HookDependency},
     View, ViewWrapper,
@@ -22,6 +23,7 @@ pub struct Context {
     event_handlers: Mutex<HashMap<TypeId, Vec<EventHandler>>>,
     view: Mutex<View>,
     pub(crate) scopes: Mutex<Vec<Arc<Scope>>>,
+    // executor: Arc<dyn CommandExecutor>,
 }
 
 impl Context {
