@@ -1,6 +1,6 @@
 use crate::parse::*;
 use proc_macro2::TokenStream;
-use quote::{ToTokens, quote};
+use quote::quote;
 
 pub fn emit_rsx(root: RsxRoot) -> TokenStream {
     let nodes = root.nodes.iter().map(emit_node);
