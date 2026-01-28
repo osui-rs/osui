@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    engine::CommandExecutor,
+    engine::{Command, CommandExecutor},
     render::DrawContext,
     state::{use_effect, HookDependency},
     View, ViewWrapper,
@@ -174,6 +174,15 @@ impl Context {
 
     pub fn get_executor(self: &Arc<Self>) -> Arc<dyn CommandExecutor> {
         self.executor.clone()
+    }
+
+    pub fn execute<T: Command + 'static>(self: &Arc<Self>, command: T) -> crate::Result<()> {
+        self.executor
+            .execute_command(&(Arc::new(command) as Arc<dyn Command>))
+    }
+
+    pub fn stop(self: &Arc<Self>) -> crate::Result<()> {
+        self.execute(crate::engine::commands::Stop)
     }
 }
 
