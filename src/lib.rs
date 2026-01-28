@@ -13,6 +13,7 @@ pub mod prelude {
     pub use crate::component::*;
     pub use crate::engine::*;
     pub use crate::render::*;
+    pub use crate::rsx;
     pub use crate::state::*;
     pub use crate::View;
 }
