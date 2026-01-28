@@ -35,10 +35,12 @@ impl Rsx {
     }
 
     pub fn view(&self, context: Arc<Context>) -> View {
+        let executor = context.get_executor();
+
         for scope in &self.0 {
             match scope {
                 RsxScope::Static(scope_fn) => {
-                    let scope = Scope::new();
+                    let scope = Scope::new(executor.clone());
                     (scope_fn)(&scope);
                     context.scopes.lock().unwrap().push(scope)
                 }

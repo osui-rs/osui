@@ -83,7 +83,7 @@ impl Engine for Console {
         &self,
         component: F,
     ) -> Arc<Context> {
-        let cx = Context::new(component);
+        let cx = Context::new(component, self.executor.clone());
         cx.refresh();
 
         for thread in self.threads.lock().unwrap().iter() {

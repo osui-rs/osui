@@ -37,6 +37,6 @@ pub trait Command {
     fn as_any(&self) -> &dyn Any;
 }
 
-pub trait CommandExecutor {
+pub trait CommandExecutor: Send + Sync {
     fn execute_command(&self, command: &Arc<dyn Command>) -> crate::Result<()>;
 }
