@@ -3,7 +3,7 @@ use std::sync::Arc;
 use osui::prelude::*;
 
 pub fn main() {
-    let engine = SimpleBenchmark::new(Console::new());
+    let engine = Benchmark::new(Console::new());
     engine.run(app);
 }
 
