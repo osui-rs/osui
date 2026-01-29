@@ -16,7 +16,7 @@ impl<T: Engine> Benchmark<T> {
 
 impl<T: Engine> Engine for Benchmark<T> {
     fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(&self, component: F) {
-        let mut times: Vec<usize> = Vec::new();
+        let mut times: Vec<u64> = Vec::new();
         let cx = self.init(component);
 
         let start = Instant::now();
@@ -25,7 +25,7 @@ impl<T: Engine> Engine for Benchmark<T> {
             let start = Instant::now();
             self.render(&cx);
             let end = Instant::now();
-            times.push(end.duration_since(start).as_millis() as usize);
+            times.push(end.duration_since(start).as_nanos() as u64);
             self.0.render_delay();
         }
 
@@ -36,33 +36,27 @@ impl<T: Engine> Engine for Benchmark<T> {
         execute!(stdout(), MoveTo(0, 0)).unwrap();
 
         println!(
-            "Average time: {}ms",
+            "Average time: {} nanoseconds",
             if times.len() > 0 {
-                times.iter().sum::<usize>() / times.len()
+                times.iter().sum::<u64>() / (times.len() as u64)
             } else {
                 0
             }
         );
-        println!("Min time: {}ms", times.iter().min().unwrap_or(&0));
-        println!("Max time: {}ms", times.iter().max().unwrap_or(&0));
+        println!("Min time: {} nanoseconds", times.iter().min().unwrap_or(&0));
+        println!("Max time: {} nanoseconds", times.iter().max().unwrap_or(&0));
         println!(
-            "Median time: {}ms",
+            "Median time: {} nanoseconds",
             times.iter().nth(times.len() / 2).unwrap_or(&0)
         );
         println!(
-            "90th percentile: {}ms",
-            times.iter().nth(times.len() * 90 / 100).unwrap_or(&0)
+            "Total time: {} nanoseconds",
+            end.duration_since(start).as_nanos()
         );
         println!(
-            "95th percentile: {}ms",
-            times.iter().nth(times.len() * 95 / 100).unwrap_or(&0)
+            "Total render time: {} nanoseconds",
+            times.iter().sum::<u64>()
         );
-        println!(
-            "99th percentile: {}ms",
-            times.iter().nth(times.len() * 99 / 100).unwrap_or(&0)
-        );
-
-        println!("Total time: {}ms", end.duration_since(start).as_millis());
     }
 
     fn init<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
