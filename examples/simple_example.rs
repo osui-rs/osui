@@ -17,5 +17,9 @@ fn App(cx: &Arc<Context>) -> View {
 
 #[component]
 fn MyComponent(cx: &Arc<Context>, children: &Rsx) -> View {
-    children.view(&cx)
+    rsx! {
+        "Simple"
+        @{children}
+    }
+    .view(&cx)
 }

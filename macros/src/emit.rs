@@ -118,6 +118,10 @@ fn emit_node_scope(node: &RsxNode) -> TokenStream {
                 }
             }
         }
+
+        RsxNode::Expr(expr) => quote! {
+            r.child(#expr);
+        },
     }
 }
 
@@ -169,5 +173,9 @@ fn emit_node(node: &RsxNode) -> TokenStream {
         RsxNode::If { .. } => panic!("Invalid if statement"),
 
         RsxNode::For { .. } => panic!("Invalid for loop"),
+
+        RsxNode::Expr(expr) => quote! {
+            r.child(#expr);
+        },
     }
 }

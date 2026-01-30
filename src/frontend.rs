@@ -6,15 +6,21 @@ use crate::{
     View,
 };
 
+pub trait ToRsx {
+    fn to_rsx(&self) -> Rsx;
+}
+
+#[derive(Clone)]
 pub enum RsxScope {
-    Static(Box<dyn Fn(&Arc<Scope>) + Send + Sync>),
+    Static(Arc<dyn Fn(&Arc<Scope>) + Send + Sync>),
     Dynamic(
         Arc<dyn Fn(&Arc<Scope>) + Send + Sync>,
-        Vec<Box<dyn HookDependency>>,
+        Vec<Arc<dyn HookDependency>>,
     ),
     Child(Rsx),
 }
 
+#[derive(Clone)]
 pub struct Rsx(Vec<RsxScope>);
 
 impl Rsx {
@@ -23,16 +29,20 @@ impl Rsx {
     }
 
     pub fn static_scope<F: Fn(&Arc<Scope>) + Send + Sync + 'static>(&mut self, scope: F) {
-        self.0.push(RsxScope::Static(Box::new(scope)));
+        self.0.push(RsxScope::Static(Arc::new(scope)));
     }
 
     pub fn dynamic_scope<F: Fn(&Arc<Scope>) + Send + Sync + 'static>(
         &mut self,
         drawer: F,
-        dependencies: Vec<Box<dyn HookDependency>>,
+        dependencies: Vec<Arc<dyn HookDependency>>,
     ) {
         self.0
             .push(RsxScope::Dynamic(Arc::new(drawer), dependencies));
+    }
+
+    pub fn child<R: ToRsx>(&mut self, child: R) {
+        self.0.push(RsxScope::Child(child.to_rsx()));
     }
 
     pub fn generate_children(&self, context: &Arc<Context>) {
@@ -67,5 +77,11 @@ impl Rsx {
                 context.draw_children(ctx);
             }
         })
+    }
+}
+
+impl ToRsx for &Rsx {
+    fn to_rsx(&self) -> Rsx {
+        Rsx(self.0.clone())
     }
 }

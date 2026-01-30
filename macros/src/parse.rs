@@ -27,7 +27,7 @@ pub struct RsxProp {
 
 pub enum RsxNode {
     Text(LitStr),
-    /// Component with optional props and children: `Path { prop: expr, "child", ... }` or bare `Path`.
+    Expr(Expr),
     Component {
         path: Path,
         props: Vec<RsxProp>,
@@ -82,6 +82,18 @@ fn parse_deps(input: ParseStream) -> Result<Vec<Dep>> {
 
 impl Parse for RsxNode {
     fn parse(input: ParseStream) -> Result<Self> {
+        // --- @{ expr } ---
+        if input.peek(Token![@]) {
+            input.parse::<Token![@]>()?;
+
+            let content;
+            braced!(content in input);
+
+            let expr: Expr = content.parse()?;
+            return Ok(RsxNode::Expr(expr));
+        }
+
+        // --- existing code ---
         if input.peek(Token![!]) {
             input.parse::<Token![!]>()?;
             let mount: Ident = input.parse()?;
@@ -93,10 +105,8 @@ impl Parse for RsxNode {
         if input.peek(Token![if]) {
             input.parse::<Token![if]>()?;
             let cond: Expr = input.parse()?;
-
             let content;
             braced!(content in input);
-
             let children = parse_children(&content)?;
             return Ok(RsxNode::If {
                 deps,
@@ -107,14 +117,11 @@ impl Parse for RsxNode {
 
         if input.peek(Token![for]) {
             input.parse::<Token![for]>()?;
-            // Parse a possibly multi-pattern (e.g. with `|`) for the `for` binding.
             let pat: Pat = Pat::parse_multi(input)?;
             input.parse::<Token![in]>()?;
             let expr: Expr = input.parse()?;
-
             let content;
             braced!(content in input);
-
             let children = parse_children(&content)?;
             return Ok(RsxNode::For {
                 deps,
@@ -128,7 +135,6 @@ impl Parse for RsxNode {
             return Ok(RsxNode::Text(input.parse()?));
         }
 
-        // Component: Path or Path { props, children }
         parse_component_invocation(input)
     }
 }
