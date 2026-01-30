@@ -51,14 +51,14 @@ fn emit_node_scope(node: &RsxNode) -> TokenStream {
         RsxNode::Text(_) => {
             let emit = emit_node(node);
             quote! {
-                r.static_scope(|scope| {#emit});
+                r.static_scope(move |scope| {#emit});
             }
         }
 
         RsxNode::Component(_) => {
             let emit = emit_node(node);
             quote! {
-                r.static_scope(|scope| {#emit});
+                r.static_scope(move |scope| {#emit});
             }
         }
 

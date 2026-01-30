@@ -14,7 +14,7 @@ pub mod prelude {
     pub use crate::render::*;
     pub use crate::state::*;
     pub use crate::View;
-    pub use osui_macros::rsx;
+    pub use osui_macros::{component, rsx};
 }
 
 pub type View = Arc<dyn Fn(&mut DrawContext) + Send + Sync>;

@@ -17,7 +17,7 @@ pub fn main() {
 
             let handle = thread::spawn(move || {
                 let res = engine
-                    .run(BenchmarkApp(items))
+                    .run(BenchmarkApp { items })
                     .expect("Failed to run engine");
 
                 tx.send((items, res)).expect("Failed to send result");
@@ -41,16 +41,14 @@ pub fn main() {
     }
 }
 
-struct BenchmarkApp(pub usize);
+#[component]
+fn BenchmarkApp(cx: &Arc<Context>, items: &usize) -> View {
+    let items = items.clone();
 
-impl ComponentImpl for BenchmarkApp {
-    fn call(&self, cx: &Arc<Context>) -> View {
-        let items = self.0.clone();
-        rsx! {
-            for _ in (0..items) {
-                "Hello, world!"
-            }
+    rsx! {
+        for _ in (0..items) {
+            "Hello, world!"
         }
-        .view(cx.clone())
     }
+    .view(cx.clone())
 }
