@@ -7,7 +7,7 @@ pub fn main() {
 
     let (tx, rx) = mpsc::channel();
 
-    let max_threads = 128;
+    let max_threads = 32;
     let mut handles = vec![];
 
     for chunk in (0..500).collect::<Vec<_>>().chunks(max_threads) {
@@ -46,4 +46,5 @@ pub fn main() {
     for (items, bench) in results {
         println!("Results for {items} items:\n{bench}");
     }
+    
 }

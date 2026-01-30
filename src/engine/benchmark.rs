@@ -33,12 +33,11 @@ impl<T: Engine> Engine<BenchmarkResult> for Benchmark<T> {
 
         let start = Instant::now();
 
-        for _ in 0..100 {
+        for _ in 0..40 {
             let start = Instant::now();
             self.render(&cx);
             let end = Instant::now();
             times.push(end.duration_since(start).as_micros());
-            self.0.render_delay();
         }
 
         let end = Instant::now();
