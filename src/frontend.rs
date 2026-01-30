@@ -1,11 +1,7 @@
 use std::sync::Arc;
 
-use crate::{
-    component::{Context, Scope},
-    render::Point,
-    state::HookDependency,
-    View,
-};
+use crate::component::{context::Context, scope::Scope};
+use crate::{render::Point, state::HookDependency, View};
 
 pub trait ToRsx {
     fn to_rsx(&self) -> Rsx;

@@ -5,9 +5,9 @@ use std::{
 
 use crossterm::{cursor::MoveTo, execute, terminal::Clear};
 
+use crate::component::{context::Context, ComponentImpl};
 use crate::{
     engine::{commands, CommandExecutor},
-    prelude::{ComponentImpl, Context},
     render::Area,
     DrawContext, View,
 };

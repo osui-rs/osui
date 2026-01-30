@@ -5,7 +5,7 @@ use std::{
     sync::{Arc, Mutex, MutexGuard},
 };
 
-use crate::prelude::Context;
+use crate::component::context::Context;
 
 #[derive(Clone)]
 pub struct HookEffect(Arc<Mutex<dyn FnMut() + Send + Sync>>);

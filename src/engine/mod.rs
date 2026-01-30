@@ -7,11 +7,8 @@ pub use console::*;
 
 use std::{any::Any, sync::Arc};
 
-use crate::{
-    prelude::{ComponentImpl, Context},
-    render::Area,
-    DrawContext, View,
-};
+use crate::component::{context::Context, ComponentImpl};
+use crate::{render::Area, DrawContext, View};
 
 pub trait Engine<Output = ()> {
     fn run<C: ComponentImpl + 'static>(&self, component: C) -> crate::Result<Output>;

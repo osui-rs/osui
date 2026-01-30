@@ -2,11 +2,8 @@ use std::{io::stdout, sync::Arc, time::Instant};
 
 use crossterm::{cursor::MoveTo, execute, terminal::Clear};
 
-use crate::{
-    prelude::{ComponentImpl, Context},
-    render::Area,
-    DrawContext, View,
-};
+use crate::component::{context::Context, ComponentImpl};
+use crate::{render::Area, DrawContext, View};
 
 use super::Engine;
 

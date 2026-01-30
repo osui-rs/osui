@@ -9,7 +9,7 @@ pub mod render;
 pub mod state;
 
 pub mod prelude {
-    pub use crate::component::*;
+    pub use crate::component::{context::*, scope::*, *};
     pub use crate::engine::*;
     pub use crate::frontend::*;
     pub use crate::render::*;
