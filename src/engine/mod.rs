@@ -1,11 +1,9 @@
 pub mod benchmark;
 pub mod commands;
 pub mod console;
-pub mod simple_benchmark;
 
 pub use benchmark::*;
 pub use console::*;
-pub use simple_benchmark::*;
 
 use std::{any::Any, sync::Arc};
 

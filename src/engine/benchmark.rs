@@ -6,6 +6,15 @@ use crate::{prelude::Context, render::Area, DrawContext, View};
 
 use super::Engine;
 
+#[derive(Debug, Clone)]
+pub struct BenchmarkResult {
+    pub average: u128,
+    pub min: u128,
+    pub max: u128,
+    pub total_render: u128,
+    pub total: u128,
+}
+
 pub struct Benchmark<T: Engine>(T);
 
 impl<T: Engine> Benchmark<T> {
@@ -14,12 +23,12 @@ impl<T: Engine> Benchmark<T> {
     }
 }
 
-impl<T: Engine> Engine for Benchmark<T> {
+impl<T: Engine> Engine<BenchmarkResult> for Benchmark<T> {
     fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
         &self,
         component: F,
-    ) -> crate::Result<()> {
-        let mut times: Vec<u64> = Vec::new();
+    ) -> crate::Result<BenchmarkResult> {
+        let mut times: Vec<u128> = Vec::new();
         let cx = self.init(component);
 
         let start = Instant::now();
@@ -28,7 +37,7 @@ impl<T: Engine> Engine for Benchmark<T> {
             let start = Instant::now();
             self.render(&cx);
             let end = Instant::now();
-            times.push(end.duration_since(start).as_micros() as u64);
+            times.push(end.duration_since(start).as_micros());
             self.0.render_delay();
         }
 
@@ -38,26 +47,17 @@ impl<T: Engine> Engine for Benchmark<T> {
         execute!(stdout(), Clear(crossterm::terminal::ClearType::All)).unwrap();
         execute!(stdout(), MoveTo(0, 0)).unwrap();
 
-        println!(
-            "Average time: {} µs",
-            if times.len() > 0 {
-                times.iter().sum::<u64>() / (times.len() as u64)
+        Ok(BenchmarkResult {
+            min: *times.iter().min().unwrap_or(&0),
+            max: *times.iter().max().unwrap_or(&0),
+            total: end.duration_since(start).as_micros(),
+            total_render: times.iter().sum::<u128>(),
+            average: if times.len() > 0 {
+                times.iter().sum::<u128>() / (times.len() as u128)
             } else {
                 0
-            }
-        );
-        println!("Min time: {} µs", times.iter().min().unwrap_or(&0));
-        println!("Max time: {} µs", times.iter().max().unwrap_or(&0));
-        println!("Total time: {} µs", end.duration_since(start).as_micros());
-        println!("Total render time: {} µs", times.iter().sum::<u64>());
-        println!(
-            "\n{},{},{}",
-            times.iter().min().unwrap_or(&0),
-            times.iter().max().unwrap_or(&0),
-            end.duration_since(start).as_micros()
-        );
-
-        Ok(())
+            },
+        })
     }
 
     fn init<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
