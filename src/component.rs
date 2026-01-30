@@ -11,8 +11,12 @@ use crate::{
     View, ViewWrapper,
 };
 
-pub type Component = Arc<dyn Fn(&Arc<Context>) -> View + Send + Sync>;
+pub type Component = Arc<dyn ComponentImpl>;
 pub type EventHandler = Arc<Mutex<dyn FnMut(&Arc<Context>, &dyn Any) + Send + Sync>>;
+
+pub trait ComponentImpl: Send + Sync {
+    fn call(&self, cx: &Arc<Context>) -> View;
+}
 
 pub struct Scope {
     pub children: Mutex<Vec<(Arc<Context>, Option<ViewWrapper>)>>,
@@ -28,7 +32,7 @@ pub struct Context {
 }
 
 impl Context {
-    pub fn new<F: Fn(&Arc<Self>) -> View + Send + Sync + 'static>(
+    pub fn new<F: ComponentImpl + 'static>(
         component: F,
         executor: Arc<dyn CommandExecutor>,
     ) -> Arc<Self> {
@@ -48,7 +52,7 @@ impl Context {
             move || {
                 s.event_handlers.lock().unwrap().clear();
                 let c = s.component.lock().unwrap().clone();
-                *s.view.lock().unwrap() = (c)(&s);
+                *s.view.lock().unwrap() = c.call(&s);
             }
         });
     }
@@ -62,7 +66,7 @@ impl Context {
             move || {
                 s.event_handlers.lock().unwrap().clear();
                 let c = s.component.lock().unwrap().clone();
-                *s.view.lock().unwrap() = (c)(&s);
+                *s.view.lock().unwrap() = c.call(&s);
                 *done.lock().unwrap() = true;
             }
         });
@@ -194,7 +198,7 @@ impl Scope {
         })
     }
 
-    pub fn child<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
+    pub fn child<F: ComponentImpl + 'static>(
         self: &Arc<Self>,
         child: F,
         view_wrapper: Option<ViewWrapper>,
@@ -207,10 +211,25 @@ impl Scope {
     }
 
     pub fn view(self: &Arc<Self>, view: View) {
-        let ctx = Context::new(move |_| view.clone(), self.executor.clone());
+        let ctx = Context::new(view, self.executor.clone());
 
         ctx.refresh();
 
         self.children.lock().unwrap().push((ctx, None));
+    }
+}
+
+impl ComponentImpl for View {
+    fn call(&self, _: &Arc<Context>) -> View {
+        self.clone()
+    }
+}
+
+impl<F> ComponentImpl for F
+where
+    F: Fn(&Arc<Context>) -> View + Send + Sync,
+{
+    fn call(&self, ctx: &Arc<Context>) -> View {
+        self(ctx)
     }
 }

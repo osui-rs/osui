@@ -4,7 +4,7 @@ use osui::prelude::*;
 
 pub fn main() {
     let engine = Benchmark::new(Console::new());
-    let benchmark_result = engine.run(app).expect("Failed to run engine");
+    let benchmark_result = engine.run(App).expect("Failed to run engine");
     println!("Avg: {} μs", benchmark_result.average);
     println!("Min: {} μs", benchmark_result.min);
     println!("Max: {} μs", benchmark_result.max);
@@ -12,9 +12,13 @@ pub fn main() {
     println!("Tot Render: {} μs", benchmark_result.total_render);
 }
 
-fn app(cx: &Arc<Context>) -> View {
-    rsx! {
-        "Hello, world!"
+struct App;
+
+impl ComponentImpl for App {
+    fn call(&self, cx: &Arc<Context>) -> View {
+        rsx! {
+            "Hello, world!"
+        }
+        .view(cx.clone())
     }
-    .view(cx.clone())
 }

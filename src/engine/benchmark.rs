@@ -2,7 +2,11 @@ use std::{io::stdout, sync::Arc, time::Instant};
 
 use crossterm::{cursor::MoveTo, execute, terminal::Clear};
 
-use crate::{prelude::Context, render::Area, DrawContext, View};
+use crate::{
+    prelude::{ComponentImpl, Context},
+    render::Area,
+    DrawContext, View,
+};
 
 use super::Engine;
 
@@ -24,10 +28,7 @@ impl<T: Engine> Benchmark<T> {
 }
 
 impl<T: Engine> Engine<BenchmarkResult> for Benchmark<T> {
-    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
-        &self,
-        component: F,
-    ) -> crate::Result<BenchmarkResult> {
+    fn run<F: ComponentImpl + 'static>(&self, component: F) -> crate::Result<BenchmarkResult> {
         let mut times: Vec<u128> = Vec::new();
         let cx = self.init(component);
 
@@ -59,10 +60,7 @@ impl<T: Engine> Engine<BenchmarkResult> for Benchmark<T> {
         })
     }
 
-    fn init<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
-        &self,
-        component: F,
-    ) -> Arc<Context> {
+    fn init<F: ComponentImpl + 'static>(&self, component: F) -> Arc<Context> {
         self.0.init(component)
     }
 

@@ -7,18 +7,15 @@ pub use console::*;
 
 use std::{any::Any, sync::Arc};
 
-use crate::{prelude::Context, render::Area, DrawContext, View};
+use crate::{
+    prelude::{ComponentImpl, Context},
+    render::Area,
+    DrawContext, View,
+};
 
 pub trait Engine<Output = ()> {
-    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
-        &self,
-        component: F,
-    ) -> crate::Result<Output>;
-
-    fn init<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
-        &self,
-        component: F,
-    ) -> Arc<Context>;
+    fn run<C: ComponentImpl + 'static>(&self, component: C) -> crate::Result<Output>;
+    fn init<C: ComponentImpl + 'static>(&self, component: C) -> Arc<Context>;
     fn render(&self, cx: &Arc<Context>);
     fn render_delay(&self) {
         std::thread::sleep(std::time::Duration::from_millis(16))

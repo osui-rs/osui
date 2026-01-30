@@ -7,7 +7,7 @@ use crossterm::{cursor::MoveTo, execute, terminal::Clear};
 
 use crate::{
     engine::{commands, CommandExecutor},
-    prelude::Context,
+    prelude::{ComponentImpl, Context},
     render::Area,
     DrawContext, View,
 };
@@ -79,10 +79,7 @@ impl Engine for Console {
         ));
     }
 
-    fn init<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
-        &self,
-        component: F,
-    ) -> Arc<Context> {
+    fn init<C: ComponentImpl + 'static>(&self, component: C) -> Arc<Context> {
         let cx = Context::new(component, self.executor.clone());
         cx.refresh();
 
@@ -102,10 +99,7 @@ impl Engine for Console {
         self.executor.clone()
     }
 
-    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
-        &self,
-        component: F,
-    ) -> crate::Result<()> {
+    fn run<F: ComponentImpl + 'static>(&self, component: F) -> crate::Result<()> {
         let cx = self.init(component);
 
         while self.executor.is_running() {

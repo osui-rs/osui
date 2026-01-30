@@ -4,12 +4,16 @@ use osui::prelude::*;
 
 pub fn main() {
     let engine = Console::new();
-    engine.run(app).expect("Failed to run engine");
+    engine.run(App).expect("Failed to run engine");
 }
 
-fn app(cx: &Arc<Context>) -> View {
-    rsx! {
-        "Hello, world!"
+struct App;
+
+impl ComponentImpl for App {
+    fn call(&self, cx: &Arc<Context>) -> View {
+        rsx! {
+            "Hello, world!"
+        }
+        .view(cx.clone())
     }
-    .view(cx.clone())
 }
