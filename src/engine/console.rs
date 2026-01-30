@@ -80,6 +80,8 @@ impl Engine for Console {
     }
 
     fn init<C: ComponentImpl + 'static>(&self, component: C) -> Arc<Context> {
+        crossterm::execute!(std::io::stdout(), crossterm::cursor::Hide).unwrap();
+
         let cx = Context::new(component, self.executor.clone());
         cx.refresh();
 

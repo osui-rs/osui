@@ -15,6 +15,7 @@ pub mod prelude {
     pub use crate::render::*;
     pub use crate::state::*;
     pub use crate::{sleep, Error, Result, View, ViewWrapper};
+    pub use crossterm;
     pub use osui_macros::{component, rsx};
     pub use std::sync::{Arc, Mutex};
 }
