@@ -50,5 +50,5 @@ fn BenchmarkApp(cx: &Arc<Context>, items: &usize) -> View {
             "Hello, world!"
         }
     }
-    .view(cx.clone())
+    .view(&cx)
 }

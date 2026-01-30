@@ -12,6 +12,7 @@ pub enum RsxScope {
         Arc<dyn Fn(&Arc<Scope>) + Send + Sync>,
         Vec<Box<dyn HookDependency>>,
     ),
+    Child(Rsx),
 }
 
 pub struct Rsx(Vec<RsxScope>);
@@ -34,7 +35,7 @@ impl Rsx {
             .push(RsxScope::Dynamic(Arc::new(drawer), dependencies));
     }
 
-    pub fn view(&self, context: Arc<Context>) -> View {
+    pub fn generate_children(&self, context: &Arc<Context>) {
         let executor = context.get_executor();
 
         for scope in &self.0 {
@@ -51,10 +52,16 @@ impl Rsx {
                         &dependencies.iter().map(|d| d.as_ref()).collect::<Vec<_>>(),
                     );
                 }
+                RsxScope::Child(child) => child.generate_children(context),
             }
         }
+    }
 
+    pub fn view(&self, context: &Arc<Context>) -> View {
         let context = context.clone();
+
+        self.generate_children(&context);
+
         Arc::new({
             move |ctx| {
                 context.draw_children(ctx);

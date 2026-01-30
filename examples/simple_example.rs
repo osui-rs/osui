@@ -12,10 +12,10 @@ fn App(cx: &Arc<Context>) -> View {
     rsx! {
         MyComponent { "Hello world!" }
     }
-    .view(cx.clone())
+    .view(&cx)
 }
 
 #[component]
 fn MyComponent(cx: &Arc<Context>, children: &Rsx) -> View {
-    children.view(cx.clone())
+    children.view(&cx)
 }

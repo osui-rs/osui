@@ -17,5 +17,5 @@ fn App(cx: &Arc<Context>) -> View {
     rsx! {
         "Hello, world!"
     }
-    .view(cx.clone())
+    .view(&cx)
 }
