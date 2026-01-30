@@ -125,8 +125,8 @@ fn emit_node(node: &RsxNode) -> TokenStream {
             }));
         },
 
-        RsxNode::Component(name) => quote! {
-            scope.child(#name, None);
+        RsxNode::Component(expr) => quote! {
+            scope.child(#expr, None);
         },
 
         RsxNode::Mount(m) => quote! {

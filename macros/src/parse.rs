@@ -20,7 +20,7 @@ impl Parse for RsxRoot {
 
 pub enum RsxNode {
     Text(LitStr),
-    Component(Ident),
+    Component(Expr),
     Mount(Ident),
     If {
         deps: Vec<Dep>,
@@ -116,6 +116,7 @@ impl Parse for RsxNode {
             return Ok(RsxNode::Text(input.parse()?));
         }
 
+        // Component: path (e.g. HelloWorld) or struct init (e.g. HelloWorld { t: 10 })
         Ok(RsxNode::Component(input.parse()?))
     }
 }
