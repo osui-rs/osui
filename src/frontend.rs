@@ -2,6 +2,7 @@ use std::sync::Arc;
 
 use crate::{
     component::{Context, Scope},
+    render::Point,
     state::HookDependency,
     View,
 };
@@ -83,5 +84,15 @@ impl Rsx {
 impl ToRsx for &Rsx {
     fn to_rsx(&self) -> Rsx {
         Rsx(self.0.clone())
+    }
+}
+
+impl<T: std::fmt::Display> ToRsx for T {
+    fn to_rsx(&self) -> Rsx {
+        let s = self.to_string();
+        Rsx(vec![RsxScope::Static(Arc::new(move |scope| {
+            let s = s.clone();
+            scope.view(Arc::new(move |ctx| ctx.draw_text(Point { x: 0, y: 0 }, &s)))
+        }))])
     }
 }
