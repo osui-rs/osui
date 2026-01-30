@@ -3,7 +3,11 @@ use proc_macro2::TokenStream;
 use quote::quote;
 
 pub fn emit_rsx(root: RsxRoot) -> TokenStream {
-    let nodes = root.nodes.iter().map(emit_node_scope);
+    emit_rsx_vec(&root.nodes)
+}
+
+pub fn emit_rsx_vec(nodes: &Vec<RsxNode>) -> TokenStream {
+    let nodes = nodes.iter().map(emit_node_scope);
 
     quote! {{
         let mut r = osui::frontend::Rsx::new();
@@ -55,7 +59,7 @@ fn emit_node_scope(node: &RsxNode) -> TokenStream {
             }
         }
 
-        RsxNode::Component(_) => {
+        RsxNode::Component { .. } => {
             let emit = emit_node(node);
             quote! {
                 r.static_scope(move |scope| {#emit});
@@ -125,9 +129,38 @@ fn emit_node(node: &RsxNode) -> TokenStream {
             }));
         },
 
-        RsxNode::Component(expr) => quote! {
-            scope.child(#expr, None);
-        },
+        RsxNode::Component {
+            path,
+            props,
+            children,
+        } => {
+            let prop_inits = props.iter().map(|p| {
+                let name = &p.name;
+                let value = &p.value;
+                quote! { #name: #value }
+            });
+
+            let emit_children = emit_rsx_vec(children);
+
+            let component_expr = if children.len() > 0 {
+                quote! {
+                    #path {
+                        #(#prop_inits,)*
+                        children: #emit_children
+                    }
+                }
+            } else {
+                quote! {
+                    #path {
+                        #(#prop_inits,)*
+                    }
+                }
+            };
+
+            quote! {
+                scope.child(#component_expr, None);
+            }
+        }
 
         RsxNode::Mount(m) => quote! {
             #m.mount();

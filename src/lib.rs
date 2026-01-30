@@ -11,6 +11,7 @@ pub mod state;
 pub mod prelude {
     pub use crate::component::*;
     pub use crate::engine::*;
+    pub use crate::frontend::*;
     pub use crate::render::*;
     pub use crate::state::*;
     pub use crate::View;

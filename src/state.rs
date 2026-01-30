@@ -115,11 +115,11 @@ impl<T> DerefMut for Inner<'_, T> {
     }
 }
 
-pub trait HookDependency {
+pub trait HookDependency: Send + Sync {
     fn on_update(&self, hook: HookEffect);
 }
 
-impl<T> HookDependency for State<T> {
+impl<T: Send + Sync> HookDependency for State<T> {
     fn on_update(&self, hook: HookEffect) {
         self.dependents.lock().unwrap().push(hook);
     }
