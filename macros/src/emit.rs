@@ -104,6 +104,7 @@ fn emit_node_scope(node: &RsxNode) -> TokenStream {
             quote! {
                 {
                     #deps_emit
+                    #[allow(unused_parens)]
                     r.dynamic_scope(move |scope| {
                         scope.children.lock().unwrap().clear();
                         for #pat in #expr {
