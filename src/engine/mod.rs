@@ -11,15 +11,11 @@ use std::{any::Any, sync::Arc};
 
 use crate::{prelude::Context, render::Area, DrawContext, View};
 
-pub trait Engine {
-    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(&self, component: F) {
-        let cx = self.init(component);
-
-        loop {
-            self.render(&cx);
-            self.render_delay();
-        }
-    }
+pub trait Engine<Output = ()> {
+    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
+        &self,
+        component: F,
+    ) -> crate::Result<Output>;
 
     fn init<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
         &self,

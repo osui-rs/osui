@@ -15,7 +15,10 @@ impl<T: Engine> Benchmark<T> {
 }
 
 impl<T: Engine> Engine for Benchmark<T> {
-    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(&self, component: F) {
+    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
+        &self,
+        component: F,
+    ) -> crate::Result<()> {
         let mut times: Vec<u64> = Vec::new();
         let cx = self.init(component);
 
@@ -25,7 +28,7 @@ impl<T: Engine> Engine for Benchmark<T> {
             let start = Instant::now();
             self.render(&cx);
             let end = Instant::now();
-            times.push(end.duration_since(start).as_nanos() as u64);
+            times.push(end.duration_since(start).as_micros() as u64);
             self.0.render_delay();
         }
 
@@ -36,27 +39,25 @@ impl<T: Engine> Engine for Benchmark<T> {
         execute!(stdout(), MoveTo(0, 0)).unwrap();
 
         println!(
-            "Average time: {} nanoseconds",
+            "Average time: {} µs",
             if times.len() > 0 {
                 times.iter().sum::<u64>() / (times.len() as u64)
             } else {
                 0
             }
         );
-        println!("Min time: {} nanoseconds", times.iter().min().unwrap_or(&0));
-        println!("Max time: {} nanoseconds", times.iter().max().unwrap_or(&0));
+        println!("Min time: {} µs", times.iter().min().unwrap_or(&0));
+        println!("Max time: {} µs", times.iter().max().unwrap_or(&0));
+        println!("Total time: {} µs", end.duration_since(start).as_micros());
+        println!("Total render time: {} µs", times.iter().sum::<u64>());
         println!(
-            "Median time: {} nanoseconds",
-            times.iter().nth(times.len() / 2).unwrap_or(&0)
+            "\n{},{},{}",
+            times.iter().min().unwrap_or(&0),
+            times.iter().max().unwrap_or(&0),
+            end.duration_since(start).as_micros()
         );
-        println!(
-            "Total time: {} nanoseconds",
-            end.duration_since(start).as_nanos()
-        );
-        println!(
-            "Total render time: {} nanoseconds",
-            times.iter().sum::<u64>()
-        );
+
+        Ok(())
     }
 
     fn init<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(

@@ -102,13 +102,18 @@ impl Engine for Console {
         self.executor.clone()
     }
 
-    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(&self, component: F) {
+    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
+        &self,
+        component: F,
+    ) -> crate::Result<()> {
         let cx = self.init(component);
 
         while self.executor.is_running() {
             self.render(&cx);
             self.render_delay();
         }
+
+        Ok(())
     }
 }
 

@@ -15,7 +15,10 @@ impl<T: Engine> SimpleBenchmark<T> {
 }
 
 impl<T: Engine> Engine for SimpleBenchmark<T> {
-    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(&self, component: F) {
+    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
+        &self,
+        component: F,
+    ) -> crate::Result<()> {
         let mut times: Vec<u64> = Vec::new();
         let cx = self.init(component);
 
@@ -57,6 +60,8 @@ impl<T: Engine> Engine for SimpleBenchmark<T> {
             "Total render time: {} nanoseconds",
             times.iter().sum::<u64>()
         );
+
+        Ok(())
     }
 
     fn init<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
