@@ -92,11 +92,11 @@ impl std::fmt::Display for BenchmarkResult {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "- Average: {} ns\n\
-             - Min: {} ns\n\
-             - Max: {} ns\n\
-             - Total Render: {} ns\n\
-             - Total: {} ns",
+            "- Average: {} µs\n\
+             - Min: {} µs\n\
+             - Max: {} µs\n\
+             - Total Render: {} µs\n\
+             - Total: {} µs",
             self.average, self.min, self.max, self.total_render, self.total
         )
     }
