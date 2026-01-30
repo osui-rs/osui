@@ -87,3 +87,17 @@ impl<T: Engine> Engine<BenchmarkResult> for Benchmark<T> {
         self.0.executor()
     }
 }
+
+impl std::fmt::Display for BenchmarkResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "- Average: {} ns\n\
+             - Min: {} ns\n\
+             - Max: {} ns\n\
+             - Total Render: {} ns\n\
+             - Total: {} ns",
+            self.average, self.min, self.max, self.total_render, self.total
+        )
+    }
+}
