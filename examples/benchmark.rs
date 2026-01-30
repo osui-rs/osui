@@ -1,6 +1,6 @@
-use std::{sync::mpsc, sync::Arc, thread};
-
 use osui::prelude::*;
+
+use std::{sync::mpsc, thread};
 
 pub fn main() {
     let engine = Arc::new(Benchmark::new(Console::new()));

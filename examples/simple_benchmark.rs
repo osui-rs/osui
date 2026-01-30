@@ -1,5 +1,3 @@
-use std::sync::Arc;
-
 use osui::prelude::*;
 
 pub fn main() {

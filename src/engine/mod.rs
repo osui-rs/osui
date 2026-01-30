@@ -15,7 +15,7 @@ pub trait Engine<Output = ()> {
     fn init<C: ComponentImpl + 'static>(&self, component: C) -> Arc<Context>;
     fn render(&self, cx: &Arc<Context>);
     fn render_delay(&self) {
-        std::thread::sleep(std::time::Duration::from_millis(16))
+        crate::sleep(16);
     }
 
     fn render_view(&self, area: &Area, view: &View) -> DrawContext;
