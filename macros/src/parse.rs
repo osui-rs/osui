@@ -1,4 +1,5 @@
 use syn::braced;
+use syn::parse::discouraged::Speculative;
 use syn::{
     Expr, Ident, LitStr, Pat, Path, Result, Token,
     parse::{Parse, ParseStream},
@@ -82,7 +83,7 @@ fn parse_deps(input: ParseStream) -> Result<Vec<Dep>> {
 
 impl Parse for RsxNode {
     fn parse(input: ParseStream) -> Result<Self> {
-        // --- @{ expr } ---
+        // @{ $expr }
         if input.peek(Token![@]) {
             input.parse::<Token![@]>()?;
 
@@ -93,7 +94,7 @@ impl Parse for RsxNode {
             return Ok(RsxNode::Expr(expr));
         }
 
-        // --- existing code ---
+        // !$ident
         if input.peek(Token![!]) {
             input.parse::<Token![!]>()?;
             let mount: Ident = input.parse()?;
@@ -102,6 +103,7 @@ impl Parse for RsxNode {
 
         let deps = parse_deps(input)?;
 
+        // %$dep if $expr { $rsx }
         if input.peek(Token![if]) {
             input.parse::<Token![if]>()?;
             let cond: Expr = input.parse()?;
@@ -115,6 +117,7 @@ impl Parse for RsxNode {
             });
         }
 
+        // %$dep for $pat in $expr { $rsx }
         if input.peek(Token![for]) {
             input.parse::<Token![for]>()?;
             let pat: Pat = Pat::parse_multi(input)?;
@@ -131,6 +134,7 @@ impl Parse for RsxNode {
             });
         }
 
+        // "%$dep for $pat in $expr { $rsx }"
         if input.peek(LitStr) {
             return Ok(RsxNode::Text(input.parse()?));
         }
@@ -163,49 +167,44 @@ fn parse_component_invocation(input: ParseStream) -> Result<RsxNode> {
     })
 }
 
-/// Parses comma-separated "ident: expr" (props) and RsxNode (children) inside braces.
 fn parse_props_and_children(input: ParseStream) -> Result<(Vec<RsxProp>, Vec<RsxNode>)> {
+    Ok((parse_props(input)?, RsxRoot::parse(input)?.nodes))
+}
+
+fn parse_props(input: ParseStream) -> Result<Vec<RsxProp>> {
     let mut props = Vec::new();
-    let mut children = Vec::new();
 
     while !input.is_empty() {
-        if input.peek(LitStr) {
-            children.push(input.parse()?);
-        } else {
-            let path: Path = input.parse()?;
+        let fork = input.fork();
 
-            if input.peek(Token![:]) {
-                let name = path
-                    .get_ident()
-                    .cloned()
-                    .ok_or_else(|| input.error("prop name must be a single identifier"))?;
-                input.parse::<Token![:]>()?;
-                let value: Expr = input.parse()?;
-                props.push(RsxProp { name, value });
-            } else if input.peek(Brace) {
-                let nested_content;
-                braced!(nested_content in input);
-                let (nested_props, nested_children) = parse_props_and_children(&nested_content)?;
-                children.push(RsxNode::Component {
-                    path,
-                    props: nested_props,
-                    children: nested_children,
-                });
-            } else {
-                children.push(RsxNode::Component {
-                    path,
-                    props: Vec::new(),
-                    children: Vec::new(),
-                });
+        let path: Path = match fork.parse() {
+            Ok(p) => p,
+            Err(_) => break,
+        };
+
+        if fork.peek(Token![:]) {
+            let name = path
+                .get_ident()
+                .cloned()
+                .ok_or_else(|| fork.error("prop name must be a single identifier"))?;
+
+            fork.parse::<Token![:]>()?;
+            let value: Expr = fork.parse()?;
+
+            input.advance_to(&fork);
+
+            props.push(RsxProp { name, value });
+
+            if input.peek(Token![,]) {
+                input.parse::<Token![,]>()?;
             }
-        }
-
-        if !input.is_empty() {
-            input.parse::<Token![,]>()?;
+        } else {
+            // ❌ do not commit → nothing consumed
+            break;
         }
     }
 
-    Ok((props, children))
+    Ok(props)
 }
 
 fn parse_children(input: ParseStream) -> Result<Vec<RsxNode>> {

@@ -33,15 +33,8 @@ fn emit_deps_vec(deps: &[Dep]) -> TokenStream {
     let deps = deps.iter().map(|d| {
         let ident = &d.ident;
 
-        if let Some(pat) = &d.pat {
-            quote! {{
-                let #pat = #ident.clone();
-                Box::new(#pat) as Box<dyn HookDependency>
-            }}
-        } else {
-            quote! {
-                Box::new(#ident.clone()) as Box<dyn HookDependency>
-            }
+        quote! {
+            std::sync::Arc::new(#ident) as std::sync::Arc<dyn HookDependency>
         }
     });
 
