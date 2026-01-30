@@ -2,9 +2,19 @@ use std::{io::stdout, sync::Arc, time::Instant};
 
 use crossterm::{cursor::MoveTo, execute, terminal::Clear};
 
-use crate::{prelude::Context, render::Area, DrawContext, View};
+use crate::component::{context::Context, ComponentImpl};
+use crate::{render::Area, DrawContext, View};
 
 use super::Engine;
+
+#[derive(Debug, Clone)]
+pub struct BenchmarkResult {
+    pub average: u128,
+    pub min: u128,
+    pub max: u128,
+    pub total_render: u128,
+    pub total: u128,
+}
 
 pub struct Benchmark<T: Engine>(T);
 
@@ -14,19 +24,18 @@ impl<T: Engine> Benchmark<T> {
     }
 }
 
-impl<T: Engine> Engine for Benchmark<T> {
-    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(&self, component: F) {
-        let mut times: Vec<usize> = Vec::new();
+impl<T: Engine> Engine<BenchmarkResult> for Benchmark<T> {
+    fn run<F: ComponentImpl + 'static>(&self, component: F) -> crate::Result<BenchmarkResult> {
+        let mut times: Vec<u128> = Vec::new();
         let cx = self.init(component);
 
         let start = Instant::now();
 
-        for _ in 0..100 {
+        for _ in 0..40 {
             let start = Instant::now();
             self.render(&cx);
             let end = Instant::now();
-            times.push(end.duration_since(start).as_millis() as usize);
-            self.0.render_delay();
+            times.push(end.duration_since(start).as_micros());
         }
 
         let end = Instant::now();
@@ -35,40 +44,20 @@ impl<T: Engine> Engine for Benchmark<T> {
         execute!(stdout(), Clear(crossterm::terminal::ClearType::All)).unwrap();
         execute!(stdout(), MoveTo(0, 0)).unwrap();
 
-        println!(
-            "Average time: {}ms",
-            if times.len() > 0 {
-                times.iter().sum::<usize>() / times.len()
+        Ok(BenchmarkResult {
+            min: *times.iter().min().unwrap_or(&0),
+            max: *times.iter().max().unwrap_or(&0),
+            total: end.duration_since(start).as_micros(),
+            total_render: times.iter().sum::<u128>(),
+            average: if times.len() > 0 {
+                times.iter().sum::<u128>() / (times.len() as u128)
             } else {
                 0
-            }
-        );
-        println!("Min time: {}ms", times.iter().min().unwrap_or(&0));
-        println!("Max time: {}ms", times.iter().max().unwrap_or(&0));
-        println!(
-            "Median time: {}ms",
-            times.iter().nth(times.len() / 2).unwrap_or(&0)
-        );
-        println!(
-            "90th percentile: {}ms",
-            times.iter().nth(times.len() * 90 / 100).unwrap_or(&0)
-        );
-        println!(
-            "95th percentile: {}ms",
-            times.iter().nth(times.len() * 95 / 100).unwrap_or(&0)
-        );
-        println!(
-            "99th percentile: {}ms",
-            times.iter().nth(times.len() * 99 / 100).unwrap_or(&0)
-        );
-
-        println!("Total time: {}ms", end.duration_since(start).as_millis());
+            },
+        })
     }
 
-    fn init<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
-        &self,
-        component: F,
-    ) -> Arc<Context> {
+    fn init<F: ComponentImpl + 'static>(&self, component: F) -> Arc<Context> {
         self.0.init(component)
     }
 
@@ -90,5 +79,19 @@ impl<T: Engine> Engine for Benchmark<T> {
 
     fn executor(&self) -> Arc<dyn super::CommandExecutor> {
         self.0.executor()
+    }
+}
+
+impl std::fmt::Display for BenchmarkResult {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "- Average: {} µs\n\
+             - Min: {} µs\n\
+             - Max: {} µs\n\
+             - Total Render: {} µs\n\
+             - Total: {} µs",
+            self.average, self.min, self.max, self.total_render, self.total
+        )
     }
 }

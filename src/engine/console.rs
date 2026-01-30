@@ -5,9 +5,9 @@ use std::{
 
 use crossterm::{cursor::MoveTo, execute, terminal::Clear};
 
+use crate::component::{context::Context, ComponentImpl};
 use crate::{
     engine::{commands, CommandExecutor},
-    prelude::Context,
     render::Area,
     DrawContext, View,
 };
@@ -79,10 +79,9 @@ impl Engine for Console {
         ));
     }
 
-    fn init<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(
-        &self,
-        component: F,
-    ) -> Arc<Context> {
+    fn init<C: ComponentImpl + 'static>(&self, component: C) -> Arc<Context> {
+        crossterm::execute!(std::io::stdout(), crossterm::cursor::Hide).unwrap();
+
         let cx = Context::new(component, self.executor.clone());
         cx.refresh();
 
@@ -102,13 +101,15 @@ impl Engine for Console {
         self.executor.clone()
     }
 
-    fn run<F: Fn(&Arc<Context>) -> View + Send + Sync + 'static>(&self, component: F) {
+    fn run<F: ComponentImpl + 'static>(&self, component: F) -> crate::Result<()> {
         let cx = self.init(component);
 
         while self.executor.is_running() {
             self.render(&cx);
             self.render_delay();
         }
+
+        Ok(())
     }
 }
 

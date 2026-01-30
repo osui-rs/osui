@@ -8,7 +8,16 @@ pub fn main() {
 #[component]
 fn App(cx: &Arc<Context>) -> View {
     rsx! {
-        "Hello World"
+        MyComponent { "------ example" }
+    }
+    .view(&cx)
+}
+
+#[component]
+fn MyComponent(cx: &Arc<Context>, children: &Rsx) -> View {
+    rsx! {
+        @{children}
+        "Simple"
     }
     .view(&cx)
 }
