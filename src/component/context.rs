@@ -20,7 +20,7 @@ pub struct Context {
     component: AccessCell<Component>,
     view: AccessCell<View>,
     event_handlers: AccessCell<HashMap<TypeId, Vec<EventHandler>>>,
-    scopes: AccessCell<Vec<Arc<Scope>>>,
+    pub(crate) scopes: Mutex<Vec<Arc<Scope>>>,
     executor: Arc<dyn CommandExecutor>,
 }
 
@@ -33,7 +33,7 @@ impl Context {
             component: AccessCell::new(Arc::new(component)),
             view: AccessCell::new(Arc::new(|_| {})),
             event_handlers: AccessCell::new(HashMap::new()),
-            scopes: AccessCell::new(Vec::new()),
+            scopes: Mutex::new(Vec::new()),
             executor,
         })
     }
@@ -111,16 +111,11 @@ impl Context {
             (h.lock().unwrap())(self, event.as_ref());
         }
 
-        self.scopes.access(move |scopes| {
-            for scope in scopes {
-                let event = event.clone();
-                scope.access_children(move |children| {
-                    for (child, _) in children {
-                        child.emit_event(event.clone());
-                    }
-                });
+        for scope in self.scopes.lock().unwrap().iter() {
+            for (child, _) in scope.children.lock().unwrap().iter() {
+                child.emit_event(event.clone());
             }
-        });
+        }
     }
 
     pub fn emit_event_threaded<E: Any + Send + Sync + Clone + 'static>(
@@ -139,26 +134,16 @@ impl Context {
             });
         }
 
-        let event = event.clone();
-        self.scopes.access(move |scopes| {
-            for scope in scopes {
-                let event = event.clone();
-                scope.access_children(move |children| {
-                    for (child, _) in children {
-                        child.emit_event_threaded(&event);
-                    }
-                });
+        for scope in self.scopes.lock().unwrap().iter() {
+            for (child, _) in scope.children.lock().unwrap().iter() {
+                child.emit_event_threaded(event);
             }
-        });
+        }
     }
 
     pub fn scope(self: &Arc<Self>) -> Arc<Scope> {
         let scope = Scope::new(self.executor.clone());
-
-        self.scopes.access({
-            let scope = scope.clone();
-            move |scopes| scopes.push(scope)
-        });
+        self.scopes.lock().unwrap().push(scope.clone());
 
         scope
     }
@@ -169,11 +154,7 @@ impl Context {
         dependencies: &[&dyn HookDependency],
     ) -> Arc<Scope> {
         let scope = Scope::new(self.executor.clone());
-
-        self.scopes.access({
-            let scope = scope.clone();
-            move |scopes| scopes.push(scope)
-        });
+        self.scopes.lock().unwrap().push(scope.clone());
 
         drawer(&scope);
 
@@ -191,34 +172,21 @@ impl Context {
     }
 
     pub fn add_scope(self: &Arc<Self>, scope: Arc<Scope>) {
-        self.scopes.access(|scopes| scopes.push(scope));
+        self.scopes.lock().unwrap().push(scope);
     }
 
     pub fn draw_children(self: &Arc<Self>, ctx: &mut DrawContext) {
-        let c = ctx.clone();
+        for scope in self.scopes.lock().unwrap().iter() {
+            for (child, view_wrapper) in scope.children.lock().unwrap().iter() {
+                let view = child.get_view();
 
-        let (tx, rx) = std::sync::mpsc::channel::<DrawContext>();
-
-        self.scopes.access(move |scopes| {
-            for scope in scopes {
-                let mut c = c.clone();
-                let tx = tx.clone();
-                scope.access_children(move |children| {
-                    for (child, view_wrapper) in children {
-                        let view = child.get_view();
-
-                        if let Some(view_wrapper) = view_wrapper {
-                            view_wrapper(&mut c, view)
-                        } else {
-                            c.draw_view(c.area.clone(), view);
-                        }
-                    }
-                    tx.send(c.clone()).expect("Failed transmitting DrawContext");
-                });
+                if let Some(view_wrapper) = view_wrapper {
+                    view_wrapper(ctx, view)
+                } else {
+                    ctx.draw_view(ctx.area.clone(), view);
+                }
             }
-        });
-
-        *ctx = rx.recv().expect("Failed receiving DrawContext");
+        }
     }
 
     pub fn get_executor(self: &Arc<Self>) -> Arc<dyn CommandExecutor> {
