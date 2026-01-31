@@ -19,7 +19,7 @@ use super::{scope::Scope, Component, ComponentImpl};
 pub struct Context {
     component: AccessCell<Component>,
     view: AccessCell<View>,
-    event_handlers: Mutex<HashMap<TypeId, Vec<EventHandler>>>,
+    event_handlers: AccessCell<HashMap<TypeId, Vec<EventHandler>>>,
     pub(crate) scopes: Mutex<Vec<Arc<Scope>>>,
     executor: Arc<dyn CommandExecutor>,
 }
@@ -32,14 +32,15 @@ impl Context {
         Arc::new(Self {
             component: AccessCell::new(Arc::new(component)),
             view: AccessCell::new(Arc::new(|_| {})),
-            event_handlers: Mutex::new(HashMap::new()),
+            event_handlers: AccessCell::new(HashMap::new()),
             scopes: Mutex::new(Vec::new()),
             executor,
         })
     }
 
     pub fn refresh(self: &Arc<Self>) {
-        self.event_handlers.lock().unwrap().clear();
+        self.event_handlers
+            .access(|event_handlers| event_handlers.clear());
         self.component.access({
             let s = self.clone();
             move |component| {
@@ -53,9 +54,10 @@ impl Context {
     }
 
     pub fn refresh_sync(self: &Arc<Self>) {
-        self.event_handlers.lock().unwrap().clear();
-
         let (tx, rx) = std::sync::mpsc::channel::<()>();
+
+        self.event_handlers
+            .access(|event_handlers| event_handlers.clear());
 
         self.component.access({
             let s = self.clone();
@@ -85,30 +87,37 @@ impl Context {
         self: &Arc<Self>,
         handler: F,
     ) {
-        self.event_handlers
-            .lock()
-            .unwrap()
-            .entry(TypeId::of::<T>())
-            .or_insert_with(|| Vec::new())
-            .push(Arc::new(Mutex::new(
-                move |ctx: &Arc<Self>, event: &dyn Any| {
-                    if let Some(e) = event.downcast_ref::<T>() {
-                        (handler)(ctx, e);
-                    }
-                },
-            )));
+        let new_handler: EventHandler = Arc::new(Mutex::new(
+            move |ctx: &Arc<Context>, event: &dyn Any| {
+                if let Some(e) = event.downcast_ref::<T>() {
+                    (handler)(ctx, e);
+                }
+            },
+        ));
+        self.event_handlers.access(|event_handlers| {
+            event_handlers
+                .entry(TypeId::of::<T>())
+                .or_insert_with(Vec::new)
+                .push(new_handler);
+        });
     }
 
-    pub fn emit_event<E: Any + 'static>(self: &Arc<Self>, event: &E) {
-        if let Some(v) = self.event_handlers.lock().unwrap().get(&TypeId::of::<E>()) {
-            for i in v {
-                (i.lock().unwrap())(self, event);
-            }
+    pub fn emit_event<E: Send + Sync + Any + 'static>(self: &Arc<Self>, event: E) {
+        let event = Arc::new(event);
+        let handlers_to_call: Vec<EventHandler> = {
+            let guard = self.event_handlers.access_ref();
+            guard
+                .get(&TypeId::of::<E>())
+                .cloned()
+                .unwrap_or_default()
+        };
+        for h in &handlers_to_call {
+            (h.lock().unwrap())(self, event.as_ref());
         }
 
         for scope in self.scopes.lock().unwrap().iter() {
             for (child, _) in scope.children.lock().unwrap().iter() {
-                child.emit_event(event);
+                child.emit_event(event.clone());
             }
         }
     }
@@ -117,15 +126,19 @@ impl Context {
         self: &Arc<Self>,
         event: &E,
     ) {
-        if let Some(v) = self.event_handlers.lock().unwrap().get(&TypeId::of::<E>()) {
-            for i in v {
-                let i = i.clone();
-                let event = event.clone();
-                let s = self.clone();
-                std::thread::spawn(move || {
-                    (i.lock().unwrap())(&s, &event);
-                });
-            }
+        let handlers_to_call: Vec<EventHandler> = {
+            let guard = self.event_handlers.access_ref();
+            guard
+                .get(&TypeId::of::<E>())
+                .cloned()
+                .unwrap_or_default()
+        };
+        for h in handlers_to_call {
+            let event = event.clone();
+            let s = self.clone();
+            std::thread::spawn(move || {
+                (h.lock().unwrap())(&s, &event);
+            });
         }
 
         for scope in self.scopes.lock().unwrap().iter() {
