@@ -114,7 +114,7 @@ impl Context {
         self.scopes.access(move |scopes| {
             for scope in scopes {
                 let event = event.clone();
-                scope.children.access(move |children| {
+                scope.access_children(move |children| {
                     for (child, _) in children {
                         child.emit_event(event.clone());
                     }
@@ -143,7 +143,7 @@ impl Context {
         self.scopes.access(move |scopes| {
             for scope in scopes {
                 let event = event.clone();
-                scope.children.access(move |children| {
+                scope.access_children(move |children| {
                     for (child, _) in children {
                         child.emit_event_threaded(&event);
                     }
@@ -203,7 +203,7 @@ impl Context {
             for scope in scopes {
                 let mut c = c.clone();
                 let tx = tx.clone();
-                scope.children.access(move |children| {
+                scope.access_children(move |children| {
                     for (child, view_wrapper) in children {
                         let view = child.get_view();
 

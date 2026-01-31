@@ -1,13 +1,12 @@
+use super::{context::Context, ComponentImpl};
+use crate::{engine::CommandExecutor, View, ViewWrapper};
+use access_cell::AccessCell;
 use std::sync::Arc;
 
-use access_cell::AccessCell;
-
-use crate::{engine::CommandExecutor, View, ViewWrapper};
-
-use super::{context::Context, ComponentImpl};
+pub type ScopeChildren = Vec<(Arc<Context>, Option<ViewWrapper>)>;
 
 pub struct Scope {
-    pub children: AccessCell<Vec<(Arc<Context>, Option<ViewWrapper>)>>,
+    children: AccessCell<ScopeChildren>,
     executor: Arc<dyn CommandExecutor>,
 }
 
@@ -38,5 +37,18 @@ impl Scope {
         ctx.refresh();
 
         self.children.access(|children| children.push((ctx, None)));
+    }
+
+    pub fn view_wrapper(self: &Arc<Self>, view: View, view_wrapper: Option<ViewWrapper>) {
+        let ctx = Context::new(view, self.executor.clone());
+
+        ctx.refresh();
+
+        self.children
+            .access(|children| children.push((ctx, view_wrapper)));
+    }
+
+    pub fn access_children(self: &Arc<Self>, f: impl FnOnce(&mut ScopeChildren) + Send + 'static) {
+        self.children.access(f);
     }
 }
