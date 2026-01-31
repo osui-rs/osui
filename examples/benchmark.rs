@@ -1,54 +1,65 @@
 use osui::prelude::*;
 
-use std::{sync::mpsc, thread};
+use std::collections::HashMap;
 
 pub fn main() {
     let engine = Arc::new(Benchmark::new(Console::new()));
 
-    let (tx, rx) = mpsc::channel();
+    let mut benchmark_result: HashMap<(usize, usize), BenchmarkResult> = HashMap::new();
 
-    let max_threads = 32;
-    let mut handles = vec![];
+    for i in 0..15 {
+        for n in 0..15 {
+            let res = {
+                let mut results = Vec::with_capacity(6);
 
-    for chunk in (0..500).collect::<Vec<_>>().chunks(max_threads) {
-        for &items in chunk {
-            let engine = engine.clone();
-            let tx = tx.clone();
+                for _ in 0..6 {
+                    results.push(
+                        engine
+                            .run(App {
+                                n: n * 72,
+                                i: i * 72,
+                            })
+                            .expect("Failed to run engine"),
+                    );
+                }
 
-            let handle = thread::spawn(move || {
-                let res = engine
-                    .run(BenchmarkApp { items })
-                    .expect("Failed to run engine");
+                results.sort_by_key(|r| r.total_render);
+                results[3].clone()
+            };
 
-                tx.send((items, res)).expect("Failed to send result");
-            });
-
-            handles.push(handle);
-        }
-
-        for handle in handles.drain(..) {
-            handle.join().expect("Thread panicked");
+            benchmark_result.insert((i, n as usize), res);
         }
     }
 
-    drop(tx);
+    let max = benchmark_result
+        .values()
+        .map(|b| b.total_render)
+        .max()
+        .unwrap_or(0);
 
-    let mut results: Vec<(usize, BenchmarkResult)> = rx.iter().collect();
-    results.sort_by_key(|(items, _)| *items);
+    println!("Iterx72,Nestingx72,Time µs\n14,14,{}", { max + 500 });
 
-    for (items, bench) in results {
-        println!("Results for {items} items:\n{bench}");
+    for ((i, n), bench) in benchmark_result.iter() {
+        println!("{i},{n},{}", bench.total_render);
     }
 }
 
 #[component]
-fn BenchmarkApp(cx: &Arc<Context>, items: &usize) -> View {
-    let items = items.clone();
+fn App(cx: &Arc<Context>, n: usize, i: usize) -> View {
+    let n = n.clone();
+    let i = i.clone();
 
-    rsx! {
-        for _ in (0..items) {
+    if n == 0 {
+        rsx! {
             "Hello, world!"
         }
+        .view(&cx)
+    } else {
+        rsx! {
+            for _ in (0..i) {
+                    App { n: n - 1, i: 0 }
+            }
+        }
+        .view(&cx)
     }
-    .view(&cx)
 }
