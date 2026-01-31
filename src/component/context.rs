@@ -4,6 +4,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use access_cell::AccessCell;
+
 use crate::{
     component::EventHandler,
     engine::{Command, CommandExecutor},
@@ -15,9 +17,9 @@ use crate::{
 use super::{scope::Scope, Component, ComponentImpl};
 
 pub struct Context {
-    component: Mutex<Component>,
+    component: AccessCell<Component>,
+    view: AccessCell<View>,
     event_handlers: Mutex<HashMap<TypeId, Vec<EventHandler>>>,
-    view: Mutex<View>,
     pub(crate) scopes: Mutex<Vec<Arc<Scope>>>,
     executor: Arc<dyn CommandExecutor>,
 }
@@ -28,45 +30,55 @@ impl Context {
         executor: Arc<dyn CommandExecutor>,
     ) -> Arc<Self> {
         Arc::new(Self {
-            component: Mutex::new(Arc::new(component)),
+            component: AccessCell::new(Arc::new(component)),
+            view: AccessCell::new(Arc::new(|_| {})),
             event_handlers: Mutex::new(HashMap::new()),
-            view: Mutex::new(Arc::new(|_| {})),
             scopes: Mutex::new(Vec::new()),
             executor,
         })
     }
 
     pub fn refresh(self: &Arc<Self>) {
-        let s = self.clone();
-
-        std::thread::spawn({
-            move || {
-                s.event_handlers.lock().unwrap().clear();
-                let c = s.component.lock().unwrap().clone();
-                *s.view.lock().unwrap() = c.call(&s);
+        self.event_handlers.lock().unwrap().clear();
+        self.component.access({
+            let s = self.clone();
+            move |component| {
+                let component = component.clone();
+                s.view.access({
+                    let s = s.clone();
+                    move |view| *view = component.call(&s)
+                })
             }
         });
     }
 
-    pub fn refresh_atomic(self: &Arc<Self>) -> Arc<Mutex<bool>> {
-        let s = self.clone();
-        let done = Arc::new(Mutex::new(false));
+    pub fn refresh_sync(self: &Arc<Self>) {
+        self.event_handlers.lock().unwrap().clear();
 
-        std::thread::spawn({
-            let done = done.clone();
-            move || {
-                s.event_handlers.lock().unwrap().clear();
-                let c = s.component.lock().unwrap().clone();
-                *s.view.lock().unwrap() = c.call(&s);
-                *done.lock().unwrap() = true;
+        let (tx, rx) = std::sync::mpsc::channel::<()>();
+
+        self.component.access({
+            let s = self.clone();
+            move |component| {
+                let component = component.clone();
+
+                s.view.access({
+                    let s = s.clone();
+                    let tx = tx.clone();
+                    move |view| {
+                        *view = component.call(&s);
+                        let _ = tx.send(()); // signal completion
+                    }
+                });
             }
         });
 
-        done
+        // BLOCK until view closure finishes
+        let _ = rx.recv();
     }
 
     pub fn get_view(self: &Arc<Self>) -> View {
-        self.view.lock().unwrap().clone()
+        self.view.access_ref().clone()
     }
 
     pub fn on_event<T: Any + 'static, F: Fn(&Arc<Self>, &T) + Send + Sync + 'static>(
