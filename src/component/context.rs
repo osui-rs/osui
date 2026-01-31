@@ -195,30 +195,37 @@ impl Context {
     }
 
     pub fn draw_children(self: &Arc<Self>, ctx: &mut DrawContext) {
-        let c = ctx.clone();
+        let scope_count = self.scopes.access_ref().len();
+        let shared_ctx = Arc::new(Mutex::new(ctx.clone()));
+        let (tx_done, rx_done) = std::sync::mpsc::channel::<()>();
 
-        let (tx, rx) = std::sync::mpsc::channel::<DrawContext>();
-
-        self.scopes.access(move |scopes| {
-            for scope in scopes {
-                let mut c = c.clone();
-                let tx = tx.clone();
-                scope.access_children(move |children| {
-                    for (child, view_wrapper) in children {
-                        let view = child.get_view();
-
-                        if let Some(view_wrapper) = view_wrapper {
-                            view_wrapper(&mut c, view)
-                        } else {
-                            c.draw_view(c.area.clone(), view);
+        self.scopes.access({
+            let shared_ctx = shared_ctx.clone();
+            move |scopes| {
+                for scope in scopes {
+                    let shared_ctx = shared_ctx.clone();
+                    let tx_done = tx_done.clone();
+                    scope.access_children(move |children| {
+                        let mut c = shared_ctx.lock().unwrap();
+                        for (child, view_wrapper) in children {
+                            let view = child.get_view();
+                            if let Some(view_wrapper) = view_wrapper {
+                                view_wrapper(&mut c, view)
+                            } else {
+                                let area = c.area.clone();
+                                c.draw_view(area, view);
+                            }
                         }
-                    }
-                    tx.send(c.clone()).expect("Failed transmitting DrawContext");
-                });
+                        let _ = tx_done.send(());
+                    });
+                }
             }
         });
 
-        *ctx = rx.recv().expect("Failed receiving DrawContext");
+        for _ in 0..scope_count {
+            rx_done.recv().expect("Failed receiving done signal");
+        }
+        *ctx = shared_ctx.lock().unwrap().clone();
     }
 
     pub fn get_executor(self: &Arc<Self>) -> Arc<dyn CommandExecutor> {
