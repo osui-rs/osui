@@ -192,7 +192,7 @@ pub fn use_sync_state<
 
 pub fn use_sync_effect<
     T: Send + Sync + 'static,
-    Ev: 'static,
+    Ev: Send + Sync + 'static,
     E: Fn(&State<T>) -> Ev + Send + Sync + 'static,
 >(
     cx: &Arc<Context>,
@@ -205,7 +205,8 @@ pub fn use_sync_effect<
             let state = state.clone();
             let cx = cx.clone();
             move || {
-                cx.emit_event(&encoder(&state));
+                let ev = encoder(&state);
+                cx.emit_event(ev);
             }
         },
         deps,

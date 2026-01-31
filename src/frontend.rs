@@ -50,7 +50,7 @@ impl Rsx {
                 RsxScope::Static(scope_fn) => {
                     let scope = Scope::new(executor.clone());
                     (scope_fn)(&scope);
-                    context.scopes.lock().unwrap().push(scope)
+                    context.add_scope(scope)
                 }
                 RsxScope::Dynamic(drawer, dependencies) => {
                     let drawer = drawer.clone();

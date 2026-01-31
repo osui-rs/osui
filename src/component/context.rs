@@ -4,6 +4,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use access_cell::AccessCell;
+
 use crate::{
     component::EventHandler,
     engine::{Command, CommandExecutor},
@@ -15,10 +17,10 @@ use crate::{
 use super::{scope::Scope, Component, ComponentImpl};
 
 pub struct Context {
-    component: Mutex<Component>,
-    event_handlers: Mutex<HashMap<TypeId, Vec<EventHandler>>>,
-    view: Mutex<View>,
-    pub(crate) scopes: Mutex<Vec<Arc<Scope>>>,
+    component: AccessCell<Component>,
+    view: AccessCell<View>,
+    event_handlers: AccessCell<HashMap<TypeId, Vec<EventHandler>>>,
+    scopes: AccessCell<Vec<Arc<Scope>>>,
     executor: Arc<dyn CommandExecutor>,
 }
 
@@ -28,104 +30,135 @@ impl Context {
         executor: Arc<dyn CommandExecutor>,
     ) -> Arc<Self> {
         Arc::new(Self {
-            component: Mutex::new(Arc::new(component)),
-            event_handlers: Mutex::new(HashMap::new()),
-            view: Mutex::new(Arc::new(|_| {})),
-            scopes: Mutex::new(Vec::new()),
+            component: AccessCell::new(Arc::new(component)),
+            view: AccessCell::new(Arc::new(|_| {})),
+            event_handlers: AccessCell::new(HashMap::new()),
+            scopes: AccessCell::new(Vec::new()),
             executor,
         })
     }
 
     pub fn refresh(self: &Arc<Self>) {
-        let s = self.clone();
-
-        std::thread::spawn({
-            move || {
-                s.event_handlers.lock().unwrap().clear();
-                let c = s.component.lock().unwrap().clone();
-                *s.view.lock().unwrap() = c.call(&s);
+        self.event_handlers
+            .access(|event_handlers| event_handlers.clear());
+        self.component.access({
+            let s = self.clone();
+            move |component| {
+                let component = component.clone();
+                s.view.access({
+                    let s = s.clone();
+                    move |view| *view = component.call(&s)
+                })
             }
         });
     }
 
-    pub fn refresh_atomic(self: &Arc<Self>) -> Arc<Mutex<bool>> {
-        let s = self.clone();
-        let done = Arc::new(Mutex::new(false));
+    pub fn refresh_sync(self: &Arc<Self>) {
+        let (tx, rx) = std::sync::mpsc::channel::<()>();
 
-        std::thread::spawn({
-            let done = done.clone();
-            move || {
-                s.event_handlers.lock().unwrap().clear();
-                let c = s.component.lock().unwrap().clone();
-                *s.view.lock().unwrap() = c.call(&s);
-                *done.lock().unwrap() = true;
+        self.event_handlers
+            .access(|event_handlers| event_handlers.clear());
+
+        self.component.access({
+            let s = self.clone();
+            move |component| {
+                let component = component.clone();
+
+                s.view.access({
+                    let s = s.clone();
+                    let tx = tx.clone();
+                    move |view| {
+                        *view = component.call(&s);
+                        let _ = tx.send(()); // signal completion
+                    }
+                });
             }
         });
 
-        done
+        // BLOCK until view closure finishes
+        let _ = rx.recv();
     }
 
     pub fn get_view(self: &Arc<Self>) -> View {
-        self.view.lock().unwrap().clone()
+        self.view.access_ref().clone()
     }
 
     pub fn on_event<T: Any + 'static, F: Fn(&Arc<Self>, &T) + Send + Sync + 'static>(
         self: &Arc<Self>,
         handler: F,
     ) {
-        self.event_handlers
-            .lock()
-            .unwrap()
-            .entry(TypeId::of::<T>())
-            .or_insert_with(|| Vec::new())
-            .push(Arc::new(Mutex::new(
-                move |ctx: &Arc<Self>, event: &dyn Any| {
-                    if let Some(e) = event.downcast_ref::<T>() {
-                        (handler)(ctx, e);
-                    }
-                },
-            )));
+        let new_handler: EventHandler =
+            Arc::new(Mutex::new(move |ctx: &Arc<Context>, event: &dyn Any| {
+                if let Some(e) = event.downcast_ref::<T>() {
+                    (handler)(ctx, e);
+                }
+            }));
+        self.event_handlers.access(|event_handlers| {
+            event_handlers
+                .entry(TypeId::of::<T>())
+                .or_insert_with(Vec::new)
+                .push(new_handler);
+        });
     }
 
-    pub fn emit_event<E: Any + 'static>(self: &Arc<Self>, event: &E) {
-        if let Some(v) = self.event_handlers.lock().unwrap().get(&TypeId::of::<E>()) {
-            for i in v {
-                (i.lock().unwrap())(self, event);
-            }
+    pub fn emit_event<E: Send + Sync + Any + 'static>(self: &Arc<Self>, event: E) {
+        let event = Arc::new(event);
+        let handlers_to_call: Vec<EventHandler> = {
+            let guard = self.event_handlers.access_ref();
+            guard.get(&TypeId::of::<E>()).cloned().unwrap_or_default()
+        };
+        for h in &handlers_to_call {
+            (h.lock().unwrap())(self, event.as_ref());
         }
 
-        for scope in self.scopes.lock().unwrap().iter() {
-            for (child, _) in scope.children.lock().unwrap().iter() {
-                child.emit_event(event);
+        self.scopes.access(move |scopes| {
+            for scope in scopes {
+                let event = event.clone();
+                scope.access_children(move |children| {
+                    for (child, _) in children {
+                        child.emit_event(event.clone());
+                    }
+                });
             }
-        }
+        });
     }
 
     pub fn emit_event_threaded<E: Any + Send + Sync + Clone + 'static>(
         self: &Arc<Self>,
         event: &E,
     ) {
-        if let Some(v) = self.event_handlers.lock().unwrap().get(&TypeId::of::<E>()) {
-            for i in v {
-                let i = i.clone();
-                let event = event.clone();
-                let s = self.clone();
-                std::thread::spawn(move || {
-                    (i.lock().unwrap())(&s, &event);
-                });
-            }
+        let handlers_to_call: Vec<EventHandler> = {
+            let guard = self.event_handlers.access_ref();
+            guard.get(&TypeId::of::<E>()).cloned().unwrap_or_default()
+        };
+        for h in handlers_to_call {
+            let event = event.clone();
+            let s = self.clone();
+            std::thread::spawn(move || {
+                (h.lock().unwrap())(&s, &event);
+            });
         }
 
-        for scope in self.scopes.lock().unwrap().iter() {
-            for (child, _) in scope.children.lock().unwrap().iter() {
-                child.emit_event_threaded(event);
+        let event = event.clone();
+        self.scopes.access(move |scopes| {
+            for scope in scopes {
+                let event = event.clone();
+                scope.access_children(move |children| {
+                    for (child, _) in children {
+                        child.emit_event_threaded(&event);
+                    }
+                });
             }
-        }
+        });
     }
 
     pub fn scope(self: &Arc<Self>) -> Arc<Scope> {
         let scope = Scope::new(self.executor.clone());
-        self.scopes.lock().unwrap().push(scope.clone());
+
+        self.scopes.access({
+            let scope = scope.clone();
+            move |scopes| scopes.push(scope)
+        });
 
         scope
     }
@@ -136,7 +169,11 @@ impl Context {
         dependencies: &[&dyn HookDependency],
     ) -> Arc<Scope> {
         let scope = Scope::new(self.executor.clone());
-        self.scopes.lock().unwrap().push(scope.clone());
+
+        self.scopes.access({
+            let scope = scope.clone();
+            move |scopes| scopes.push(scope)
+        });
 
         drawer(&scope);
 
@@ -153,18 +190,35 @@ impl Context {
         scope
     }
 
-    pub fn draw_children(self: &Arc<Self>, ctx: &mut DrawContext) {
-        for scope in self.scopes.lock().unwrap().iter() {
-            for (child, view_wrapper) in scope.children.lock().unwrap().iter() {
-                let view = child.get_view();
+    pub fn add_scope(self: &Arc<Self>, scope: Arc<Scope>) {
+        self.scopes.access(|scopes| scopes.push(scope));
+    }
 
-                if let Some(view_wrapper) = view_wrapper {
-                    view_wrapper(ctx, view)
-                } else {
-                    ctx.draw_view(ctx.area.clone(), view);
-                }
+    pub fn draw_children(self: &Arc<Self>, ctx: &mut DrawContext) {
+        let c = ctx.clone();
+
+        let (tx, rx) = std::sync::mpsc::channel::<DrawContext>();
+
+        self.scopes.access(move |scopes| {
+            for scope in scopes {
+                let mut c = c.clone();
+                let tx = tx.clone();
+                scope.access_children(move |children| {
+                    for (child, view_wrapper) in children {
+                        let view = child.get_view();
+
+                        if let Some(view_wrapper) = view_wrapper {
+                            view_wrapper(&mut c, view)
+                        } else {
+                            c.draw_view(c.area.clone(), view);
+                        }
+                    }
+                    tx.send(c.clone()).expect("Failed transmitting DrawContext");
+                });
             }
-        }
+        });
+
+        *ctx = rx.recv().expect("Failed receiving DrawContext");
     }
 
     pub fn get_executor(self: &Arc<Self>) -> Arc<dyn CommandExecutor> {
