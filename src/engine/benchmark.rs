@@ -1,3 +1,7 @@
+//! # Benchmark Module
+//!
+//! Provides performance benchmarking capabilities for rendering engines.
+
 use std::{io::stdout, sync::Arc, time::Instant};
 
 use crossterm::{cursor::MoveTo, execute, terminal::Clear};
@@ -7,18 +11,26 @@ use crate::{render::Area, DrawContext, View};
 
 use super::Engine;
 
+/// Results of a benchmark run
 #[derive(Debug, Clone)]
 pub struct BenchmarkResult {
+    /// Average render time in microseconds
     pub average: u128,
+    /// Minimum render time in microseconds
     pub min: u128,
+    /// Maximum render time in microseconds
     pub max: u128,
+    /// Total time spent rendering in microseconds
     pub total_render: u128,
+    /// Total benchmark time including setup in microseconds
     pub total: u128,
 }
 
+/// Wraps an engine to benchmark its rendering performance
 pub struct Benchmark<T: Engine>(T);
 
 impl<T: Engine> Benchmark<T> {
+    /// Creates a new benchmark wrapper around the given engine
     pub fn new(engine: T) -> Self {
         Self(engine)
     }
@@ -31,6 +43,7 @@ impl<T: Engine> Engine<BenchmarkResult> for Benchmark<T> {
 
         let start = Instant::now();
 
+        // Run 40 render cycles and measure each
         for _ in 0..40 {
             let start = Instant::now();
             self.render(&cx);

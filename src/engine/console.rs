@@ -1,3 +1,8 @@
+//! # Console Engine Implementation
+//!
+//! Provides a Console implementation of the Engine trait for rendering
+//! to the terminal using crossterm.
+
 use std::{
     io::{stdout, Write},
     sync::{Arc, Mutex},
@@ -14,16 +19,24 @@ use crate::{
 
 use super::Engine;
 
+/// Executes commands for the console engine
 pub struct ConsoleExecutor {
+    /// Flag indicating whether the application is running
     running: Mutex<bool>,
 }
 
+/// Console-based rendering engine
+/// 
+/// Renders components to the terminal using crossterm for cross-platform support.
 pub struct Console {
+    /// Thread functions to execute
     threads: Mutex<Vec<Arc<dyn Fn(Arc<Context>) + Send + Sync>>>,
+    /// The executor for this console
     executor: Arc<ConsoleExecutor>,
 }
 
 impl Console {
+    /// Creates a new console engine
     pub fn new() -> Self {
         Self {
             threads: Mutex::new(Vec::new()),
@@ -33,6 +46,7 @@ impl Console {
         }
     }
 
+    /// Registers a thread function to run alongside the engine
     pub fn thread<F: Fn(Arc<Context>) + Send + Sync + 'static>(&self, run: F) {
         self.threads.lock().unwrap().push(Arc::new(run));
     }
@@ -114,10 +128,12 @@ impl Engine for Console {
 }
 
 impl ConsoleExecutor {
+    /// Checks if the engine is still running
     pub fn is_running(self: &Arc<ConsoleExecutor>) -> bool {
         *self.running.lock().unwrap()
     }
 
+    /// Stops the engine
     pub fn stop(&self) -> crate::Result<()> {
         *self.running.lock()? = false;
         Ok(())

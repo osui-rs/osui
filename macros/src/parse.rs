@@ -1,3 +1,7 @@
+//! # RSX Parser
+//!
+//! Parses RSX syntax into an AST that can be emitted as Rust code.
+
 use syn::braced;
 use syn::parse::discouraged::Speculative;
 use syn::{
@@ -6,7 +10,9 @@ use syn::{
     token::Brace,
 };
 
+/// Root of an RSX expression
 pub struct RsxRoot {
+    /// Top-level nodes in the RSX
     pub nodes: Vec<RsxNode>,
 }
 
@@ -20,30 +26,49 @@ impl Parse for RsxRoot {
     }
 }
 
-/// A single prop: `ident: expr`.
+/// A single component prop: `name: value`
 pub struct RsxProp {
+    /// Property name
     pub name: Ident,
+    /// Property value expression
     pub value: Expr,
 }
 
+/// AST node representing different RSX constructs
 pub enum RsxNode {
+    /// String literal: `"text"`
     Text(LitStr),
+    /// Expression node: `{expr}`
     Expr(Expr),
+    /// Component instantiation: `Component { prop: value, ... }`
     Component {
+        /// Component path (e.g., `my_module::MyComponent`)
         path: Path,
+        /// Component properties
         props: Vec<RsxProp>,
+        /// Child nodes
         children: Vec<RsxNode>,
     },
+    /// Mount lifecycle: `@mount`
     Mount(Ident),
+    /// Conditional rendering: `@if condition { ... }`
     If {
+        /// Dependencies to track for reactivity
         deps: Vec<Dep>,
+        /// Condition expression
         cond: Expr,
+        /// Child nodes to render if true
         children: Vec<RsxNode>,
     },
+    /// Loop rendering: `@for pattern in expr { ... }`
     For {
+        /// Dependencies to track for reactivity
         deps: Vec<Dep>,
+        /// Loop pattern (e.g., `(key, value)`)
         pat: Pat,
+        /// Iterable expression
         expr: Expr,
+        /// Child nodes to render for each iteration
         children: Vec<RsxNode>,
     },
 }

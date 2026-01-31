@@ -1,3 +1,12 @@
+//! # OSUI Macros
+//!
+//! Procedural macros for OSUI that provide ergonomic syntax for defining components.
+//!
+//! ## Features
+//!
+//! - `#[component]` - Transforms a function into a reusable component with props
+//! - `rsx!` - Creates RSX (React-like Syntax) for component hierarchies
+
 use proc_macro::TokenStream;
 use quote::quote;
 use syn::{FnArg, ItemFn, Pat, ReturnType, Type, parse_macro_input};
@@ -5,12 +14,41 @@ use syn::{FnArg, ItemFn, Pat, ReturnType, Type, parse_macro_input};
 mod emit;
 mod parse;
 
+/// RSX (React-like Syntax) macro for building component hierarchies
+///
+/// # Example
+///
+/// ```rust,ignore
+/// rsx! {
+///     Component {
+///         prop: value,
+///     }
+/// }
+/// ```
 #[proc_macro]
 pub fn rsx(input: TokenStream) -> TokenStream {
     let ast = parse_macro_input!(input as parse::RsxRoot);
     emit::emit_rsx(ast).into()
 }
 
+/// Component attribute macro for defining reusable components
+///
+/// Transforms a function into a component with automatic prop handling.
+/// The first parameter must be `cx: &Arc<Context>`.
+/// Remaining parameters become component props.
+///
+/// # Example
+///
+/// ```rust,ignore
+/// #[component]
+/// pub fn Counter(cx: &Arc<Context>, initial: &i32) -> View {
+///     let count = use_state(*initial);
+///     
+///     Arc::new(move |ctx| {
+///         ctx.draw_text(Point { x: 0, y: 0 }, &format!("Count: {}", count.get_dl()));
+///     })
+/// }
+/// ```
 #[proc_macro_attribute]
 pub fn component(_attr: TokenStream, item: TokenStream) -> TokenStream {
     let input = parse_macro_input!(item as ItemFn);

@@ -1,11 +1,17 @@
+//! # RSX Emission
+//!
+//! Converts parsed RSX AST into Rust code that constructs RSX objects.
+
 use crate::parse::*;
 use proc_macro2::TokenStream;
 use quote::quote;
 
+/// Emits code for the root RSX
 pub fn emit_rsx(root: RsxRoot) -> TokenStream {
     emit_rsx_vec(&root.nodes)
 }
 
+/// Emits code for a vector of RSX nodes
 pub fn emit_rsx_vec(nodes: &Vec<RsxNode>) -> TokenStream {
     let nodes = nodes.iter().map(emit_node_scope);
 
@@ -16,6 +22,7 @@ pub fn emit_rsx_vec(nodes: &Vec<RsxNode>) -> TokenStream {
     }}
 }
 
+/// Emits variable bindings for dependencies
 fn emit_deps(deps: &[Dep]) -> TokenStream {
     deps.iter()
         .map(|d| {
@@ -29,6 +36,7 @@ fn emit_deps(deps: &[Dep]) -> TokenStream {
         .collect()
 }
 
+/// Emits a Vec of dependencies as HookDependency trait objects
 fn emit_deps_vec(deps: &[Dep]) -> TokenStream {
     let deps = deps.iter().map(|d| {
         let ident = &d.ident;
@@ -43,6 +51,7 @@ fn emit_deps_vec(deps: &[Dep]) -> TokenStream {
     }
 }
 
+/// Emits code for a single node within a scope
 fn emit_node_scope(node: &RsxNode) -> TokenStream {
     match node {
         RsxNode::Text(_) => {
