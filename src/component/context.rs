@@ -20,7 +20,7 @@ pub struct Context {
     component: AccessCell<Component>,
     view: AccessCell<View>,
     event_handlers: AccessCell<HashMap<TypeId, Vec<EventHandler>>>,
-    scopes: AccessCell<Vec<Arc<Scope>>>,
+    pub(crate) scopes: Mutex<Vec<Arc<Scope>>>,
     executor: Arc<dyn CommandExecutor>,
 }
 
@@ -33,7 +33,7 @@ impl Context {
             component: AccessCell::new(Arc::new(component)),
             view: AccessCell::new(Arc::new(|_| {})),
             event_handlers: AccessCell::new(HashMap::new()),
-            scopes: AccessCell::new(Vec::new()),
+            scopes: Mutex::new(Vec::new()),
             executor,
         })
     }
@@ -83,10 +83,6 @@ impl Context {
         self.view.access_ref().clone()
     }
 
-    pub fn access_view(self: &Arc<Self>, f: impl FnOnce(&mut View) + Send + 'static) {
-        self.view.access(f)
-    }
-
     pub fn on_event<T: Any + 'static, F: Fn(&Arc<Self>, &T) + Send + Sync + 'static>(
         self: &Arc<Self>,
         handler: F,
@@ -115,16 +111,11 @@ impl Context {
             (h.lock().unwrap())(self, event.as_ref());
         }
 
-        self.scopes.access(move |scopes| {
-            for scope in scopes {
-                let event = event.clone();
-                scope.access_children(move |children| {
-                    for (child, _) in children {
-                        child.emit_event(event.clone());
-                    }
-                });
+        for scope in self.scopes.lock().unwrap().iter() {
+            for (child, _) in scope.children.lock().unwrap().iter() {
+                child.emit_event(event.clone());
             }
-        });
+        }
     }
 
     pub fn emit_event_threaded<E: Any + Send + Sync + Clone + 'static>(
@@ -143,26 +134,16 @@ impl Context {
             });
         }
 
-        let event = event.clone();
-        self.scopes.access(move |scopes| {
-            for scope in scopes {
-                let event = event.clone();
-                scope.access_children(move |children| {
-                    for (child, _) in children {
-                        child.emit_event_threaded(&event);
-                    }
-                });
+        for scope in self.scopes.lock().unwrap().iter() {
+            for (child, _) in scope.children.lock().unwrap().iter() {
+                child.emit_event_threaded(event);
             }
-        });
+        }
     }
 
     pub fn scope(self: &Arc<Self>) -> Arc<Scope> {
         let scope = Scope::new(self.executor.clone());
-
-        self.scopes.access({
-            let scope = scope.clone();
-            move |scopes| scopes.push(scope)
-        });
+        self.scopes.lock().unwrap().push(scope.clone());
 
         scope
     }
@@ -173,11 +154,7 @@ impl Context {
         dependencies: &[&dyn HookDependency],
     ) -> Arc<Scope> {
         let scope = Scope::new(self.executor.clone());
-
-        self.scopes.access({
-            let scope = scope.clone();
-            move |scopes| scopes.push(scope)
-        });
+        self.scopes.lock().unwrap().push(scope.clone());
 
         drawer(&scope);
 
@@ -195,53 +172,19 @@ impl Context {
     }
 
     pub fn add_scope(self: &Arc<Self>, scope: Arc<Scope>) {
-        self.scopes.access(|scopes| scopes.push(scope));
+        self.scopes.lock().unwrap().push(scope);
     }
 
     pub fn draw_children(self: &Arc<Self>, ctx: &mut DrawContext) {
-        let cmds: Arc<
-            Mutex<
-                Vec<(
-                    Option<
-                        Arc<
-                            dyn Fn(
-                                    &mut DrawContext,
-                                    Arc<dyn Fn(&mut DrawContext) + Send + Sync + 'static>,
-                                ) + Send
-                                + Sync,
-                        >,
-                    >,
-                    Arc<dyn Fn(&mut DrawContext) + Send + Sync>,
-                )>,
-            >,
-        > = Arc::new(Mutex::new(Vec::new()));
+        for scope in self.scopes.lock().unwrap().iter() {
+            for (child, view_wrapper) in scope.children.lock().unwrap().iter() {
+                let view = child.get_view();
 
-        self.scopes.access({
-            let cmds = cmds.clone();
-            move |scopes| {
-                for scope in scopes {
-                    scope.access_children({
-                        let cmds = cmds.clone();
-                        move |children| {
-                            for (child, view_wrapper) in children {
-                                let view_wrapper = view_wrapper.clone();
-                                let cmds = cmds.clone();
-                                child.access_view(move |view| {
-                                    cmds.lock().unwrap().push((view_wrapper, view.clone()))
-                                });
-                            }
-                        }
-                    });
+                if let Some(view_wrapper) = view_wrapper {
+                    view_wrapper(ctx, view)
+                } else {
+                    ctx.draw_view(ctx.area.clone(), view);
                 }
-            }
-        });
-
-        for (view_wrapper, view) in cmds.lock().unwrap().iter() {
-            if let Some(wrapper) = view_wrapper {
-                wrapper(ctx, view.clone());
-            } else {
-                let area = ctx.area.clone();
-                ctx.draw_view(area, view.clone());
             }
         }
     }

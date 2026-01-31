@@ -1,19 +1,18 @@
-use super::{context::Context, ComponentImpl};
-use crate::{engine::CommandExecutor, View, ViewWrapper};
-use access_cell::AccessCell;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 
-pub type ScopeChildren = Vec<(Arc<Context>, Option<ViewWrapper>)>;
+use crate::{engine::CommandExecutor, View, ViewWrapper};
+
+use super::{context::Context, ComponentImpl};
 
 pub struct Scope {
-    children: AccessCell<ScopeChildren>,
+    pub children: Mutex<Vec<(Arc<Context>, Option<ViewWrapper>)>>,
     executor: Arc<dyn CommandExecutor>,
 }
 
 impl Scope {
     pub fn new(executor: Arc<dyn CommandExecutor>) -> Arc<Self> {
         Arc::new(Self {
-            children: AccessCell::new(Vec::new()),
+            children: Mutex::new(Vec::new()),
             executor,
         })
     }
@@ -27,8 +26,7 @@ impl Scope {
 
         ctx.refresh();
 
-        self.children
-            .access(|children| children.push((ctx, view_wrapper)));
+        self.children.lock().unwrap().push((ctx, view_wrapper));
     }
 
     pub fn view(self: &Arc<Self>, view: View) {
@@ -36,19 +34,6 @@ impl Scope {
 
         ctx.refresh();
 
-        self.children.access(|children| children.push((ctx, None)));
-    }
-
-    pub fn view_wrapper(self: &Arc<Self>, view: View, view_wrapper: Option<ViewWrapper>) {
-        let ctx = Context::new(view, self.executor.clone());
-
-        ctx.refresh();
-
-        self.children
-            .access(|children| children.push((ctx, view_wrapper)));
-    }
-
-    pub fn access_children(self: &Arc<Self>, f: impl FnOnce(&mut ScopeChildren) + Send + 'static) {
-        self.children.access(f);
+        self.children.lock().unwrap().push((ctx, None));
     }
 }

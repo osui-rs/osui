@@ -76,15 +76,13 @@ fn emit_node_scope(node: &RsxNode) -> TokenStream {
                 {
                     #deps_emit
                     r.dynamic_scope(move |scope| {
-                        scope.access_children(|children| {
-                            if #cond {
-                                if children.is_empty() {
-                                    #(#kids)*
-                                }
-                            } else {
-                                .children.clear();
+                        if #cond {
+                            if scope.children.lock().unwrap().is_empty() {
+                                #(#kids)*
                             }
-                        })
+                        } else {
+                            scope.children.lock().unwrap().clear();
+                        }
                     }, #deps_vec_emit);
                 }
             }
@@ -105,7 +103,7 @@ fn emit_node_scope(node: &RsxNode) -> TokenStream {
                     #deps_emit
                     #[allow(unused_parens)]
                     r.dynamic_scope(move |scope| {
-                        scope.access_children(|children| children.clear());
+                        scope.children.lock().unwrap().clear();
                         for #pat in #expr {
                             #(#kids)*
                         }
