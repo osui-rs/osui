@@ -2,7 +2,8 @@
 name = "osui-macros"
 version = "0.1.0"
 edition = "2024"
-publish = false
+license = "Apache-2.0"
+description = "Macros for osui-rs"
 
 [lib]
 proc-macro = true
