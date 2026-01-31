@@ -17,21 +17,23 @@
 </p>
 
 <p align="center">
-  <b>OSUI is a customizable terminal user interface (TUI) library written in Rust. It provides a set of components and rsx to build interactive command-line interfaces with ease.</b>
+  <b>OSUI is a customizable terminal user interface (TUI) library written in Rust.</b>
 </p>
 
 ```rust
 use osui::prelude::*;
 
-fn main() -> std::io::Result<()> {
-    let screen = Screen::new();
+pub fn main() {
+    let engine = Console::new();
+    engine.run(App {}).expect("Failed to run engine");
+}
 
+#[component]
+fn App(cx: &Arc<Context>) -> View {
     rsx! {
-        "Hello, World"
+        "Hello World"
     }
-    .draw(&screen);
-
-    screen.run()
+    .view(&cx)
 }
 ```
 
