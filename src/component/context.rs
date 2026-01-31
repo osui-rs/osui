@@ -83,6 +83,10 @@ impl Context {
         self.view.access_ref().clone()
     }
 
+    pub fn access_view(self: &Arc<Self>, f: impl FnOnce(&mut View) + Send + 'static) {
+        self.view.access(f)
+    }
+
     pub fn on_event<T: Any + 'static, F: Fn(&Arc<Self>, &T) + Send + Sync + 'static>(
         self: &Arc<Self>,
         handler: F,
@@ -195,37 +199,51 @@ impl Context {
     }
 
     pub fn draw_children(self: &Arc<Self>, ctx: &mut DrawContext) {
-        let scope_count = self.scopes.access_ref().len();
-        let shared_ctx = Arc::new(Mutex::new(ctx.clone()));
-        let (tx_done, rx_done) = std::sync::mpsc::channel::<()>();
+        let cmds: Arc<
+            Mutex<
+                Vec<(
+                    Option<
+                        Arc<
+                            dyn Fn(
+                                    &mut DrawContext,
+                                    Arc<dyn Fn(&mut DrawContext) + Send + Sync + 'static>,
+                                ) + Send
+                                + Sync,
+                        >,
+                    >,
+                    Arc<dyn Fn(&mut DrawContext) + Send + Sync>,
+                )>,
+            >,
+        > = Arc::new(Mutex::new(Vec::new()));
 
         self.scopes.access({
-            let shared_ctx = shared_ctx.clone();
+            let cmds = cmds.clone();
             move |scopes| {
                 for scope in scopes {
-                    let shared_ctx = shared_ctx.clone();
-                    let tx_done = tx_done.clone();
-                    scope.access_children(move |children| {
-                        let mut c = shared_ctx.lock().unwrap();
-                        for (child, view_wrapper) in children {
-                            let view = child.get_view();
-                            if let Some(view_wrapper) = view_wrapper {
-                                view_wrapper(&mut c, view)
-                            } else {
-                                let area = c.area.clone();
-                                c.draw_view(area, view);
+                    scope.access_children({
+                        let cmds = cmds.clone();
+                        move |children| {
+                            for (child, view_wrapper) in children {
+                                let view_wrapper = view_wrapper.clone();
+                                let cmds = cmds.clone();
+                                child.access_view(move |view| {
+                                    cmds.lock().unwrap().push((view_wrapper, view.clone()))
+                                });
                             }
                         }
-                        let _ = tx_done.send(());
                     });
                 }
             }
         });
 
-        for _ in 0..scope_count {
-            rx_done.recv().expect("Failed receiving done signal");
+        for (view_wrapper, view) in cmds.lock().unwrap().iter() {
+            if let Some(wrapper) = view_wrapper {
+                wrapper(ctx, view.clone());
+            } else {
+                let area = ctx.area.clone();
+                ctx.draw_view(area, view.clone());
+            }
         }
-        *ctx = shared_ctx.lock().unwrap().clone();
     }
 
     pub fn get_executor(self: &Arc<Self>) -> Arc<dyn CommandExecutor> {
