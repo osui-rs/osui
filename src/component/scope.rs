@@ -1,18 +1,20 @@
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
+
+use access_cell::AccessCell;
 
 use crate::{engine::CommandExecutor, View, ViewWrapper};
 
 use super::{context::Context, ComponentImpl};
 
 pub struct Scope {
-    pub children: Mutex<Vec<(Arc<Context>, Option<ViewWrapper>)>>,
+    pub children: AccessCell<Vec<(Arc<Context>, Option<ViewWrapper>)>>,
     executor: Arc<dyn CommandExecutor>,
 }
 
 impl Scope {
     pub fn new(executor: Arc<dyn CommandExecutor>) -> Arc<Self> {
         Arc::new(Self {
-            children: Mutex::new(Vec::new()),
+            children: AccessCell::new(Vec::new()),
             executor,
         })
     }
@@ -26,7 +28,8 @@ impl Scope {
 
         ctx.refresh();
 
-        self.children.lock().unwrap().push((ctx, view_wrapper));
+        self.children
+            .access(|children| children.push((ctx, view_wrapper)));
     }
 
     pub fn view(self: &Arc<Self>, view: View) {
@@ -34,6 +37,6 @@ impl Scope {
 
         ctx.refresh();
 
-        self.children.lock().unwrap().push((ctx, None));
+        self.children.access(|children| children.push((ctx, None)));
     }
 }

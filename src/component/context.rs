@@ -113,9 +113,12 @@ impl Context {
 
         self.scopes.access(move |scopes| {
             for scope in scopes {
-                for (child, _) in scope.children.lock().unwrap().iter() {
-                    child.emit_event(event.clone());
-                }
+                let event = event.clone();
+                scope.children.access(move |children| {
+                    for (child, _) in children {
+                        child.emit_event(event.clone());
+                    }
+                });
             }
         });
     }
@@ -139,9 +142,12 @@ impl Context {
         let event = event.clone();
         self.scopes.access(move |scopes| {
             for scope in scopes {
-                for (child, _) in scope.children.lock().unwrap().iter() {
-                    child.emit_event_threaded(&event);
-                }
+                let event = event.clone();
+                scope.children.access(move |children| {
+                    for (child, _) in children {
+                        child.emit_event_threaded(&event);
+                    }
+                });
             }
         });
     }
@@ -189,23 +195,26 @@ impl Context {
     }
 
     pub fn draw_children(self: &Arc<Self>, ctx: &mut DrawContext) {
-        let mut c = ctx.clone();
+        let c = ctx.clone();
 
         let (tx, rx) = std::sync::mpsc::channel::<DrawContext>();
 
         self.scopes.access(move |scopes| {
             for scope in scopes {
-                for (child, view_wrapper) in scope.children.lock().unwrap().iter() {
-                    let view = child.get_view();
+                let mut c = c.clone();
+                let tx = tx.clone();
+                scope.children.access(move |children| {
+                    for (child, view_wrapper) in children {
+                        let view = child.get_view();
 
-                    if let Some(view_wrapper) = view_wrapper {
-                        view_wrapper(&mut c, view)
-                    } else {
-                        c.draw_view(c.area.clone(), view);
+                        if let Some(view_wrapper) = view_wrapper {
+                            view_wrapper(&mut c, view)
+                        } else {
+                            c.draw_view(c.area.clone(), view);
+                        }
                     }
-
                     tx.send(c.clone()).expect("Failed transmitting DrawContext");
-                }
+                });
             }
         });
 
