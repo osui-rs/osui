@@ -10,7 +10,12 @@ fn App(cx: &Arc<Context>) -> View {
     rsx! {
         // redraw is important because the effects won't be applied
         impl size_auto, center, redraw
-        Card { content: "Hello World".to_string() }
+        FlexRow {
+            impl size_auto, redraw
+            Card { content: "One".to_string() }
+            impl size_auto, redraw
+            Card { content: "Two".to_string() }
+        }
     }
     .view(&cx)
 }

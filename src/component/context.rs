@@ -15,15 +15,15 @@ use access_cell::AccessCell;
 use crate::{
     component::EventHandler,
     engine::{Command, CommandExecutor},
-    render::DrawContext,
     hooks::{use_effect, HookDependency},
-    View,
+    render::DrawContext,
+    View, ViewWrapper,
 };
 
 use super::{scope::Scope, Component, ComponentImpl};
 
 /// Context represents the runtime state and behavior of a component
-/// 
+///
 /// Each component instance has a Context that holds:
 /// - The component implementation
 /// - The current view (render result)
@@ -58,7 +58,7 @@ impl Context {
     }
 
     /// Refreshes the component by re-rendering it
-    /// 
+    ///
     /// Clears event handlers and calls the component to produce a new view.
     pub fn refresh(self: &Arc<Self>) {
         self.event_handlers
@@ -76,7 +76,7 @@ impl Context {
     }
 
     /// Synchronously refreshes the component
-    /// 
+    ///
     /// Blocks until the component has finished rendering.
     pub fn refresh_sync(self: &Arc<Self>) {
         let (tx, rx) = std::sync::mpsc::channel::<()>();
@@ -110,7 +110,7 @@ impl Context {
     }
 
     /// Registers an event handler for events of type T
-    /// 
+    ///
     /// When an event of type T is emitted, the handler is called with
     /// the context and a reference to the event.
     pub fn on_event<T: Any + 'static, F: Fn(&Arc<Self>, &T) + Send + Sync + 'static>(
@@ -132,7 +132,7 @@ impl Context {
     }
 
     /// Emits an event to this component and all descendants
-    /// 
+    ///
     /// Calls all registered handlers for this event type,
     /// then propagates the event to child components.
     pub fn emit_event<E: Send + Sync + Any + 'static>(self: &Arc<Self>, event: E) {
@@ -153,7 +153,7 @@ impl Context {
     }
 
     /// Emits an event to this component in a spawned thread
-    /// 
+    ///
     /// Similar to emit_event but handlers are called in spawned threads
     /// for concurrent execution.
     pub fn emit_event_threaded<E: Any + Send + Sync + Clone + 'static>(
@@ -214,6 +214,16 @@ impl Context {
     /// Adds a pre-constructed scope as a child
     pub fn add_scope(self: &Arc<Self>, scope: Arc<Scope>) {
         self.scopes.lock().unwrap().push(scope);
+    }
+
+    /// Gets the children
+    pub fn get_children(self: &Arc<Self>) -> Vec<(Arc<Context>, Option<ViewWrapper>)> {
+        self.scopes
+            .lock()
+            .unwrap()
+            .iter()
+            .flat_map(|s| s.children.lock().unwrap().clone())
+            .collect::<Vec<_>>()
     }
 
     /// Renders all child components to the draw context

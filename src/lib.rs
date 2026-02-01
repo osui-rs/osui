@@ -49,6 +49,12 @@ pub mod view_plugins;
 
 pub mod prelude {
     //! Prelude module - Re-exports commonly used items for convenience
+    pub use crate::component::components::*;
+    pub use crate::component_prelude::*;
+}
+
+pub mod component_prelude {
+    //! Prelude module - Re-exports commonly used items for convenience
     pub use crate::component::{context::*, scope::*, *};
     pub use crate::engine::*;
     pub use crate::frontend::*;

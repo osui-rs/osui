@@ -4,6 +4,7 @@
 //! Components are reusable units of UI that can manage their own state
 //! and respond to events.
 
+pub mod components;
 pub mod context;
 pub mod scope;
 
