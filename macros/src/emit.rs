@@ -51,6 +51,20 @@ fn emit_deps_vec(deps: &[Dep]) -> TokenStream {
     }
 }
 
+/// Emits a Vec of plugins
+fn emit_plugins(deps: &[ViewPlugin]) -> TokenStream {
+    deps.iter()
+        .map(|d| {
+            let path = &d.path;
+            if let Some(args) = &d.args {
+                quote!( #path(ctx, view #(,#args)*); )
+            } else {
+                quote!( #path(ctx, view); )
+            }
+        })
+        .collect()
+}
+
 /// Emits code for a single node within a scope
 fn emit_node_scope(node: &RsxNode) -> TokenStream {
     match node {
@@ -144,6 +158,7 @@ fn emit_node(node: &RsxNode) -> TokenStream {
         }
 
         RsxNode::Component {
+            plugins,
             path,
             props,
             children,
@@ -171,8 +186,16 @@ fn emit_node(node: &RsxNode) -> TokenStream {
                 }
             };
 
-            quote! {
-                scope.child(#component_expr, None);
+            if plugins.len() == 0 {
+                quote! {
+                    scope.child(#component_expr, None);
+                }
+            } else {
+                let plugins_emit = emit_plugins(plugins);
+
+                quote! {
+                    scope.child(#component_expr, Some(std::sync::Arc::new(|ctx, view| {#plugins_emit})));
+                }
             }
         }
 

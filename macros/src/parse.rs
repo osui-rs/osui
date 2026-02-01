@@ -5,13 +5,14 @@
 use std::collections::HashSet;
 
 use proc_macro2::Span;
-use syn::braced;
 use syn::parse::discouraged::Speculative;
+use syn::punctuated::Punctuated;
 use syn::{
     Expr, Ident, LitStr, Pat, Path, Result, Token,
     parse::{Parse, ParseStream},
     token::Brace,
 };
+use syn::{braced, parenthesized};
 
 /// Root of an RSX expression
 pub struct RsxRoot {
@@ -45,6 +46,8 @@ pub enum RsxNode {
     Expr(Expr),
     /// Component instantiation: `Component { prop: value, ... }`
     Component {
+        /// View plugins
+        plugins: Vec<ViewPlugin>,
         /// Component path (e.g., `my_module::MyComponent`)
         path: Path,
         /// Component properties
@@ -80,6 +83,11 @@ pub struct Dep {
     pub ident: Ident,
     pub pat: Option<Pat>,
     pub is_dep: bool,
+}
+
+pub struct ViewPlugin {
+    pub path: Path,
+    pub args: Option<Vec<Expr>>,
 }
 
 fn parse_deps(input: ParseStream) -> Result<Vec<Dep>> {
@@ -120,6 +128,35 @@ fn parse_deps(input: ParseStream) -> Result<Vec<Dep>> {
     }
 
     Ok(deps)
+}
+
+fn parse_plugins(input: ParseStream) -> Result<Vec<ViewPlugin>> {
+    let mut plugins = Vec::new();
+
+    if input.peek(Token![impl]) {
+        input.parse::<Token![impl]>()?;
+        loop {
+            let path: Path = input.parse()?;
+
+            let args = if input.peek(syn::token::Paren) {
+                let content;
+                parenthesized!(content in input);
+                let exprs = Punctuated::<Expr, Token![,]>::parse_terminated(&content)?;
+                Some(exprs.into_iter().collect())
+            } else {
+                None
+            };
+
+            plugins.push(ViewPlugin { path, args });
+
+            if !input.peek(Token![,]) {
+                break;
+            }
+            input.parse::<Token![,]>()?;
+        }
+    }
+
+    Ok(plugins)
 }
 
 impl Parse for RsxNode {
@@ -201,10 +238,12 @@ impl Parse for RsxNode {
 
 /// Parses Path or Path { ... } into RsxNode::Component.
 fn parse_component_invocation(input: ParseStream) -> Result<RsxNode> {
+    let plugins = parse_plugins(input)?;
     let path: Path = input.parse()?;
 
     if !input.peek(Brace) {
         return Ok(RsxNode::Component {
+            plugins,
             path,
             props: Vec::new(),
             children: Vec::new(),
@@ -217,6 +256,7 @@ fn parse_component_invocation(input: ParseStream) -> Result<RsxNode> {
     let (props, children) = parse_props_and_children(&content)?;
 
     Ok(RsxNode::Component {
+        plugins,
         path,
         props,
         children,
