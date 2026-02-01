@@ -2,6 +2,8 @@
 //!
 //! Parses RSX syntax into an AST that can be emitted as Rust code.
 
+use std::collections::HashSet;
+
 use proc_macro2::Span;
 use syn::braced;
 use syn::parse::discouraged::Speculative;
@@ -269,9 +271,9 @@ fn parse_children(input: ParseStream) -> Result<Vec<RsxNode>> {
     Ok(nodes)
 }
 
-fn extract_vars_from_lit(lit: &LitStr) -> Vec<Ident> {
+fn extract_vars_from_lit(lit: &LitStr) -> HashSet<Ident> {
     let s = lit.value();
-    let mut vars = Vec::new();
+    let mut vars = HashSet::new();
 
     let mut chars = s.chars().peekable();
     while let Some(c) = chars.next() {
@@ -292,7 +294,7 @@ fn extract_vars_from_lit(lit: &LitStr) -> Vec<Ident> {
             }
 
             if !name.is_empty() {
-                vars.push(Ident::new(
+                vars.insert(Ident::new(
                     &name.split_once(':').unwrap_or((&name, &name)).0,
                     Span::call_site(),
                 ));
