@@ -114,3 +114,21 @@ impl DrawContext {
         self.drawing.clear();
     }
 }
+
+impl Area {
+    fn right(&self) -> u16 {
+        self.x + self.width
+    }
+
+    fn bottom(&self) -> u16 {
+        self.y + self.height
+    }
+
+    pub fn merge(&mut self, other: &Self) {
+        self.x = self.x.min(other.x);
+        self.y = self.y.min(other.y);
+
+        self.width = self.right().max(other.right()) - self.x;
+        self.height = self.bottom().max(other.bottom()) - self.y;
+    }
+}

@@ -88,6 +88,37 @@ pub fn size_auto(ctx: &mut DrawContext, _view: &View) {
     }
 }
 
+/// Automatically computes both width and height based on drawn content.
+/// Merges the allocation for multiple drawings.
+pub fn size_auto_merge(ctx: &mut DrawContext, _view: &View) {
+    ctx.allocated.x = u16::MAX;
+    ctx.allocated.y = u16::MAX;
+    ctx.allocated.width = 0;
+    ctx.allocated.height = 0;
+
+    for i in &ctx.drawing {
+        match i {
+            DrawInstruction::Text(_, text) => {
+                let mut height = 0;
+
+                for line in text.lines() {
+                    ctx.allocated.width = ctx.allocated.width.max(line.len() as u16);
+                    height += 1;
+                }
+
+                ctx.allocated.height = height;
+            }
+            DrawInstruction::View(area, view) => {
+                let mut c = DrawContext::new(area.clone());
+                view(&mut c);
+                size_auto(&mut c, view);
+                ctx.allocated.merge(&c.allocated);
+            }
+            DrawInstruction::Child(_, _) => {}
+        }
+    }
+}
+
 /// Automatically computes width based on drawn content.
 ///
 /// # Sizing rules
