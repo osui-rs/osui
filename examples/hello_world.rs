@@ -15,8 +15,6 @@ fn App(cx: &Arc<Context>) -> View {
 
 #[component]
 fn Card(cx: &Arc<Context>, content: String) -> View {
-    let content = content.clone();
-
     rsx! {
         "----\n{content}\n----"
     }
