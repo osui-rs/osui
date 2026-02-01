@@ -20,14 +20,62 @@ pub fn size_auto(ctx: &mut DrawContext, _view: &View) {
     for i in &ctx.drawing {
         match i {
             DrawInstruction::Text(_, text) => {
-                ctx.allocated.width = text.len() as u16;
-                ctx.allocated.height = 1;
+                let mut height = 0;
+
+                for line in text.lines() {
+                    ctx.allocated.width = ctx.allocated.width.max(line.len() as u16);
+                    height += 1;
+                }
+
+                ctx.allocated.height = height;
             }
             DrawInstruction::View(area, view) => {
                 let mut c = DrawContext::new(area.clone());
                 view(&mut c);
                 size_auto(&mut c, view);
                 ctx.allocated.width = c.allocated.width;
+                ctx.allocated.height = c.allocated.height;
+            }
+            DrawInstruction::Child(_, _) => {}
+        }
+    }
+}
+
+pub fn width_auto(ctx: &mut DrawContext, _view: &View) {
+    for i in &ctx.drawing {
+        match i {
+            DrawInstruction::Text(_, text) => {
+                for line in text.lines() {
+                    ctx.allocated.width = ctx.allocated.width.max(line.len() as u16);
+                }
+            }
+            DrawInstruction::View(area, view) => {
+                let mut c = DrawContext::new(area.clone());
+                view(&mut c);
+                size_auto(&mut c, view);
+                ctx.allocated.width = c.allocated.width;
+            }
+            DrawInstruction::Child(_, _) => {}
+        }
+    }
+}
+
+pub fn height_auto(ctx: &mut DrawContext, _view: &View) {
+    for i in &ctx.drawing {
+        match i {
+            DrawInstruction::Text(_, text) => {
+                let mut height = 0;
+
+                for _ in text.lines() {
+                    height += 1;
+                }
+
+                ctx.allocated.height = height;
+            }
+            DrawInstruction::View(area, view) => {
+                let mut c = DrawContext::new(area.clone());
+                view(&mut c);
+                size_auto(&mut c, view);
                 ctx.allocated.height = c.allocated.height;
             }
             DrawInstruction::Child(_, _) => {}
