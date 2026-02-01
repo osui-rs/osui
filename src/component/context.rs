@@ -16,7 +16,7 @@ use crate::{
     component::EventHandler,
     engine::{Command, CommandExecutor},
     render::DrawContext,
-    state::{use_effect, HookDependency},
+    hooks::{use_effect, HookDependency},
     View,
 };
 

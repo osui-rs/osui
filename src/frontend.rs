@@ -7,7 +7,7 @@
 use std::sync::Arc;
 
 use crate::component::{context::Context, scope::Scope};
-use crate::{render::Point, state::HookDependency, View};
+use crate::{render::Point, hooks::HookDependency, View};
 
 /// Trait for converting values to RSX
 pub trait ToRsx {

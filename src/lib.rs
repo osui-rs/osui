@@ -44,7 +44,7 @@ pub mod component;
 pub mod engine;
 pub mod frontend;
 pub mod render;
-pub mod state;
+pub mod hooks;
 
 pub mod prelude {
     //! Prelude module - Re-exports commonly used items for convenience
@@ -52,7 +52,7 @@ pub mod prelude {
     pub use crate::engine::*;
     pub use crate::frontend::*;
     pub use crate::render::*;
-    pub use crate::state::*;
+    pub use crate::hooks::*;
     pub use crate::{sleep, Error, Result, View, ViewWrapper};
     pub use crossterm;
     pub use osui_macros::{component, rsx};

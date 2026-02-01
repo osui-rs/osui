@@ -1,4 +1,4 @@
-//! # State Management Module
+//! # State Management and Hooks Module
 //!
 //! Provides React-like hooks for managing component state and side effects.
 //! This module includes useState, useEffect, useMount, and state synchronization hooks.
