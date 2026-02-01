@@ -26,7 +26,7 @@ pub struct ConsoleExecutor {
 }
 
 /// Console-based rendering engine
-/// 
+///
 /// Renders components to the terminal using crossterm for cross-platform support.
 pub struct Console {
     /// Thread functions to execute
@@ -64,8 +64,10 @@ impl Engine for Console {
             match inst {
                 crate::render::DrawInstruction::Text(point, text) => {
                     let (x, y) = (ctx.area.x + point.x, ctx.area.y + point.y);
-                    execute!(stdout(), MoveTo(x, y),).unwrap();
-                    print!("{text}");
+                    for (i, line) in text.lines().enumerate() {
+                        execute!(stdout(), MoveTo(x, y + (i as u16))).unwrap();
+                        print!("{line}");
+                    }
                     stdout().flush().unwrap();
                 }
                 crate::render::DrawInstruction::Child(_point, child) => self.draw_context(child),
