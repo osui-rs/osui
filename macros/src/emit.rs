@@ -38,7 +38,7 @@ fn emit_deps(deps: &[Dep]) -> TokenStream {
 
 /// Emits a Vec of dependencies as HookDependency trait objects
 fn emit_deps_vec(deps: &[Dep]) -> TokenStream {
-    let deps = deps.iter().map(|d| {
+    let deps = deps.iter().filter(|d| d.is_dep).map(|d| {
         let ident = &d.ident;
 
         quote! {
@@ -51,12 +51,29 @@ fn emit_deps_vec(deps: &[Dep]) -> TokenStream {
     }
 }
 
+/// Emits a Vec of plugins
+fn emit_plugins(deps: &[ViewPlugin]) -> TokenStream {
+    deps.iter()
+        .map(|d| {
+            let path = &d.path;
+            if let Some(args) = &d.args {
+                quote!( #path(ctx, &view #(,#args)*); )
+            } else {
+                quote!( #path(ctx, &view); )
+            }
+        })
+        .collect()
+}
+
 /// Emits code for a single node within a scope
 fn emit_node_scope(node: &RsxNode) -> TokenStream {
     match node {
-        RsxNode::Text(_) => {
+        RsxNode::Text { deps, .. } => {
             let emit = emit_node(node);
+            let deps_emit = emit_deps(deps);
+
             quote! {
+                #deps_emit
                 r.static_scope(move |scope| {#emit});
             }
         }
@@ -129,13 +146,38 @@ fn emit_node_scope(node: &RsxNode) -> TokenStream {
 
 fn emit_node(node: &RsxNode) -> TokenStream {
     match node {
-        RsxNode::Text(text) => quote! {
-            scope.view(Arc::new(move |ctx| {
-                ctx.draw_text(Point { x: 0, y: 0 }, &format!(#text))
-            }));
-        },
+        RsxNode::Text {
+            text,
+            deps,
+            plugins,
+        } => {
+            let deps_emit = emit_deps(deps);
+
+            if plugins.len() == 0 {
+                quote! {
+                    scope.view(Arc::new({
+                        #deps_emit
+                        move |ctx| ctx.draw_text(Point { x: 0, y: 0 }, &format!(#text))
+                    }));
+                }
+            } else {
+                let plugins_emit = emit_plugins(plugins);
+
+                quote! {
+                    scope.view_wrapped(Arc::new({
+                        #deps_emit
+                        move |ctx| ctx.draw_text(Point { x: 0, y: 0 }, &format!(#text))
+                    }), std::sync::Arc::new(|ctx, view| {
+                        let area = ctx.allocate(ctx.area.x, ctx.area.y, ctx.area.width, ctx.area.height);
+                        ctx.draw_view(area, view.clone());
+                        #plugins_emit
+                    }));
+                }
+            }
+        }
 
         RsxNode::Component {
+            plugins,
             path,
             props,
             children,
@@ -163,8 +205,20 @@ fn emit_node(node: &RsxNode) -> TokenStream {
                 }
             };
 
-            quote! {
-                scope.child(#component_expr, None);
+            if plugins.len() == 0 {
+                quote! {
+                    scope.child(#component_expr, None);
+                }
+            } else {
+                let plugins_emit = emit_plugins(plugins);
+
+                quote! {
+                    scope.child(#component_expr, Some(std::sync::Arc::new(|ctx, view| {
+                        let area = ctx.allocate(ctx.area.x, ctx.area.y, ctx.area.width, ctx.area.height);
+                        ctx.draw_view(area, view.clone());
+                        #plugins_emit
+                    })));
+                }
             }
         }
 

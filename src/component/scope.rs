@@ -10,7 +10,7 @@ use crate::{engine::CommandExecutor, View, ViewWrapper};
 use super::{context::Context, ComponentImpl};
 
 /// A scope groups child components and manages their rendering
-/// 
+///
 /// Scopes form the hierarchical structure of a component tree.
 /// Each scope contains references to its child components and their
 /// optional view wrappers (for layout/styling).
@@ -31,7 +31,7 @@ impl Scope {
     }
 
     /// Adds a child component to this scope
-    /// 
+    ///
     /// The view_wrapper is optional and can be used for layout or styling.
     pub fn child<F: ComponentImpl + 'static>(
         self: &Arc<Self>,
@@ -52,5 +52,14 @@ impl Scope {
         ctx.refresh();
 
         self.children.lock().unwrap().push((ctx, None));
+    }
+
+    /// Adds a view directly to this scope
+    pub fn view_wrapped(self: &Arc<Self>, view: View, view_wrapper: ViewWrapper) {
+        let ctx = Context::new(view, self.executor.clone());
+
+        ctx.refresh();
+
+        self.children.lock().unwrap().push((ctx, Some(view_wrapper)));
     }
 }

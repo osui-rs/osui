@@ -8,7 +8,24 @@ pub fn main() {
 #[component]
 fn App(cx: &Arc<Context>) -> View {
     rsx! {
-        "Hello World"
+        // redraw is important because the effects won't be applied
+        impl size_auto, center, redraw
+        FlexRow {
+            impl size_auto, redraw
+            Card { content: "One".to_string() }
+            impl size_auto, redraw
+            Card { content: "Two".to_string() }
+        }
+    }
+    .view(&cx)
+}
+
+#[component]
+fn Card(cx: &Arc<Context>, content: String) -> View {
+    let bar = "-".repeat(content.len());
+
+    rsx! {
+        "{bar}\n{content}\n{bar}"
     }
     .view(&cx)
 }
