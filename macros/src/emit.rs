@@ -146,14 +146,33 @@ fn emit_node_scope(node: &RsxNode) -> TokenStream {
 
 fn emit_node(node: &RsxNode) -> TokenStream {
     match node {
-        RsxNode::Text { text, deps } => {
+        RsxNode::Text {
+            text,
+            deps,
+            plugins,
+        } => {
             let deps_emit = emit_deps(deps);
 
-            quote! {
-                scope.view(Arc::new({
-                    #deps_emit
-                    move |ctx| ctx.draw_text(Point { x: 0, y: 0 }, &format!(#text))
-                }));
+            if plugins.len() == 0 {
+                quote! {
+                    scope.view(Arc::new({
+                        #deps_emit
+                        move |ctx| ctx.draw_text(Point { x: 0, y: 0 }, &format!(#text))
+                    }));
+                }
+            } else {
+                let plugins_emit = emit_plugins(plugins);
+
+                quote! {
+                    scope.view_wrapped(Arc::new({
+                        #deps_emit
+                        move |ctx| ctx.draw_text(Point { x: 0, y: 0 }, &format!(#text))
+                    }), std::sync::Arc::new(|ctx, view| {
+                        let area = ctx.allocate(ctx.area.x, ctx.area.y, ctx.area.width, ctx.area.height);
+                        ctx.draw_view(area, view.clone());
+                        #plugins_emit
+                    }));
+                }
             }
         }
 

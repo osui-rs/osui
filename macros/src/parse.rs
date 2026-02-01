@@ -41,7 +41,11 @@ pub struct RsxProp {
 /// AST node representing different RSX constructs
 pub enum RsxNode {
     /// String literal: `"text"`
-    Text { text: LitStr, deps: Vec<Dep> },
+    Text {
+        plugins: Vec<ViewPlugin>,
+        text: LitStr,
+        deps: Vec<Dep>,
+    },
     /// Expression node: `{expr}`
     Expr(Expr),
     /// Component instantiation: `Component { prop: value, ... }`
@@ -212,6 +216,8 @@ impl Parse for RsxNode {
             });
         }
 
+        let plugins = parse_plugins(input)?;
+
         // "%$dep for $pat in $expr { $rsx }"
         if input.peek(LitStr) {
             let text = input.parse()?;
@@ -229,16 +235,19 @@ impl Parse for RsxNode {
                     .collect(),
             );
 
-            return Ok(RsxNode::Text { text, deps });
+            return Ok(RsxNode::Text {
+                text,
+                deps,
+                plugins,
+            });
         }
 
-        parse_component_invocation(input)
+        parse_component_invocation(input, plugins)
     }
 }
 
 /// Parses Path or Path { ... } into RsxNode::Component.
-fn parse_component_invocation(input: ParseStream) -> Result<RsxNode> {
-    let plugins = parse_plugins(input)?;
+fn parse_component_invocation(input: ParseStream, plugins: Vec<ViewPlugin>) -> Result<RsxNode> {
     let path: Path = input.parse()?;
 
     if !input.peek(Brace) {
