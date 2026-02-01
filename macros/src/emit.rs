@@ -57,9 +57,9 @@ fn emit_plugins(deps: &[ViewPlugin]) -> TokenStream {
         .map(|d| {
             let path = &d.path;
             if let Some(args) = &d.args {
-                quote!( #path(ctx, view #(,#args)*); )
+                quote!( #path(ctx, &view #(,#args)*); )
             } else {
-                quote!( #path(ctx, view); )
+                quote!( #path(ctx, &view); )
             }
         })
         .collect()
@@ -194,7 +194,11 @@ fn emit_node(node: &RsxNode) -> TokenStream {
                 let plugins_emit = emit_plugins(plugins);
 
                 quote! {
-                    scope.child(#component_expr, Some(std::sync::Arc::new(|ctx, view| {#plugins_emit})));
+                    scope.child(#component_expr, Some(std::sync::Arc::new(|ctx, view| {
+                        let area = ctx.allocate(ctx.area.x, ctx.area.y, ctx.area.width, ctx.area.height);
+                        ctx.draw_view(area, view.clone());
+                        #plugins_emit
+                    })));
                 }
             }
         }

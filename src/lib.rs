@@ -43,16 +43,18 @@ use crate::render::DrawContext;
 pub mod component;
 pub mod engine;
 pub mod frontend;
-pub mod render;
 pub mod hooks;
+pub mod render;
+pub mod view_plugins;
 
 pub mod prelude {
     //! Prelude module - Re-exports commonly used items for convenience
     pub use crate::component::{context::*, scope::*, *};
     pub use crate::engine::*;
     pub use crate::frontend::*;
-    pub use crate::render::*;
     pub use crate::hooks::*;
+    pub use crate::render::*;
+    pub use crate::view_plugins::*;
     pub use crate::{sleep, Error, Result, View, ViewWrapper};
     pub use crossterm;
     pub use osui_macros::{component, rsx};

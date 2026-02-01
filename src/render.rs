@@ -18,7 +18,7 @@ pub enum DrawInstruction {
 }
 
 /// Represents the dimensions of a drawable area
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Size {
     /// Width in terminal columns
     pub width: u16,
@@ -27,7 +27,7 @@ pub struct Size {
 }
 
 /// Represents a position in 2D space
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Point {
     /// X coordinate (column)
     pub x: u16,
@@ -36,7 +36,7 @@ pub struct Point {
 }
 
 /// Represents a rectangular area with position and dimensions
-#[derive(Clone)]
+#[derive(Debug, Clone)]
 pub struct Area {
     /// X coordinate (column) of the top-left corner
     pub x: u16,
@@ -68,8 +68,8 @@ impl DrawContext {
         Self {
             area,
             allocated: Area {
-                x: u16::MAX,
-                y: u16::MAX,
+                x: 0,
+                y: 0,
                 width: 0,
                 height: 0,
             },
@@ -80,10 +80,10 @@ impl DrawContext {
     /// Allocates space within the drawable area and returns the allocated area
     /// Updates the allocated bounds to include this allocation
     pub fn allocate(&mut self, x: u16, y: u16, width: u16, height: u16) -> Area {
-        self.allocated.x = self.allocated.x.min(x);
-        self.allocated.y = self.allocated.y.min(y);
-        self.allocated.width = self.allocated.width.max(width);
-        self.allocated.height = self.allocated.height.max(height);
+        self.allocated.x = x;
+        self.allocated.y = y;
+        self.allocated.width = width;
+        self.allocated.height = height;
 
         Area {
             x,
@@ -107,5 +107,10 @@ impl DrawContext {
     /// Draws a view within the specified area
     pub fn draw_view(&mut self, area: Area, view: View) {
         self.drawing.push(DrawInstruction::View(area, view));
+    }
+
+    /// Clears drawing
+    pub fn clear(&mut self) {
+        self.drawing.clear();
     }
 }
