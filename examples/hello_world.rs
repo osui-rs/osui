@@ -8,6 +8,7 @@ pub fn main() {
 #[component]
 fn App(cx: &Arc<Context>) -> View {
     rsx! {
+        // redraw is important because the effects won't be applied
         impl size_auto, center, redraw
         Card { content: "Hello World".to_string() }
     }
