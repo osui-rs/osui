@@ -8,7 +8,17 @@ pub fn main() {
 #[component]
 fn App(cx: &Arc<Context>) -> View {
     rsx! {
-        "Hello World"
+        Card { content: "Hello World".to_string() }
+    }
+    .view(&cx)
+}
+
+#[component]
+fn Card(cx: &Arc<Context>, content: String) -> View {
+    let content = content.clone();
+
+    rsx! {
+        %ref content "----\n{content}\n----"
     }
     .view(&cx)
 }

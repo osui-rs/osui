@@ -37,7 +37,7 @@ pub struct RsxProp {
 /// AST node representing different RSX constructs
 pub enum RsxNode {
     /// String literal: `"text"`
-    Text(LitStr),
+    Text { text: LitStr, deps: Vec<Dep> },
     /// Expression node: `{expr}`
     Expr(Expr),
     /// Component instantiation: `Component { prop: value, ... }`
@@ -76,6 +76,7 @@ pub enum RsxNode {
 pub struct Dep {
     pub ident: Ident,
     pub pat: Option<Pat>,
+    pub is_dep: bool,
 }
 
 fn parse_deps(input: ParseStream) -> Result<Vec<Dep>> {
@@ -84,7 +85,15 @@ fn parse_deps(input: ParseStream) -> Result<Vec<Dep>> {
     if input.peek(Token![%]) {
         input.parse::<Token![%]>()?;
         loop {
+            let is_ref = if input.peek(Token![ref]) {
+                input.parse::<Token![ref]>()?;
+                true
+            } else {
+                false
+            };
+
             let ident: Ident = input.parse()?;
+
             let pat = if input.peek(Token![as]) {
                 input.parse::<Token![as]>()?;
                 // Patterns in syn 2.0 are parsed via `Pat::parse_multi`
@@ -94,7 +103,11 @@ fn parse_deps(input: ParseStream) -> Result<Vec<Dep>> {
                 None
             };
 
-            deps.push(Dep { ident, pat });
+            deps.push(Dep {
+                ident,
+                pat,
+                is_dep: !is_ref,
+            });
 
             if !input.peek(Token![,]) {
                 break;
@@ -161,7 +174,10 @@ impl Parse for RsxNode {
 
         // "%$dep for $pat in $expr { $rsx }"
         if input.peek(LitStr) {
-            return Ok(RsxNode::Text(input.parse()?));
+            return Ok(RsxNode::Text {
+                text: input.parse()?,
+                deps,
+            });
         }
 
         parse_component_invocation(input)

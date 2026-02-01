@@ -38,7 +38,7 @@ fn emit_deps(deps: &[Dep]) -> TokenStream {
 
 /// Emits a Vec of dependencies as HookDependency trait objects
 fn emit_deps_vec(deps: &[Dep]) -> TokenStream {
-    let deps = deps.iter().map(|d| {
+    let deps = deps.iter().filter(|d| d.is_dep).map(|d| {
         let ident = &d.ident;
 
         quote! {
@@ -54,9 +54,12 @@ fn emit_deps_vec(deps: &[Dep]) -> TokenStream {
 /// Emits code for a single node within a scope
 fn emit_node_scope(node: &RsxNode) -> TokenStream {
     match node {
-        RsxNode::Text(_) => {
+        RsxNode::Text { deps, .. } => {
             let emit = emit_node(node);
+            let deps_emit = emit_deps(deps);
+
             quote! {
+                #deps_emit
                 r.static_scope(move |scope| {#emit});
             }
         }
@@ -129,11 +132,16 @@ fn emit_node_scope(node: &RsxNode) -> TokenStream {
 
 fn emit_node(node: &RsxNode) -> TokenStream {
     match node {
-        RsxNode::Text(text) => quote! {
-            scope.view(Arc::new(move |ctx| {
-                ctx.draw_text(Point { x: 0, y: 0 }, &format!(#text))
-            }));
-        },
+        RsxNode::Text { text, deps } => {
+            let deps_emit = emit_deps(deps);
+
+            quote! {
+                scope.view(Arc::new({
+                    #deps_emit
+                    move |ctx| ctx.draw_text(Point { x: 0, y: 0 }, &format!(#text))
+                }));
+            }
+        }
 
         RsxNode::Component {
             path,
