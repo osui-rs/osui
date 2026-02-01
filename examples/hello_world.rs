@@ -15,8 +15,10 @@ fn App(cx: &Arc<Context>) -> View {
 
 #[component]
 fn Card(cx: &Arc<Context>, content: String) -> View {
+    let bar = "-".repeat(content.len());
+
     rsx! {
-        "----\n{content}\n----"
+        "{bar}\n{content}\n{bar}"
     }
     .view(&cx)
 }
