@@ -18,7 +18,7 @@ fn Card(cx: &Arc<Context>, content: String) -> View {
     let content = content.clone();
 
     rsx! {
-        %ref content "----\n{content}\n----"
+        "----\n{content}\n----"
     }
     .view(&cx)
 }

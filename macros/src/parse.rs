@@ -2,6 +2,7 @@
 //!
 //! Parses RSX syntax into an AST that can be emitted as Rust code.
 
+use proc_macro2::Span;
 use syn::braced;
 use syn::parse::discouraged::Speculative;
 use syn::{
@@ -174,10 +175,22 @@ impl Parse for RsxNode {
 
         // "%$dep for $pat in $expr { $rsx }"
         if input.peek(LitStr) {
-            return Ok(RsxNode::Text {
-                text: input.parse()?,
-                deps,
-            });
+            let text = input.parse()?;
+
+            let mut deps = deps;
+
+            deps.append(
+                &mut extract_vars_from_lit(&text)
+                    .into_iter()
+                    .map(|ident| Dep {
+                        ident,
+                        pat: None,
+                        is_dep: false,
+                    })
+                    .collect(),
+            );
+
+            return Ok(RsxNode::Text { text, deps });
         }
 
         parse_component_invocation(input)
@@ -254,4 +267,38 @@ fn parse_children(input: ParseStream) -> Result<Vec<RsxNode>> {
         nodes.push(input.parse()?);
     }
     Ok(nodes)
+}
+
+fn extract_vars_from_lit(lit: &LitStr) -> Vec<Ident> {
+    let s = lit.value();
+    let mut vars = Vec::new();
+
+    let mut chars = s.chars().peekable();
+    while let Some(c) = chars.next() {
+        if c == '{' {
+            // skip escaped {{
+            if chars.peek() == Some(&'{') {
+                chars.next();
+                continue;
+            }
+
+            let mut name = String::new();
+            while let Some(&ch) = chars.peek() {
+                chars.next();
+                if ch == '}' {
+                    break;
+                }
+                name.push(ch);
+            }
+
+            if !name.is_empty() {
+                vars.push(Ident::new(
+                    &name.split_once(':').unwrap_or((&name, &name)).0,
+                    Span::call_site(),
+                ));
+            }
+        }
+    }
+
+    vars
 }
